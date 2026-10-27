@@ -19,7 +19,11 @@ Any static file server works; the page fetches `data/puzzles.json` so it needs H
 | `js/engine.js` | deal, actions, goal evaluation, goal cost, scoring; pure, shared with Node |
 | `js/rng.js` | seeded RNG (mulberry32), used for deals and draws |
 | `js/game.js` | round and game flow, localStorage persistence |
-| `js/ui.js` | screens, action modes, animations, replay, help, share, stats |
+| `js/ui.js` | screens, action modes, replay, help, share, stats |
+| `js/board.js` | shared 7x7 board skeleton and tile animations |
+| `js/words.js` | Word mode engine: letter bag, locked tiles, word finding, scoring |
+| `js/wordui.js` | Word mode screen |
+| `data/words.txt` | 3-to-5-letter word list (from the public-domain ENABLE list) |
 | `data/puzzles.json` | the shipped bank (`data/puzzles-stats.json` holds generation stats) |
 | `tools/generate.js` | goal pairing, beam solver, IDA* calibration, bank writer (parallel over worker threads) |
 | `tools/solver.js` | beam search and IDA* on typed-array boards |
@@ -45,6 +49,10 @@ node tools/bot.js --games 10 --lookahead 2
 ```
 
 Every puzzle in the bank is `{ id, seed, board, bag, goals, par, solution, confidence }`. `deal(seed)` reproduces the board and bag; `solution` is the solver's draw-free reference line encoded as short strings (`R2L` slide row 3 left, `C0D` slide column 1 down, `W7-8` swap cells 7 and 8, `N12+` nudge cell 12 up, `D4` draw at cell 4; cells are row-major 0 to 24).
+
+## Word mode
+
+Same board and actions with letters (Scrabble distribution, 98 tiles, 25 dealt). Twenty moves, no bidding. Any word of 3 to 5 letters along a row, column or diagonal, read either way, can be locked: its tiles stop moving (slide, swap and draw refuse them), its Scrabble letter values plus a length bonus (4 letters +5, 5 letters +15) are banked, and locking costs no move. Nudging a locked tile turns it wild (reads as any letter, scores 0). A new word may reuse locked tiles if it adds at least one fresh tile.
 
 ## Deploy
 
