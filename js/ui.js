@@ -510,6 +510,7 @@ async function replaySolution() {
     ui.animating = true;
     await animateAction(a, before, board);
     ui.animating = false;
+    if (!ui.replaying) break; // the player moved on mid-replay
     renderBoard(board);
     renderGoals(board);
     await wait(REPLAY_STEP_MS - ANIM_MS);

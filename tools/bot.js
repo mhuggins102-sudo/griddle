@@ -3,25 +3,30 @@
 // move rate, capped at 12 turns. Used to estimate a human-like turn distribution per par and
 // bust rates / expected scores for bid policies of par + 0..3.
 //
-// Usage: node tools/bot.js [--bank data/puzzles.json] [--games 20] [--random 0.1] [--cap 12] [--lookahead 1|2] [--json]
+// Usage: node tools/bot.js [--bank data/puzzles.json] [--games 20] [--random 0.1] [--cap 12] [--lookahead 1|2] [--plan 0|W] [--json]
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { roundScore, CELLS } from '../js/engine.js';
 import { mulberry32 } from '../js/rng.js';
-import { ACTIONS, INVERSE, applyFast, undoFast, compileGoalCost, compileGoalHolds } from './solver.js';
+import { ACTIONS, ACTION_CODES, INVERSE, applyFast, undoFast, compileGoalCost, compileGoalHolds, beamSolve } from './solver.js';
 
 /**
  * Play one puzzle. Returns the number of turns used, or null when the cap is hit unsolved.
  * opts.lookahead: 1 = pick the best move by h after one move (the plan's bot);
  * 2 = pick the first move of the best two-move sequence, which escapes most one-move plateaus.
+ * opts.planWidth: when > 0, run a narrow beam search (that width, one restart) from the current
+ * board each turn and play the first move of the line it finds, falling back to the greedy move.
+ * This "planner" stands in for a player who thinks a few moves ahead.
  */
 export function playBot(puzzle, opts = {}) {
   const randomRate = opts.randomRate ?? 0.1;
   const cap = opts.cap ?? 12;
   const lookahead = opts.lookahead ?? 1;
+  const planWidth = opts.planWidth ?? 0;
   const rng = mulberry32(opts.seed ?? 1);
+  const codeIndex = planWidth > 0 ? new Map(ACTION_CODES.map((c, i) => [c, i])) : null;
   const b = Uint8Array.from(puzzle.board);
   const costA = compileGoalCost(puzzle.goals[0]);
   const costB = compileGoalCost(puzzle.goals[1]);
@@ -35,11 +40,24 @@ export function playBot(puzzle, opts = {}) {
     return (ca > cb ? ca : cb) * 64 + ca + cb;
   };
   let last = -1;
+  let planned = -2; // cached plan for this turn
+  const planFirstMove = () => {
+    if (planned !== -2) return planned;
+    const depth = Math.max(1, cap - turnsUsed);
+    const res = beamSolve(b, puzzle.goals, { width: planWidth, restarts: 1, maxDepth: depth, parMin: 0, parMax: depth, seed: Math.floor(rng() * 4294967296) });
+    planned = res.par ? codeIndex.get(res.solution[0]) : -1;
+    return planned;
+  };
+  let turnsUsed = 0;
   for (let turn = 1; turn <= cap; turn++) {
+    turnsUsed = turn - 1;
+    planned = -2;
     let choice = -1;
     if (rng() < randomRate) {
       do choice = Math.floor(rng() * n);
       while (choice === (last >= 0 ? INVERSE[last] : -1));
+    } else if (planWidth > 0 && planFirstMove() !== -1) {
+      choice = planFirstMove();
     } else {
       let best = Infinity;
       let ties = 0;
@@ -169,7 +187,7 @@ function parseArgs(argv) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const args = parseArgs(process.argv.slice(2));
   const bank = JSON.parse(readFileSync(args.bank || 'data/puzzles.json', 'utf8'));
-  const report = botReport(bank.puzzles, { games: Number(args.games || 20), randomRate: Number(args.random ?? 0.1), cap: Number(args.cap || 12), lookahead: Number(args.lookahead || 1) });
+  const report = botReport(bank.puzzles, { games: Number(args.games || 20), randomRate: Number(args.random ?? 0.1), cap: Number(args.cap || 12), lookahead: Number(args.lookahead || 1), planWidth: Number(args.plan || 0) });
   if (args.json) console.log(JSON.stringify(report, null, 2));
   else console.log(formatBotReport(report));
 }
