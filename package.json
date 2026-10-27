@@ -1,0 +1,18 @@
+{
+  "name": "grid-bid",
+  "version": "0.1.0",
+  "description": "Grid Bid: a 5x5 tile puzzle where you bid on how many turns you need.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "deal": "node tools/deal.js",
+    "generate": "node tools/generate.js",
+    "report": "node tools/report.js",
+    "bot": "node tools/bot.js",
+    "serve": "node tools/serve.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
