@@ -399,3 +399,46 @@ button { font: inherit; color: inherit; }
   .hud { padding: 6px 8px; }
   .goal { font-size: 15px; }
 }
+
+/* Word mode */
+.face.letter { display: grid; place-items: center; position: relative; width: 100%; height: 100%; }
+.face.letter .ch { font-size: clamp(20px, 7vw, 30px); font-weight: 800; color: var(--pip); line-height: 1; }
+.face.letter .val { position: absolute; right: 4px; bottom: 2px; font-size: 10px; font-weight: 700; color: var(--muted); }
+.face.letter.wild .ch { color: var(--region); }
+.tile.locked { background: #cfe6d9; border-color: #6fae8e; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.12); }
+.tile.locked::after { content: ""; position: absolute; left: 4px; top: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+.tile.locked.wild { background: #e3d8f7; border-color: #a98de0; }
+.words-panel { gap: 8px; }
+.words-head { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px;
+  border-radius: 999px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; font-weight: 700; letter-spacing: 0.04em;
+}
+.chip-score { font-size: 12px; color: var(--muted); font-weight: 600; }
+.chip.active { background: var(--region); color: #fff; border-color: transparent; }
+.chip.active .chip-score { color: #fff; }
+.bag.letters { display: flex; flex-wrap: wrap; gap: 4px 6px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.bag.letters .bag-title { width: 100%; }
+.bag-letter { color: var(--ink); }
+.bag-letter.empty { opacity: 0.35; }
+.finish-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.locked-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.locked-list li { display: flex; justify-content: space-between; font-weight: 600; letter-spacing: 0.04em; }
+.result-grid.two { grid-template-columns: 1fr 2fr; }
+@media (prefers-color-scheme: dark) {
+  .tile.locked { background: #9fd1b5; border-color: #5a9f7c; }
+  .tile.locked.wild { background: #cdbcf0; border-color: #a98de0; }
+}
+.face.letter { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+.chips {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(2, auto);
+  grid-auto-columns: max-content;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+.chips .hint { grid-row: span 2; white-space: normal; max-width: 100%; }

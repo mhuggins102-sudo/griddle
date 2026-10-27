@@ -1,0 +1,287 @@
+// Word mode engine: letter bag, deal, actions with locked tiles, word finding and scoring.
+// Pure functions, no DOM. The dictionary is a Set of upper-case words of 3 to 5 letters.
+
+import { SIZE, CELLS, idx, rowOf, colOf, lineCells } from './engine.js';
+import { mulberry32, rngNext, shuffle } from './rng.js';
+
+export const WILD = '*';
+export const WORD_TURNS = 20;
+export const MIN_WORD = 3;
+export const LENGTH_BONUS = { 3: 0, 4: 5, 5: 15 };
+
+/** Scrabble letter values. Wild tiles score 0. */
+export const LETTER_VALUES = {
+  A: 1, B: 3, C: 3, D: 2, E: 1, F: 4, G: 2, H: 4, I: 1, J: 8, K: 5, L: 1, M: 3,
+  N: 1, O: 1, P: 3, Q: 10, R: 1, S: 1, T: 1, U: 1, V: 4, W: 4, X: 8, Y: 4, Z: 10,
+};
+
+/** Scrabble letter distribution without the two blanks (98 tiles). */
+export const LETTER_COUNTS = {
+  A: 9, B: 2, C: 2, D: 4, E: 12, F: 2, G: 3, H: 2, I: 9, J: 1, K: 1, L: 4, M: 2,
+  N: 6, O: 8, P: 2, Q: 1, R: 6, S: 4, T: 6, U: 4, V: 2, W: 2, X: 1, Y: 2, Z: 1,
+};
+
+export const LETTERS = Object.keys(LETTER_VALUES);
+
+export function letterValue(ch) {
+  return LETTER_VALUES[ch] || 0;
+}
+
+/** Deal 25 letters from the 98-tile bag. bag is a count per letter. */
+export function dealLetters(seed) {
+  const rng = mulberry32(seed);
+  const tiles = [];
+  for (const [ch, n] of Object.entries(LETTER_COUNTS)) for (let k = 0; k < n; k++) tiles.push(ch);
+  shuffle(tiles, rng);
+  const board = tiles.slice(0, CELLS);
+  const bag = {};
+  for (const ch of LETTERS) bag[ch] = 0;
+  for (let i = CELLS; i < tiles.length; i++) bag[tiles[i]]++;
+  return { board, bag };
+}
+
+export function bagTotal(bag) {
+  return Object.values(bag).reduce((a, b) => a + b, 0);
+}
+
+/** A word-mode play state. locked: cells that cannot move; wild: locked cells turned wild. */
+export function createWordState(board, bag, drawSeed = 0) {
+  const full = {};
+  for (const ch of LETTERS) full[ch] = bag[ch] || 0;
+  return { board: board.slice(), bag: full, rngState: drawSeed >>> 0, turns: 0, locked: [], words: [], score: 0 };
+}
+
+export function isLocked(state, cell) {
+  return state.locked.includes(cell);
+}
+
+/** Throws when the action would move a locked tile; nudging a locked tile is allowed (it goes wild). */
+export function validateWordAction(state, action) {
+  const inRange = (n) => Number.isInteger(n) && n >= 0 && n < SIZE;
+  switch (action.type) {
+    case 'slide': {
+      if (action.axis !== 'row' && action.axis !== 'col') throw new Error('Slide axis must be row or col');
+      if (!inRange(action.index)) throw new Error('Slide index out of range');
+      if (action.dir !== 1 && action.dir !== -1) throw new Error('Slide dir must be +1 or -1');
+      for (const c of lineCells(action.axis, action.index)) if (isLocked(state, c)) throw new Error('That line holds a locked tile');
+      return true;
+    }
+    case 'swap': {
+      if (![action.r, action.c, action.r2, action.c2].every(inRange)) throw new Error('Swap cell out of range');
+      if (Math.abs(action.r - action.r2) + Math.abs(action.c - action.c2) !== 1) throw new Error('Swap cells must be orthogonal neighbours');
+      if (isLocked(state, idx(action.r, action.c)) || isLocked(state, idx(action.r2, action.c2))) throw new Error('Locked tiles cannot move');
+      return true;
+    }
+    case 'nudge':
+      if (!inRange(action.r) || !inRange(action.c)) throw new Error('Nudge cell out of range');
+      if (action.delta !== 1 && action.delta !== -1) throw new Error('Nudge delta must be +1 or -1');
+      return true;
+    case 'draw':
+      if (!inRange(action.r) || !inRange(action.c)) throw new Error('Draw cell out of range');
+      if (isLocked(state, idx(action.r, action.c))) throw new Error('Locked tiles cannot be replaced');
+      return true;
+    default:
+      throw new Error(`Unknown action type: ${action.type}`);
+  }
+}
+
+export function nudgeLetter(ch, delta) {
+  if (ch === WILD) return WILD;
+  const i = LETTERS.indexOf(ch);
+  return LETTERS[(i + delta + 26) % 26];
+}
+
+/** Apply one action; returns the new state (input untouched). Nudging a locked tile makes it wild. */
+export function applyWordAction(state, action) {
+  validateWordAction(state, action);
+  const next = { ...state, board: state.board.slice(), bag: { ...state.bag }, locked: state.locked.slice(), words: state.words.slice(), turns: state.turns + 1 };
+  delete next.lastDraw;
+  switch (action.type) {
+    case 'slide': {
+      const cells = lineCells(action.axis, action.index);
+      const vals = cells.map((c) => next.board[c]);
+      for (let k = 0; k < SIZE; k++) next.board[cells[(k + action.dir + SIZE) % SIZE]] = vals[k];
+      break;
+    }
+    case 'swap': {
+      const a = idx(action.r, action.c);
+      const b = idx(action.r2, action.c2);
+      const t = next.board[a];
+      next.board[a] = next.board[b];
+      next.board[b] = t;
+      break;
+    }
+    case 'nudge': {
+      const cell = idx(action.r, action.c);
+      next.board[cell] = isLocked(next, cell) ? WILD : nudgeLetter(next.board[cell], action.delta);
+      break;
+    }
+    case 'draw': {
+      const cell = idx(action.r, action.c);
+      const total = bagTotal(next.bag);
+      if (total <= 0) throw new Error('Bag is empty');
+      const r = rngNext(next.rngState);
+      next.rngState = r.state;
+      let pick = Math.floor(r.value * total);
+      let drawn = null;
+      for (const ch of LETTERS) {
+        if (pick < next.bag[ch]) {
+          drawn = ch;
+          break;
+        }
+        pick -= next.bag[ch];
+      }
+      const tossed = next.board[cell];
+      next.bag[drawn]--;
+      next.board[cell] = drawn;
+      if (tossed !== WILD) next.bag[tossed]++;
+      next.lastDraw = { cell, drawn, tossed };
+      break;
+    }
+    default:
+      break;
+  }
+  return next;
+}
+
+/** Every line a word can lie on, in reading order: rows, columns, and all diagonals of 3 or more cells. */
+export function wordLines() {
+  const lines = [];
+  for (let i = 0; i < SIZE; i++) lines.push(lineCells('row', i));
+  for (let i = 0; i < SIZE; i++) lines.push(lineCells('col', i));
+  // main-direction diagonals (down-right)
+  for (let start = -(SIZE - MIN_WORD); start <= SIZE - MIN_WORD; start++) {
+    const cells = [];
+    for (let r = 0; r < SIZE; r++) {
+      const c = r + start;
+      if (c >= 0 && c < SIZE) cells.push(idx(r, c));
+    }
+    lines.push(cells);
+  }
+  // anti-direction diagonals (down-left)
+  for (let start = MIN_WORD - 1; start <= 2 * SIZE - 1 - MIN_WORD; start++) {
+    const cells = [];
+    for (let r = 0; r < SIZE; r++) {
+      const c = start - r;
+      if (c >= 0 && c < SIZE) cells.push(idx(r, c));
+    }
+    lines.push(cells);
+  }
+  return lines;
+}
+
+const LINES = wordLines();
+
+export function cellKey(cells) {
+  return cells.slice().sort((a, b) => a - b).join(',');
+}
+
+/** Score for a word laid on these cells (wild tiles score 0) plus the length bonus. */
+export function scoreWord(board, cells) {
+  let s = 0;
+  for (const c of cells) s += letterValue(board[c]);
+  return s + (LENGTH_BONUS[cells.length] || 0);
+}
+
+/** All dictionary words that can be read along a wildcard pattern (letters or WILD). */
+function matchesForPattern(pattern, dict) {
+  const wilds = [];
+  for (let i = 0; i < pattern.length; i++) if (pattern[i] === WILD) wilds.push(i);
+  if (wilds.length === 0) return dict.has(pattern) ? [pattern] : [];
+  if (wilds.length > 2) return [];
+  const out = [];
+  const chars = pattern.split('');
+  const rec = (k) => {
+    if (k === wilds.length) {
+      const w = chars.join('');
+      if (dict.has(w)) out.push(w);
+      return;
+    }
+    for (const ch of LETTERS) {
+      chars[wilds[k]] = ch;
+      rec(k + 1);
+    }
+  };
+  rec(0);
+  return out;
+}
+
+/**
+ * Find every word of 3 to 5 letters readable forward or backward along any line.
+ * Returns candidates { word, cells (in the word's reading order), score, key, lockable, reason }.
+ * A candidate is lockable when at least one of its cells is not locked yet and no locked word
+ * already occupies exactly those cells.
+ */
+export function findWords(state, dict) {
+  const board = state.board;
+  const lockedKeys = new Set(state.words.map((w) => w.key));
+  const seen = new Set();
+  const out = [];
+  for (const line of LINES) {
+    for (let start = 0; start < line.length; start++) {
+      for (let len = MIN_WORD; start + len <= line.length; len++) {
+        const cells = line.slice(start, start + len);
+        for (const dir of [1, -1]) {
+          const ordered = dir === 1 ? cells : cells.slice().reverse();
+          const pattern = ordered.map((c) => board[c]).join('');
+          for (const word of matchesForPattern(pattern, dict)) {
+            const key = cellKey(cells);
+            const id = `${word}@${key}`;
+            if (seen.has(id)) continue;
+            seen.add(id);
+            const allLocked = cells.every((c) => state.locked.includes(c));
+            const dup = lockedKeys.has(key);
+            out.push({
+              word,
+              cells: ordered,
+              score: scoreWord(board, cells),
+              key,
+              lockable: !dup && !allLocked,
+              reason: dup ? 'already locked' : allLocked ? 'all tiles already locked' : '',
+            });
+          }
+        }
+      }
+    }
+  }
+  out.sort((a, b) => b.score - a.score || a.word.localeCompare(b.word));
+  return out;
+}
+
+/** Lock a candidate word: its tiles stop moving and its score is banked. Returns the new state. */
+export function lockWord(state, candidate) {
+  if (!candidate.lockable) throw new Error(candidate.reason || 'Cannot lock this word');
+  const next = { ...state, locked: state.locked.slice(), words: state.words.slice() };
+  for (const c of candidate.cells) if (!next.locked.includes(c)) next.locked.push(c);
+  next.words.push({ word: candidate.word, cells: candidate.cells.slice(), key: candidate.key, score: candidate.score });
+  next.score = state.score + candidate.score;
+  return next;
+}
+
+export function describeWordCells(cells) {
+  const a = cells[0];
+  const b = cells[cells.length - 1];
+  const dr = Math.sign(rowOf(b) - rowOf(a));
+  const dc = Math.sign(colOf(b) - colOf(a));
+  let where;
+  if (dr === 0) where = `row ${rowOf(a) + 1}`;
+  else if (dc === 0) where = `column ${colOf(a) + 1}`;
+  else where = 'diagonal';
+  return `${where}, from row ${rowOf(a) + 1} col ${colOf(a) + 1}`;
+}
+
+/** Parse the shipped word list (one upper-case word per line) into a Set. */
+export function parseDictionary(text) {
+  const dict = new Set();
+  for (const line of text.split(/\r?\n/)) {
+    const w = line.trim().toUpperCase();
+    if (w.length >= MIN_WORD && w.length <= SIZE && /^[A-Z]+$/.test(w)) dict.add(w);
+  }
+  return dict;
+}
+
+/** "Grid Bid Words 87 (QUIZ 25, TONE 9, ...)" */
+export function wordShareLine(score, words, title = 'Grid Bid Words') {
+  const parts = words.map((w) => `${w.word} ${w.score}`);
+  return `${title} ${score} (${parts.length ? parts.join(', ') : 'no words'})`;
+}

@@ -4,13 +4,14 @@ import {
   SIZE, idx, rowOf, colOf, BID_MIN, BID_MAX, ROUNDS_PER_GAME,
   evalGoal, bestRegionCells, describeGoal, describeAction, decodeAction, applyBoardAction, deal,
 } from './engine.js';
+import { ANIM_MS, wait, neighbours, buildBoardSkeleton, tileIn, animateAction, clearTileEffects } from './board.js';
+import { initWordMode } from './wordui.js';
 import {
   loadStore, saveStore, newGame, currentRound, lockBid, playAction, giveUp, runningTotal, isGameOver, advanceRound,
   summarizeGame, shareLine, recordGame, findPuzzle, defaultStore,
 } from './game.js';
 
 const $ = (sel) => document.querySelector(sel);
-const ANIM_MS = 200;
 const REPLAY_STEP_MS = 900;
 
 const ui = {
@@ -30,7 +31,7 @@ const ui = {
 // Boot
 
 async function boot() {
-  buildBoardSkeleton();
+  buildBoardSkeleton($('#board'), makeDiceFace);
   wireEvents();
   $('#opt-numerals').checked = !!ui.store.settings.numerals;
   try {
@@ -46,6 +47,7 @@ async function boot() {
     ui.store.currentGame = null;
     saveStore(ui.store);
   }
+  ui.word = initWordMode({ store: ui.store, saveStore, showScreen, showHome, showToast, openHelp });
   showHome();
 }
 
@@ -60,10 +62,12 @@ function showScreen(id) {
 function showHome() {
   ui.game = null;
   $('#btn-continue').hidden = !ui.store.currentGame;
+  $('#btn-word-continue').hidden = !ui.store.wordGame;
   const s = ui.store;
   $('#home-stats').textContent = s.gamesPlayed
     ? `${s.gamesPlayed} game${s.gamesPlayed === 1 ? '' : 's'} played · best ${s.bestTotal} · ${s.seen.length} of ${ui.bank.puzzles.length} puzzles seen`
     : `${ui.bank.puzzles.length} puzzles in the bank.`;
+  if (s.word && s.word.gamesPlayed) $('#home-stats').textContent += ` · Word mode best ${s.word.best}`;
   showScreen('screen-home');
 }
 
@@ -153,54 +157,18 @@ function renderBid() {
   $('#bid-plus').disabled = ui.bidDraft >= BID_MAX;
 }
 
-// Board skeleton: 7x7 grid, outer ring = arrows.
-function buildBoardSkeleton() {
-  const board = $('#board');
-  board.innerHTML = '';
-  for (let r = -1; r <= SIZE; r++) {
-    for (let c = -1; c <= SIZE; c++) {
-      const isRowEdge = r === -1 || r === SIZE;
-      const isColEdge = c === -1 || c === SIZE;
-      if (isRowEdge && isColEdge) {
-        const d = document.createElement('div');
-        d.className = 'corner';
-        board.appendChild(d);
-      } else if (isRowEdge) {
-        const dir = r === -1 ? -1 : 1;
-        board.appendChild(makeArrow('col', c, dir));
-      } else if (isColEdge) {
-        const dir = c === -1 ? -1 : 1;
-        board.appendChild(makeArrow('row', r, dir));
-      } else {
-        const t = document.createElement('button');
-        t.className = 'tile';
-        t.dataset.cell = String(idx(r, c));
-        t.setAttribute('role', 'gridcell');
-        const face = document.createElement('div');
-        face.className = 'face';
-        for (let k = 0; k < 9; k++) face.appendChild(Object.assign(document.createElement('span'), { className: 'pip' }));
-        t.appendChild(face);
-        board.appendChild(t);
-      }
-    }
-  }
-}
-
-function makeArrow(axis, index, dir) {
-  const a = document.createElement('button');
-  const name = axis === 'row' ? (dir === 1 ? 'right' : 'left') : dir === 1 ? 'down' : 'up';
-  a.className = `arrow ${name}`;
-  a.dataset.axis = axis;
-  a.dataset.index = String(index);
-  a.dataset.dir = String(dir);
-  a.setAttribute('aria-label', `Slide ${axis === 'row' ? 'row' : 'column'} ${index + 1} ${name}`);
-  a.tabIndex = -1;
-  return a;
-}
-
 function tileEl(cell) {
-  return $(`#board .tile[data-cell="${cell}"]`);
+  return tileIn($('#board'), cell);
 }
+
+function makeDiceFace() {
+  const face = document.createElement('div');
+  face.className = 'face';
+  for (let k = 0; k < 9; k++) face.appendChild(Object.assign(document.createElement('span'), { className: 'pip' }));
+  return face;
+}
+
+const applyDiceFace = (tile, value) => setFace(tile.firstElementChild, value);
 
 function setFace(face, value) {
   face.dataset.v = String(value);
@@ -228,9 +196,7 @@ function renderBoard(board) {
   for (let i = 0; i < b.length; i++) {
     const t = tileEl(i);
     setFace(t.firstElementChild, b[i]);
-    t.style.transform = '';
-    t.style.opacity = '';
-    t.classList.remove('moving', 'fade', 'bump');
+    clearTileEffects(t);
     t.classList.toggle('region', !!regionCells && regionCells.has(i));
     t.classList.toggle('selected', ui.selected === i);
     t.setAttribute('aria-label', `Row ${rowOf(i) + 1} column ${colOf(i) + 1}: ${b[i]}`);
@@ -243,17 +209,6 @@ function renderTargets() {
   if (ui.mode === 'swap' && ui.selected !== null) {
     for (const n of neighbours(ui.selected)) tileEl(n).classList.add('target');
   }
-}
-
-function neighbours(cell) {
-  const r = rowOf(cell);
-  const c = colOf(cell);
-  const out = [];
-  if (r > 0) out.push(idx(r - 1, c));
-  if (r < SIZE - 1) out.push(idx(r + 1, c));
-  if (c > 0) out.push(idx(r, c - 1));
-  if (c < SIZE - 1) out.push(idx(r, c + 1));
-  return out;
 }
 
 function renderBag(bag) {
@@ -295,7 +250,7 @@ function setMode(mode) {
   ui.selected = null;
   hideNudgePop();
   $('#draw-confirm').hidden = true;
-  for (const b of document.querySelectorAll('.mode')) {
+  for (const b of document.querySelectorAll('#screen-round .mode')) {
     b.classList.toggle('active', b.dataset.mode === mode);
     b.setAttribute('aria-selected', b.dataset.mode === mode ? 'true' : 'false');
   }
@@ -374,7 +329,7 @@ async function doAction(action) {
   $('#draw-confirm').hidden = true;
   ui.selected = null;
   ui.animating = true;
-  await animateAction(action, before, result.state.board);
+  await animateAction($('#board'), action, before, result.state.board, applyDiceFace);
   ui.animating = false;
   renderBoard();
   renderBag();
@@ -388,68 +343,6 @@ async function doAction(action) {
     await wait(350);
     showResult();
   }
-}
-
-/** Animate one action between two boards. Resolves after at most ~ANIM_MS + a little. */
-function animateAction(action, before, after) {
-  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduce) return Promise.resolve();
-  const step = tileStep();
-  if (action.type === 'slide') {
-    const cells = [];
-    for (let k = 0; k < SIZE; k++) cells.push(action.axis === 'row' ? idx(action.index, k) : idx(k, action.index));
-    const dx = action.axis === 'row' ? action.dir * step : 0;
-    const dy = action.axis === 'col' ? action.dir * step : 0;
-    const wrapIndex = action.dir === 1 ? SIZE - 1 : 0;
-    cells.forEach((cell, k) => {
-      const t = tileEl(cell);
-      t.classList.add('moving');
-      t.style.transform = `translate(${dx}px, ${dy}px)`;
-      if (k === wrapIndex) t.style.opacity = '0';
-    });
-    return wait(ANIM_MS + 30);
-  }
-  if (action.type === 'swap') {
-    const a = idx(action.r, action.c);
-    const b = idx(action.r2, action.c2);
-    const ta = tileEl(a);
-    const tb = tileEl(b);
-    const dx = (colOf(b) - colOf(a)) * step;
-    const dy = (rowOf(b) - rowOf(a)) * step;
-    ta.classList.add('moving');
-    tb.classList.add('moving');
-    ta.style.transform = `translate(${dx}px, ${dy}px)`;
-    tb.style.transform = `translate(${-dx}px, ${-dy}px)`;
-    return wait(ANIM_MS + 30);
-  }
-  if (action.type === 'nudge') {
-    const t = tileEl(idx(action.r, action.c));
-    t.classList.add('bump');
-    setTimeout(() => setFace(t.firstElementChild, after[idx(action.r, action.c)]), ANIM_MS / 2);
-    return wait(ANIM_MS + 30);
-  }
-  if (action.type === 'draw') {
-    const cell = idx(action.r, action.c);
-    const t = tileEl(cell);
-    t.classList.add('fade');
-    return wait(ANIM_MS / 2).then(() => {
-      setFace(t.firstElementChild, after[cell]);
-      t.classList.remove('fade');
-      return wait(ANIM_MS / 2 + 30);
-    });
-  }
-  return Promise.resolve();
-}
-
-/** Distance between adjacent tile centres in CSS pixels. */
-function tileStep() {
-  const a = tileEl(0).getBoundingClientRect();
-  const b = tileEl(1).getBoundingClientRect();
-  return b.left - a.left;
-}
-
-function wait(ms) {
-  return new Promise((r) => setTimeout(r, ms));
 }
 
 // ---------------------------------------------------------------------------
@@ -508,7 +401,7 @@ async function replaySolution() {
     applyBoardAction(board, a);
     text.textContent = `${k + 1}/${actions.length}: ${describeAction(a)}`;
     ui.animating = true;
-    await animateAction(a, before, board);
+    await animateAction($('#board'), a, before, board, applyDiceFace);
     ui.animating = false;
     if (!ui.replaying) break; // the player moved on mid-replay
     renderBoard(board);
@@ -608,7 +501,9 @@ function showStats() {
 
 function resetData() {
   if (!confirm('Erase all Grid Bid data on this device (history, best score, seen puzzles, any game in progress)?')) return;
-  ui.store = defaultStore();
+  const fresh = defaultStore();
+  for (const k of Object.keys(ui.store)) delete ui.store[k];
+  Object.assign(ui.store, fresh);
   saveStore(ui.store);
   $('#opt-numerals').checked = false;
   showHome();
@@ -647,6 +542,12 @@ function wireEvents() {
     startNewGame();
   });
   $('#btn-continue').addEventListener('click', continueGame);
+  $('#btn-word').addEventListener('click', () => {
+    if (ui.store.wordGame && !confirm('Abandon the word game in progress and start a new one?')) return;
+    ui.store.wordGame = null;
+    ui.word.start(false);
+  });
+  $('#btn-word-continue').addEventListener('click', () => ui.word.start(true));
   $('#btn-help-home').addEventListener('click', openHelp);
   $('#btn-help-round').addEventListener('click', openHelp);
   $('#btn-help-close').addEventListener('click', closeHelp);
@@ -680,7 +581,7 @@ function wireEvents() {
     showRound();
   });
 
-  for (const b of document.querySelectorAll('.mode')) b.addEventListener('click', () => setMode(b.dataset.mode));
+  for (const b of document.querySelectorAll('#screen-round .mode')) b.addEventListener('click', () => setMode(b.dataset.mode));
 
   $('#board').addEventListener('click', (e) => {
     const arrow = e.target.closest('.arrow');
@@ -694,7 +595,7 @@ function wireEvents() {
     if (tile) onTileTap(Number(tile.dataset.cell));
   });
 
-  for (const b of document.querySelectorAll('.nudge-btn')) {
+  for (const b of document.querySelectorAll('#screen-round .nudge-btn')) {
     b.addEventListener('click', () => {
       if (ui.selected === null) return;
       const cell = ui.selected;
@@ -720,7 +621,7 @@ function wireEvents() {
     showResult();
   });
 
-  for (const g of document.querySelectorAll('.goal')) {
+  for (const g of document.querySelectorAll('#screen-round .goal')) {
     g.addEventListener('click', () => {
       const i = Number(g.dataset.goal);
       ui.highlightGoal = ui.highlightGoal === i ? null : i;

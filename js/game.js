@@ -15,6 +15,8 @@ export function defaultStore() {
     beatPar: [],
     settings: { numerals: false },
     currentGame: null,
+    word: { gamesPlayed: 0, best: null, history: [] },
+    wordGame: null,
   };
 }
 
@@ -23,7 +25,7 @@ export function loadStore(storage = globalThis.localStorage) {
     const raw = storage && storage.getItem(STORAGE_KEY);
     if (!raw) return defaultStore();
     const parsed = JSON.parse(raw);
-    return { ...defaultStore(), ...parsed, settings: { ...defaultStore().settings, ...(parsed.settings || {}) } };
+    return { ...defaultStore(), ...parsed, settings: { ...defaultStore().settings, ...(parsed.settings || {}) }, word: { ...defaultStore().word, ...(parsed.word || {}) } };
   } catch {
     return defaultStore();
   }

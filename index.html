@@ -19,6 +19,8 @@
         <div class="home-buttons">
           <button id="btn-continue" class="btn btn-primary" hidden>Continue game</button>
           <button id="btn-new-game" class="btn btn-primary">New game</button>
+          <button id="btn-word-continue" class="btn btn-primary" hidden>Continue word game</button>
+          <button id="btn-word" class="btn">Word mode</button>
           <button id="btn-help-home" class="btn">How to play</button>
           <button id="btn-stats" class="btn">Stats</button>
         </div>
@@ -123,6 +125,78 @@
       </div>
     </section>
 
+    <!-- Word mode -->
+    <section id="screen-word" class="screen" hidden>
+      <header class="hud">
+        <div class="hud-item"><span class="hud-label">Turn</span><span id="w-turn" class="hud-value">0 / 20</span></div>
+        <div class="hud-item"><span class="hud-label">Score</span><span id="w-score" class="hud-value">0</span></div>
+        <div class="hud-item"><span class="hud-label">Best</span><span id="w-best" class="hud-value">–</span></div>
+        <button id="w-help" class="btn btn-icon" aria-label="Help">?</button>
+      </header>
+
+      <div class="panel words-panel">
+        <div class="words-head"><span>Words on the board</span><span id="w-found-count" class="hud-label"></span></div>
+        <div id="w-found" class="chips"></div>
+        <div id="w-lock-confirm" class="confirm" hidden>
+          <span id="w-lock-text"></span>
+          <button id="w-lock-cancel" class="btn">Cancel</button>
+          <button id="w-lock-ok" class="btn btn-primary">Lock it</button>
+        </div>
+      </div>
+
+      <div class="board-wrap">
+        <div id="wboard" class="board" role="grid" aria-label="Letter board"></div>
+        <div id="w-nudge-pop" class="nudge-pop" hidden>
+          <button class="btn nudge-btn" data-delta="-1" aria-label="Previous letter">−1</button>
+          <button class="btn nudge-btn" data-delta="1" aria-label="Next letter">+1</button>
+        </div>
+      </div>
+
+      <div id="w-bag" class="bag letters" aria-label="Bag"></div>
+
+      <div id="w-action-panel" class="panel">
+        <div id="w-modes" class="modes" role="tablist">
+          <button class="mode" data-mode="slide" role="tab">Slide</button>
+          <button class="mode" data-mode="swap" role="tab">Swap</button>
+          <button class="mode" data-mode="nudge" role="tab">Nudge</button>
+          <button class="mode" data-mode="draw" role="tab">Draw</button>
+        </div>
+        <div id="w-mode-hint" class="hint"></div>
+        <div id="w-draw-confirm" class="confirm" hidden>
+          <span id="w-draw-text">Draw a random letter here?</span>
+          <button id="w-draw-cancel" class="btn">Cancel</button>
+          <button id="w-draw-ok" class="btn btn-primary">Draw</button>
+        </div>
+        <div class="finish-row">
+          <span id="w-turns-left" class="hint"></span>
+          <button id="w-finish" class="btn">Finish</button>
+        </div>
+        <button id="w-quit" class="btn btn-quiet">Back to home (game is saved)</button>
+      </div>
+
+      <div id="w-locked" class="panel" hidden>
+        <div class="words-head"><span>Locked words</span></div>
+        <ul id="w-locked-list" class="locked-list"></ul>
+      </div>
+
+      <div id="w-result" class="panel result" hidden>
+        <h2>Game over</h2>
+        <div class="result-grid two">
+          <div><span class="hud-label">Score</span><span id="w-result-score" class="hud-value"></span></div>
+          <div><span class="hud-label">Best</span><span id="w-result-best" class="breakdown"></span></div>
+        </div>
+        <p id="w-result-words" class="breakdown"></p>
+        <div class="share">
+          <code id="w-share-line"></code>
+          <button id="w-share" class="btn">Copy</button>
+        </div>
+        <div class="result-buttons">
+          <button id="w-home" class="btn">Home</button>
+          <button id="w-again" class="btn btn-primary">Play again</button>
+        </div>
+      </div>
+    </section>
+
     <!-- Stats -->
     <section id="screen-stats" class="screen" hidden>
       <div class="end">
@@ -165,6 +239,9 @@
           </tbody>
         </table>
         <p>A game is five rounds; the game score is the sum of the round scores.</p>
+        <h3>Word mode</h3>
+        <p>The same four actions on a grid of letters, with 20 moves and no bidding. Spell a word of 3 to 5 letters along any row, column or diagonal, read in either direction, then tap it in the list to <strong>lock</strong> it: its tiles change colour, its points are banked, and those tiles can no longer slide, swap or be drawn. Locking never costs a move. Nudging a locked tile turns it into a wild tile that reads as any letter but scores nothing itself. A new word may reuse locked tiles as long as it adds at least one fresh tile.</p>
+        <p class="formula">Word score = Scrabble letter values, plus 5 for a 4-letter word or 15 for a 5-letter word. Finish any time, or after the 20th move once you have locked what you can.</p>
         <button id="btn-help-close" class="btn btn-primary btn-wide">Close</button>
       </div>
     </div>
