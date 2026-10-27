@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f2430">
+  <meta name="description" content="Grid Bid: a 5x5 tile puzzle. Study the board, bid how many turns you need, then make it so.">
+  <title>Grid Bid</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23f3e9d2'/%3E%3Ccircle cx='18' cy='18' r='7' fill='%231f2430'/%3E%3Ccircle cx='46' cy='18' r='7' fill='%231f2430'/%3E%3Ccircle cx='32' cy='32' r='7' fill='%231f2430'/%3E%3Ccircle cx='18' cy='46' r='7' fill='%231f2430'/%3E%3Ccircle cx='46' cy='46' r='7' fill='%231f2430'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app" class="app">
+    <!-- Home -->
+    <section id="screen-home" class="screen" hidden>
+      <div class="home">
+        <h1 class="title">Grid Bid</h1>
+        <p class="tagline">Five rounds. Two goals each. Bid how many turns you need, then make it so.</p>
+        <div class="home-buttons">
+          <button id="btn-continue" class="btn btn-primary" hidden>Continue game</button>
+          <button id="btn-new-game" class="btn btn-primary">New game</button>
+          <button id="btn-help-home" class="btn">How to play</button>
+          <button id="btn-stats" class="btn">Stats</button>
+        </div>
+        <div class="home-stats" id="home-stats"></div>
+        <div class="settings">
+          <label class="toggle"><input type="checkbox" id="opt-numerals"> <span>Show numerals instead of dice pips</span></label>
+        </div>
+        <p class="footnote">Puzzles come from a pre-built bank. No account, no tracking; progress stays on this device.</p>
+      </div>
+    </section>
+
+    <!-- Round: bid, play and result share one layout -->
+    <section id="screen-round" class="screen" hidden>
+      <header class="hud">
+        <div class="hud-item"><span class="hud-label">Round</span><span id="hud-round" class="hud-value">1 / 5</span></div>
+        <div class="hud-item"><span class="hud-label">Turn</span><span id="hud-turn" class="hud-value">0 / –</span></div>
+        <div class="hud-item"><span class="hud-label">Score</span><span id="hud-score" class="hud-value">0</span></div>
+        <button id="btn-help-round" class="btn btn-icon" aria-label="Help">?</button>
+      </header>
+
+      <div class="goals" id="goals" aria-label="Goals">
+        <button class="goal" id="goal-0" data-goal="0"><span class="goal-state" aria-hidden="true"></span><span class="goal-text"></span></button>
+        <button class="goal" id="goal-1" data-goal="1"><span class="goal-state" aria-hidden="true"></span><span class="goal-text"></span></button>
+      </div>
+
+      <div class="board-wrap">
+        <div id="board" class="board" role="grid" aria-label="Board"></div>
+        <div id="nudge-pop" class="nudge-pop" hidden>
+          <button class="btn nudge-btn" data-delta="-1" aria-label="Minus one">−1</button>
+          <button class="btn nudge-btn" data-delta="1" aria-label="Plus one">+1</button>
+        </div>
+      </div>
+
+      <div class="bag" id="bag" aria-label="Bag"></div>
+
+      <!-- Bid controls -->
+      <div id="bid-panel" class="panel" hidden>
+        <div class="bid-row">
+          <button id="bid-minus" class="btn btn-step" aria-label="Lower bid">−</button>
+          <div class="bid-value"><span class="bid-label">Bid</span><span id="bid-value">8</span><span class="bid-sub">turns</span></div>
+          <button id="bid-plus" class="btn btn-step" aria-label="Raise bid">+</button>
+        </div>
+        <button id="btn-lock" class="btn btn-primary btn-wide">Lock bid</button>
+        <p class="hint">Study the board and goals first. Par is hidden until the round ends.</p>
+      </div>
+
+      <!-- Action bar -->
+      <div id="action-panel" class="panel" hidden>
+        <div class="modes" role="tablist">
+          <button class="mode" data-mode="slide" role="tab">Slide</button>
+          <button class="mode" data-mode="swap" role="tab">Swap</button>
+          <button class="mode" data-mode="nudge" role="tab">Nudge</button>
+          <button class="mode" data-mode="draw" role="tab">Draw</button>
+        </div>
+        <div id="mode-hint" class="hint"></div>
+        <div id="draw-confirm" class="confirm" hidden>
+          <span id="draw-confirm-text">Draw a random tile here?</span>
+          <button id="draw-cancel" class="btn">Cancel</button>
+          <button id="draw-ok" class="btn btn-primary">Draw</button>
+        </div>
+        <button id="btn-giveup" class="btn btn-quiet">Give up</button>
+      </div>
+
+      <!-- Result -->
+      <div id="result-panel" class="panel result" hidden>
+        <h2 id="result-title">Solved</h2>
+        <div class="result-grid">
+          <div><span class="hud-label">Par</span><span id="result-par" class="hud-value"></span></div>
+          <div><span class="hud-label">Bid</span><span id="result-bid" class="hud-value"></span></div>
+          <div><span class="hud-label">Turns</span><span id="result-turns" class="hud-value"></span></div>
+          <div><span class="hud-label">Score</span><span id="result-score" class="hud-value"></span></div>
+        </div>
+        <p id="result-breakdown" class="breakdown"></p>
+        <div id="replay-bar" class="replay-bar" hidden>
+          <span id="replay-text"></span>
+        </div>
+        <div class="result-buttons">
+          <button id="btn-solution" class="btn">Show solution</button>
+          <button id="btn-next" class="btn btn-primary">Next round</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Game end -->
+    <section id="screen-end" class="screen" hidden>
+      <div class="end">
+        <h1 class="title small">Game over</h1>
+        <table class="rounds" id="end-table">
+          <thead><tr><th>Round</th><th>Bid</th><th>Par</th><th>Turns</th><th>Score</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="total"><span>Total</span><strong id="end-total">0</strong></div>
+        <div class="best" id="end-best"></div>
+        <div class="share">
+          <code id="share-line"></code>
+          <button id="btn-share" class="btn">Copy</button>
+        </div>
+        <div class="home-buttons">
+          <button id="btn-play-again" class="btn btn-primary">Play again</button>
+          <button id="btn-home" class="btn">Home</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats -->
+    <section id="screen-stats" class="screen" hidden>
+      <div class="end">
+        <h1 class="title small">Stats</h1>
+        <div id="stats-body"></div>
+        <div class="home-buttons">
+          <button id="btn-stats-back" class="btn btn-primary">Back</button>
+          <button id="btn-stats-reset" class="btn btn-quiet">Reset device data</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Help sheet -->
+    <div id="help" class="sheet" hidden>
+      <div class="sheet-body">
+        <h2>How to play</h2>
+        <p>Each round is one puzzle: a 5x5 grid of tiles valued 1 to 6, and two goals that must both hold at the same moment. Look at the board, then <strong>bid</strong> how many turns you need (1 to 12). Once the bid is locked you cannot change it, and there is no undo.</p>
+        <h3>Actions, one per turn</h3>
+        <ul>
+          <li><strong>Slide</strong> a row or column one step. The tile pushed off the edge wraps around to the other end.</li>
+          <li><strong>Swap</strong> two tiles that touch sideways or up and down.</li>
+          <li><strong>Nudge</strong> a tile up or down by 1. A 6 nudged up becomes 1, and a 1 nudged down becomes 6.</li>
+          <li><strong>Draw</strong> a random replacement for one tile from the bag. The tile you toss goes into the bag afterwards, so it cannot come straight back on the same turn. Draws are the only random action.</li>
+        </ul>
+        <p>Rows are numbered 1 to 5 from the top and columns 1 to 5 from the left. Tap a goal to highlight its cells. An <em>ascending run</em> reads left to right, top to bottom, and along a diagonal from its top end. A <em>full house</em> is three of one value and two of another. An <em>any row</em> goal holds when at least one row meets the condition.</p>
+        <h3>Scoring</h3>
+        <p>Every puzzle has a hidden <strong>par</strong>: the turn count of the best draw-free solution found by the solver (always 6 to 10). Par is revealed when the round ends. Using more turns than your bid is a <strong>bust</strong> and scores 0. Otherwise you score a Base set by how far your bid sits above or below par, plus a small bonus for finishing under your bid.</p>
+        <p class="formula">Base = 100 − 15 per turn bid above par (floor 10), or 100 + 25 per turn bid below par.<br>Bonus = 0, 5, 7, 8, 9, 9… for 0, 1, 2, 3, 4, 5+ turns under the bid. It never reaches 15, so one extra turn of insurance always costs more than any number of overtricks can recover.</p>
+        <table class="examples">
+          <thead><tr><th>Bid</th><th>Par</th><th>Turns</th><th>Score</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>8</td><td>8</td><td>8</td><td>100</td><td>matched par exactly</td></tr>
+            <tr><td>9</td><td>8</td><td>8</td><td>90</td><td>one turn of insurance, one overtrick</td></tr>
+            <tr><td>10</td><td>8</td><td>8</td><td>77</td><td>two turns of insurance</td></tr>
+            <tr><td>7</td><td>8</td><td>7</td><td>125</td><td>beat the solver</td></tr>
+            <tr><td>8</td><td>8</td><td>9</td><td>0</td><td>bust</td></tr>
+            <tr><td>12</td><td>8</td><td>12</td><td>40</td><td>max bid, used every turn</td></tr>
+            <tr><td>12</td><td>6</td><td>6</td><td>19</td><td>max bid on an easy grid</td></tr>
+            <tr><td>9</td><td>10</td><td>9</td><td>125</td><td>beat par on a hard grid</td></tr>
+          </tbody>
+        </table>
+        <p>A game is five rounds; the game score is the sum of the round scores.</p>
+        <button id="btn-help-close" class="btn btn-primary btn-wide">Close</button>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" hidden></div>
+  </div>
+  <script type="module" src="js/ui.js"></script>
+</body>
+</html>

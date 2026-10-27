@@ -1,0 +1,7831 @@
+{
+  "attempts": 856,
+  "accepted": 200,
+  "rejected": {
+    "too-easy": 634,
+    "unsolved": 17
+  },
+  "perPair": {
+    "center3:noValue+diag:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:allDifferent+diag:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:fullHouse+diag:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "center3:sum+col:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "block:allEven+center3:noValue": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1,
+        "3": 1
+      }
+    },
+    "block:sum+col:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:sum+col:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyRow:allEven+plus:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "col:allOdd+x:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:allOdd+row:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "block:sum+x:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyCol:sum+diag:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyCol:ascending+col:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "block:sum+x:sum": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1,
+        "3": 1
+      }
+    },
+    "anyCol:equalTo+x:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyCol:palindrome+diag:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:palindrome+anyCol:allEqual": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1,
+        "4": 1
+      }
+    },
+    "corners:allOdd+row:allEqual": {
+      "attempts": 2,
+      "accepted": 1,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1,
+        "6": 1
+      }
+    },
+    "anti:sum+center3:noValue": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:allOdd+diag:palindrome": {
+      "attempts": 3,
+      "accepted": 0,
+      "tooEasy": 3,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1,
+        "3": 1,
+        "4": 1
+      }
+    },
+    "block:allDifferent+col:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "diag:allOdd+plus:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:allOdd+block:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyCol:allOdd+diag:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyRow:palindrome+row:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "1": 1
+      }
+    },
+    "plus:allEven+row:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "col:fullHouse+row:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyRow:palindrome+center3:allEven": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "block:allEqual+corners:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "plus:sum+row:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "row:allEqual+x:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "col:ascending+diag:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:ascending+anyRow:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyRow:palindrome+center3:sum": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "1": 1,
+        "2": 1
+      }
+    },
+    "anyRow:allEqual+col:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:palindrome+plus:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:allEven+col:ascending": {
+      "attempts": 2,
+      "accepted": 1,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1,
+        "6": 1
+      }
+    },
+    "anti:allOdd+plus:allDifferent": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1,
+        "3": 1
+      }
+    },
+    "anyRow:equalTo+row:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:equalTo+col:palindrome": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anti:palindrome+anyRow:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyRow:fullHouse+col:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:equalTo+plus:sum": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyRow:allEven+block:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anti:allEven+anyRow:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:allDifferent+anyCol:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "col:fullHouse+x:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "col:allOdd+plus:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:allEqual+diag:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "block:allDifferent+center3:noValue": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "col:allEven+plus:sum": {
+      "attempts": 3,
+      "accepted": 0,
+      "tooEasy": 3,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 3
+      }
+    },
+    "col:allOdd+diag:ascending": {
+      "attempts": 2,
+      "accepted": 1,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1,
+        "7": 1
+      }
+    },
+    "anti:allEven+anyCol:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "center3:sum+diag:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "col:sum+row:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:allEqual+anyCol:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:equalTo+col:palindrome": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "block:equalTo+center3:allEven": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "10": 1
+      }
+    },
+    "anyLine:allEven+block:equalTo": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1,
+        "5": 1
+      }
+    },
+    "anyRow:equalTo+center3:noValue": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anti:ascending+anyCol:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyCol:allOdd+plus:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:allDifferent+plus:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyCol:ascending+row:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:allEqual+x:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:sum+corners:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:palindrome+anyRow:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyCol:fullHouse+block:allOdd": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 2
+      }
+    },
+    "diag:fullHouse+plus:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:allDifferent+col:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:ascending+row:allOdd": {
+      "attempts": 2,
+      "accepted": 2,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1,
+        "7": 1
+      }
+    },
+    "anti:ascending+anyCol:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:sum+anyRow:fullHouse": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 2
+      }
+    },
+    "anti:allOdd+anyLine:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:allEqual+x:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "diag:ascending+row:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyLine:ascending+row:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "diag:fullHouse+x:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:equalTo+row:allEqual": {
+      "attempts": 2,
+      "accepted": 2,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 2
+      }
+    },
+    "col:fullHouse+row:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:equalTo+anyLine:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "block:allOdd+row:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:sum+block:sum": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 2
+      }
+    },
+    "anyRow:palindrome+corners:allEqual": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1,
+        "4": 1
+      }
+    },
+    "anyLine:allEven+center3:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyLine:allEqual+x:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "center3:sum+col:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:ascending+corners:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "block:sum+x:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "block:allOdd+x:allOdd": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 2
+      }
+    },
+    "anti:sum+plus:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:palindrome+col:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "col:allOdd+diag:allDifferent": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1,
+        "3": 1
+      }
+    },
+    "anti:palindrome+row:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:fullHouse+corners:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyCol:allEqual+block:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:allEven+col:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyLine:allEven+x:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:equalTo+corners:sum": {
+      "attempts": 2,
+      "accepted": 2,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1,
+        "9": 1
+      }
+    },
+    "anyCol:palindrome+corners:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:fullHouse+corners:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "center3:noValue+plus:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyRow:palindrome+corners:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:palindrome+x:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:fullHouse+col:allOdd": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 2
+      }
+    },
+    "anti:equalTo+plus:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:allOdd+anyCol:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:fullHouse+row:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anyLine:palindrome+plus:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "col:allOdd+plus:allDifferent": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1,
+        "4": 1
+      }
+    },
+    "anti:fullHouse+corners:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:palindrome+diag:ascending": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 2
+      }
+    },
+    "anyRow:allOdd+diag:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anyCol:equalTo+center3:allEven": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anti:fullHouse+diag:palindrome": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1,
+        "4": 1
+      }
+    },
+    "anyRow:palindrome+block:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "diag:sum+row:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "col:fullHouse+corners:equalTo": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 2
+      }
+    },
+    "anyCol:equalTo+x:allDifferent": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyCol:allOdd+row:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "diag:fullHouse+x:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "8": 1
+      }
+    },
+    "anti:allOdd+row:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "8": 1
+      }
+    },
+    "anyRow:fullHouse+center3:allOdd": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "diag:sum+plus:allEven": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 2
+      }
+    },
+    "anyLine:equalTo+corners:equalTo": {
+      "attempts": 2,
+      "accepted": 2,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1,
+        "9": 1
+      }
+    },
+    "anyLine:equalTo+diag:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:sum+diag:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:allOdd+diag:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:equalTo+corners:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "col:allEven+row:sum": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 2
+      }
+    },
+    "anyLine:allEven+plus:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:allEqual+anyLine:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyRow:palindrome+corners:sum": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "1": 1,
+        "2": 1
+      }
+    },
+    "col:allDifferent+diag:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyRow:palindrome+block:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyRow:ascending+plus:allOdd": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "col:allDifferent+plus:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:palindrome+plus:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "8": 1
+      }
+    },
+    "anyRow:allEqual+col:allOdd": {
+      "attempts": 2,
+      "accepted": 1,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1,
+        "6": 1
+      }
+    },
+    "col:sum+plus:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anti:fullHouse+col:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:equalTo+corners:allOdd": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyCol:palindrome+col:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "diag:allOdd+x:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyRow:ascending+diag:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:sum+center3:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:palindrome+anyCol:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:fullHouse+row:fullHouse": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1,
+        "4": 1
+      }
+    },
+    "anyRow:allOdd+col:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyCol:equalTo+block:allOdd": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anti:palindrome+diag:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:allDifferent+center3:noValue": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:allEqual+center3:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:allEqual+diag:allEven": {
+      "attempts": 2,
+      "accepted": 2,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1,
+        "7": 1
+      }
+    },
+    "anti:allEven+anyCol:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "col:equalTo+row:ascending": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "9": 1
+      }
+    },
+    "anyLine:ascending+diag:ascending": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1,
+        "5": 1
+      }
+    },
+    "anyCol:equalTo+diag:fullHouse": {
+      "attempts": 2,
+      "accepted": 2,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1,
+        "7": 1
+      }
+    },
+    "corners:allEqual+diag:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyCol:equalTo+diag:palindrome": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anyRow:allEven+row:palindrome": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 2
+      }
+    },
+    "anyCol:sum+row:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:allOdd+center3:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "block:allEqual+x:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:sum+diag:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyRow:allOdd+row:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:palindrome+x:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyLine:palindrome+col:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyLine:palindrome+col:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "plus:allDifferent+row:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyRow:allEven+row:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anti:allEqual+anyRow:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:allOdd+col:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:palindrome+anyRow:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:allEqual+col:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:allEven+diag:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "row:palindrome+x:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:allEven+diag:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "diag:palindrome+x:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:allEqual+diag:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "8": 1
+      }
+    },
+    "diag:equalTo+plus:fullHouse": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "plus:equalTo+row:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyCol:fullHouse+row:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyRow:ascending+diag:ascending": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anti:allDifferent+anyLine:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:allEqual+block:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "block:allEven+x:allEven": {
+      "attempts": 3,
+      "accepted": 0,
+      "tooEasy": 3,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1,
+        "4": 1,
+        "5": 1
+      }
+    },
+    "anyLine:allOdd+block:allDifferent": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "1": 1,
+        "2": 1
+      }
+    },
+    "anyCol:palindrome+corners:allEqual": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1,
+        "4": 1
+      }
+    },
+    "anyRow:fullHouse+corners:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "row:allEven+x:allEqual": {
+      "attempts": 2,
+      "accepted": 2,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 2
+      }
+    },
+    "anti:equalTo+x:allEqual": {
+      "attempts": 2,
+      "accepted": 2,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1,
+        "8": 1
+      }
+    },
+    "anyLine:fullHouse+block:allOdd": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1,
+        "3": 1
+      }
+    },
+    "anyCol:allDifferent+corners:allEqual": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 2
+      }
+    },
+    "anyCol:allOdd+col:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:allEqual+anyCol:ascending": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "8": 1
+      }
+    },
+    "diag:allEqual+plus:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "plus:equalTo+x:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 1,
+      "pars": {}
+    },
+    "block:allDifferent+diag:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:allEqual+row:allEven": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "block:allDifferent+x:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "col:ascending+row:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 1,
+      "pars": {}
+    },
+    "anti:allOdd+diag:ascending": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anyCol:palindrome+center3:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "1": 1
+      }
+    },
+    "anyLine:allEven+diag:palindrome": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1,
+        "3": 1
+      }
+    },
+    "block:allOdd+diag:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyRow:allEven+diag:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "center3:allEven+row:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "diag:allDifferent+plus:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:sum+x:fullHouse": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 2
+      }
+    },
+    "center3:allOdd+x:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyLine:allEqual+block:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anyCol:palindrome+row:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:ascending+x:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:allDifferent+x:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "center3:allOdd+diag:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anti:palindrome+anyRow:allOdd": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 2
+      }
+    },
+    "plus:allEqual+x:allEven": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "diag:sum+row:ascending": {
+      "attempts": 2,
+      "accepted": 1,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1,
+        "6": 1
+      }
+    },
+    "col:allEven+diag:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "col:sum+x:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:equalTo+anyRow:ascending": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyRow:equalTo+x:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "10": 1
+      }
+    },
+    "col:allEven+row:allEqual": {
+      "attempts": 2,
+      "accepted": 2,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 2
+      }
+    },
+    "anti:sum+anyCol:allEqual": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1,
+        "5": 1
+      }
+    },
+    "anyCol:allEven+row:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:fullHouse+block:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "plus:allEven+x:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anti:allEqual+anyCol:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "plus:allOdd+row:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:ascending+col:allOdd": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "col:allDifferent+diag:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "col:fullHouse+plus:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:equalTo+row:allDifferent": {
+      "attempts": 2,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 2
+      }
+    },
+    "anyCol:sum+corners:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:fullHouse+x:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyLine:sum+center3:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyCol:palindrome+plus:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyRow:allEven+col:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:palindrome+diag:allEven": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1,
+        "4": 1
+      }
+    },
+    "col:allOdd+row:allEqual": {
+      "attempts": 3,
+      "accepted": 1,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 2,
+        "6": 1
+      }
+    },
+    "anyRow:sum+block:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyLine:equalTo+block:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "corners:sum+diag:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyLine:palindrome+center3:noValue": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "plus:allEven+x:allEven": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1,
+        "5": 1
+      }
+    },
+    "anyCol:ascending+row:allOdd": {
+      "attempts": 2,
+      "accepted": 2,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1,
+        "7": 1
+      }
+    },
+    "col:allEven+plus:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:sum+row:fullHouse": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1,
+        "4": 1
+      }
+    },
+    "col:fullHouse+row:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "plus:allEven+row:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:allDifferent+anyLine:ascending": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1,
+        "4": 1
+      }
+    },
+    "anyRow:ascending+plus:equalTo": {
+      "attempts": 2,
+      "accepted": 2,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1,
+        "9": 1
+      }
+    },
+    "anti:fullHouse+x:sum": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 2
+      }
+    },
+    "anyCol:fullHouse+corners:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyCol:ascending+x:allOdd": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 2
+      }
+    },
+    "corners:allDifferent+diag:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:equalTo+block:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyLine:allEven+x:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:palindrome+col:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:allOdd+col:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:allEqual+col:fullHouse": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1,
+        "5": 1
+      }
+    },
+    "anyRow:allDifferent+corners:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "1": 1
+      }
+    },
+    "anyRow:ascending+x:allOdd": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1,
+        "5": 1
+      }
+    },
+    "col:ascending+row:allOdd": {
+      "attempts": 2,
+      "accepted": 1,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1,
+        "8": 1
+      }
+    },
+    "anyCol:allEqual+corners:allEqual": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 2
+      }
+    },
+    "anti:allEven+anyLine:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyRow:palindrome+plus:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyCol:fullHouse+col:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "block:equalTo+x:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:allEqual+corners:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:ascending+anyCol:ascending": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "corners:sum+diag:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyRow:equalTo+block:allDifferent": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anti:allDifferent+anyLine:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "1": 1
+      }
+    },
+    "center3:allEven+x:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "diag:allEqual+plus:allEqual": {
+      "attempts": 2,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 1,
+      "pars": {
+        "8": 1
+      }
+    },
+    "plus:allEqual+row:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyRow:ascending+diag:sum": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1,
+        "5": 1
+      }
+    },
+    "anyCol:allEqual+diag:allEven": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "diag:allOdd+x:sum": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1,
+        "4": 1
+      }
+    },
+    "anti:sum+corners:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "1": 1
+      }
+    },
+    "diag:equalTo+x:sum": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "center3:sum+x:allOdd": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1,
+        "3": 1
+      }
+    },
+    "col:sum+row:allOdd": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1,
+        "4": 1
+      }
+    },
+    "anyLine:allOdd+plus:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyRow:fullHouse+col:ascending": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anti:fullHouse+col:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:fullHouse+x:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyRow:allEven+x:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "diag:ascending+row:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:fullHouse+plus:fullHouse": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 2
+      }
+    },
+    "anyRow:palindrome+row:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "col:ascending+diag:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 1,
+      "pars": {}
+    },
+    "anti:fullHouse+anyCol:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyRow:fullHouse+row:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:ascending+anyCol:fullHouse": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1,
+        "6": 1
+      }
+    },
+    "anti:ascending+anyRow:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "8": 1
+      }
+    },
+    "anyRow:fullHouse+block:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "center3:sum+plus:fullHouse": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1,
+        "4": 1
+      }
+    },
+    "anti:allOdd+corners:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:equalTo+row:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "block:allOdd+center3:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "diag:sum+row:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:sum+diag:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyCol:allOdd+row:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyRow:allOdd+plus:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anyCol:palindrome+diag:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:allEqual+block:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyCol:allEven+col:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyRow:ascending+col:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyRow:allEven+plus:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "center3:noValue+diag:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "center3:noValue+plus:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:allEqual+anyLine:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:allDifferent+row:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "center3:allOdd+diag:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "col:allOdd+diag:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:sum+block:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:ascending+block:allEven": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyCol:allEven+corners:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:allEqual+row:allOdd": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyLine:equalTo+center3:allEven": {
+      "attempts": 2,
+      "accepted": 2,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1,
+        "8": 1
+      }
+    },
+    "anti:allDifferent+row:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:allDifferent+plus:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:allEven+anyRow:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyLine:palindrome+diag:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "diag:equalTo+plus:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "10": 1
+      }
+    },
+    "col:fullHouse+row:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "col:allEqual+diag:fullHouse": {
+      "attempts": 2,
+      "accepted": 1,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1,
+        "6": 1
+      }
+    },
+    "block:allDifferent+corners:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "center3:allOdd+row:palindrome": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyLine:fullHouse+col:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:allOdd+block:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyLine:allEven+center3:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:allEven+block:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyRow:palindrome+col:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:ascending+x:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:allEqual+diag:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:palindrome+diag:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyLine:fullHouse+corners:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "corners:equalTo+diag:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:fullHouse+col:palindrome": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1,
+        "4": 1
+      }
+    },
+    "diag:allOdd+x:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "col:ascending+diag:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 1,
+      "pars": {}
+    },
+    "corners:allEqual+row:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:palindrome+corners:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyCol:allEven+col:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:ascending+center3:allOdd": {
+      "attempts": 3,
+      "accepted": 2,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1,
+        "6": 1,
+        "7": 1
+      }
+    },
+    "anyRow:palindrome+col:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:ascending+row:palindrome": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "row:allEqual+x:equalTo": {
+      "attempts": 2,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 1,
+      "pars": {
+        "10": 1
+      }
+    },
+    "anti:allDifferent+diag:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "center3:sum+diag:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "col:palindrome+plus:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "col:sum+diag:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyRow:palindrome+corners:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:sum+row:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:allDifferent+block:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "col:allDifferent+row:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyLine:allOdd+plus:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anti:allDifferent+diag:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anyCol:allEven+col:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyRow:equalTo+row:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "row:allDifferent+x:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "diag:allOdd+row:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:ascending+anyLine:fullHouse": {
+      "attempts": 2,
+      "accepted": 1,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1,
+        "6": 1
+      }
+    },
+    "col:allEqual+row:ascending": {
+      "attempts": 2,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 1,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyLine:palindrome+row:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "corners:allEven+diag:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "block:sum+corners:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyLine:equalTo+diag:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:sum+row:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyCol:fullHouse+plus:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:allEqual+col:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:allOdd+anyCol:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyLine:ascending+col:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:allEqual+col:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:allOdd+col:ascending": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "col:fullHouse+plus:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:ascending+col:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "corners:allDifferent+diag:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:ascending+center3:allEven": {
+      "attempts": 2,
+      "accepted": 2,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "8": 2
+      }
+    },
+    "anyCol:allEqual+col:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:allDifferent+corners:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyRow:allOdd+row:palindrome": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1,
+        "3": 1
+      }
+    },
+    "center3:noValue+plus:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:ascending+anyLine:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:ascending+corners:allOdd": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anti:fullHouse+corners:allOdd": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 2
+      }
+    },
+    "row:allOdd+x:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "col:ascending+diag:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 1,
+      "pars": {}
+    },
+    "anyCol:sum+col:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:allEven+x:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:sum+plus:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:fullHouse+x:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:allDifferent+plus:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyLine:equalTo+corners:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "block:allOdd+corners:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:allEven+diag:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "col:allEqual+row:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "col:ascending+row:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anti:sum+diag:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "plus:equalTo+row:sum": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "10": 1
+      }
+    },
+    "anti:fullHouse+anyRow:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "col:allDifferent+row:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "corners:allEven+diag:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "plus:allOdd+row:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:allEqual+x:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:sum+anyRow:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyRow:palindrome+block:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyLine:palindrome+row:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "1": 1
+      }
+    },
+    "anti:allEqual+row:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:fullHouse+col:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anti:sum+anyCol:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "plus:allEqual+row:allOdd": {
+      "attempts": 2,
+      "accepted": 2,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1,
+        "7": 1
+      }
+    },
+    "diag:palindrome+row:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyCol:allOdd+plus:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "col:allEqual+diag:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:allEqual+plus:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:allDifferent+anyRow:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyRow:palindrome+diag:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:allDifferent+row:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:allEven+anyRow:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "col:equalTo+diag:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 1,
+      "pars": {}
+    },
+    "anti:palindrome+col:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyRow:allEqual+x:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "8": 1
+      }
+    },
+    "anti:ascending+row:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "center3:sum+diag:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyRow:sum+corners:allOdd": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1,
+        "3": 1
+      }
+    },
+    "anti:fullHouse+plus:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:fullHouse+plus:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:sum+col:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyCol:sum+col:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyRow:fullHouse+x:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyRow:palindrome+row:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyRow:fullHouse+diag:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyRow:allDifferent+col:ascending": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1,
+        "5": 1
+      }
+    },
+    "diag:equalTo+row:fullHouse": {
+      "attempts": 2,
+      "accepted": 2,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "8": 2
+      }
+    },
+    "anyLine:sum+x:fullHouse": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 2
+      }
+    },
+    "diag:palindrome+row:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyCol:palindrome+diag:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyRow:palindrome+diag:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anyCol:allEven+corners:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "diag:sum+x:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:equalTo+col:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "center3:allOdd+diag:allEqual": {
+      "attempts": 2,
+      "accepted": 2,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1,
+        "8": 1
+      }
+    },
+    "anti:sum+col:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:allDifferent+diag:sum": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1,
+        "3": 1
+      }
+    },
+    "anti:allDifferent+plus:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "block:allEqual+diag:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "diag:allOdd+plus:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:sum+plus:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyLine:allEqual+x:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "col:palindrome+diag:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:allEqual+row:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:equalTo+col:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "col:allOdd+row:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyRow:equalTo+block:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "8": 1
+      }
+    },
+    "corners:allEven+row:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:ascending+center3:noValue": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 1,
+      "pars": {}
+    },
+    "anyCol:palindrome+col:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "col:allEqual+diag:allOdd": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "block:sum+center3:allEven": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 2
+      }
+    },
+    "anyLine:sum+center3:allEven": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "center3:noValue+row:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyLine:allOdd+col:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "center3:allOdd+plus:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:ascending+corners:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyCol:equalTo+block:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "8": 1
+      }
+    },
+    "anyRow:equalTo+row:allEven": {
+      "attempts": 2,
+      "accepted": 2,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1,
+        "7": 1
+      }
+    },
+    "anyRow:allEqual+x:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyLine:ascending+x:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:allEven+plus:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:fullHouse+x:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:fullHouse+corners:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "col:fullHouse+diag:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:fullHouse+block:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyRow:allEqual+row:sum": {
+      "attempts": 3,
+      "accepted": 0,
+      "tooEasy": 3,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1,
+        "5": 2
+      }
+    },
+    "anyLine:allEqual+diag:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:allOdd+x:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "col:allEqual+diag:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 1,
+      "pars": {}
+    },
+    "center3:allEven+x:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "col:fullHouse+row:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "col:allOdd+x:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "block:equalTo+diag:fullHouse": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "col:ascending+corners:allOdd": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "col:allOdd+plus:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "8": 1
+      }
+    },
+    "anti:sum+plus:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:allEqual+col:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyRow:allEqual+x:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "plus:allOdd+x:allOdd": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyCol:allOdd+block:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyLine:allEven+corners:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:palindrome+plus:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyCol:sum+row:ascending": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 1,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:equalTo+anyRow:fullHouse": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anti:fullHouse+plus:allEqual": {
+      "attempts": 2,
+      "accepted": 2,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 2
+      }
+    },
+    "block:allDifferent+x:allEven": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 2
+      }
+    },
+    "anyLine:palindrome+plus:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:allDifferent+row:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyRow:allDifferent+row:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:fullHouse+diag:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "diag:allEqual+x:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "block:equalTo+x:allEven": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anyLine:allOdd+row:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:equalTo+anyLine:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:allEqual+anyRow:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "8": 1
+      }
+    },
+    "anti:allOdd+anyCol:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "center3:allOdd+x:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:allDifferent+col:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyLine:ascending+plus:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyRow:allEqual+diag:allOdd": {
+      "attempts": 2,
+      "accepted": 1,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1,
+        "6": 1
+      }
+    },
+    "anti:fullHouse+row:allDifferent": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 2
+      }
+    },
+    "anti:ascending+diag:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:fullHouse+col:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:allOdd+anyLine:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:palindrome+diag:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:equalTo+diag:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 1,
+      "pars": {}
+    },
+    "anti:palindrome+diag:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyCol:fullHouse+x:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:fullHouse+corners:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:allDifferent+col:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "1": 1
+      }
+    },
+    "anyRow:sum+x:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "1": 1
+      }
+    },
+    "anyRow:fullHouse+center3:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyCol:allOdd+center3:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:ascending+plus:allDifferent": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anti:fullHouse+row:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:allEven+diag:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "plus:sum+x:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:allDifferent+plus:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyCol:equalTo+center3:allOdd": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anyRow:ascending+block:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:sum+anyCol:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:palindrome+row:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:sum+plus:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "diag:palindrome+plus:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:fullHouse+anyCol:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:palindrome+col:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:allEqual+diag:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "diag:allEqual+x:sum": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anti:equalTo+anyRow:palindrome": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "block:allEven+x:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anyCol:allOdd+row:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:sum+diag:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "diag:palindrome+row:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyLine:palindrome+corners:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:equalTo+row:fullHouse": {
+      "attempts": 2,
+      "accepted": 1,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1,
+        "6": 1
+      }
+    },
+    "anti:allDifferent+anyRow:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "block:allDifferent+col:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "block:sum+center3:sum": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1,
+        "3": 1
+      }
+    },
+    "anyRow:allOdd+row:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyLine:fullHouse+x:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "diag:equalTo+plus:sum": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyLine:fullHouse+x:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:palindrome+plus:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anyCol:allEven+x:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anti:ascending+row:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "plus:allEven+x:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:allEqual+diag:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "9": 1
+      }
+    },
+    "anyCol:allOdd+x:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "diag:allDifferent+x:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "center3:sum+x:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyRow:ascending+col:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:palindrome+diag:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "col:fullHouse+diag:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "1": 1
+      }
+    },
+    "block:allEven+diag:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "1": 1
+      }
+    },
+    "anyRow:allOdd+corners:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyRow:equalTo+corners:allEven": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyCol:fullHouse+diag:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "block:sum+diag:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:palindrome+diag:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyLine:equalTo+row:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "center3:allEven+col:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:sum+diag:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:allEqual+diag:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "8": 1
+      }
+    },
+    "anyCol:allEqual+row:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "8": 1
+      }
+    },
+    "anyRow:allEqual+row:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:allEven+row:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anti:allEqual+row:fullHouse": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyRow:fullHouse+row:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "center3:noValue+plus:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyCol:allEven+corners:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "col:allDifferent+x:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "diag:allOdd+row:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyCol:sum+diag:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyCol:equalTo+col:allOdd": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anyRow:allDifferent+col:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:allEqual+row:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyRow:fullHouse+block:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyCol:ascending+col:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:palindrome+diag:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "plus:sum+x:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:fullHouse+anyLine:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:ascending+corners:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "corners:allEqual+diag:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:equalTo+diag:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "10": 1
+      }
+    },
+    "anti:allEqual+anyCol:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 1,
+      "pars": {}
+    },
+    "block:allEven+col:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyLine:equalTo+x:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:ascending+plus:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:ascending+block:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:allEven+row:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "diag:equalTo+x:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:ascending+plus:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:sum+row:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "center3:sum+col:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:fullHouse+col:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "col:fullHouse+corners:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:palindrome+corners:allEven": {
+      "attempts": 2,
+      "accepted": 0,
+      "tooEasy": 2,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 2
+      }
+    },
+    "diag:equalTo+x:allEven": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anti:fullHouse+col:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyCol:fullHouse+block:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:sum+col:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyCol:palindrome+center3:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:allEqual+corners:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:sum+row:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyRow:allEven+corners:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyLine:palindrome+x:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:allOdd+plus:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "9": 1
+      }
+    },
+    "col:allOdd+diag:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyLine:allOdd+plus:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "row:palindrome+x:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "diag:allEven+x:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:allEqual+anyLine:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:equalTo+corners:allEven": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anti:sum+anyCol:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyRow:allOdd+row:equalTo": {
+      "attempts": 2,
+      "accepted": 2,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1,
+        "7": 1
+      }
+    },
+    "anyLine:equalTo+x:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anti:allOdd+anyLine:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "col:allEqual+row:allOdd": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyCol:allEven+block:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:ascending+row:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "9": 1
+      }
+    },
+    "anyLine:allOdd+col:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:sum+block:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:allOdd+col:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:sum+corners:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:allOdd+anyRow:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "plus:allDifferent+x:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "1": 1
+      }
+    },
+    "block:allDifferent+corners:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyLine:allOdd+corners:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyLine:ascending+plus:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:allDifferent+diag:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "1": 1
+      }
+    },
+    "diag:ascending+row:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyLine:allOdd+center3:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "col:fullHouse+diag:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:allEven+plus:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyRow:equalTo+x:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 1,
+      "pars": {}
+    },
+    "anyCol:allOdd+row:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "row:ascending+x:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "plus:allEqual+x:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anyRow:allEqual+block:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "diag:fullHouse+plus:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anti:allEqual+anyRow:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "block:equalTo+diag:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anti:allEven+plus:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "center3:allOdd+diag:allDifferent": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyLine:equalTo+col:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "diag:fullHouse+row:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anti:ascending+corners:sum": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anti:equalTo+anyCol:allDifferent": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anyRow:allOdd+x:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:sum+col:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyLine:ascending+center3:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:allEven+plus:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyLine:sum+block:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyRow:ascending+row:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyRow:palindrome+center3:noValue": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:allEven+anyRow:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyRow:fullHouse+block:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:sum+col:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:sum+anyCol:equalTo": {
+      "attempts": 2,
+      "accepted": 1,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1,
+        "6": 1
+      }
+    },
+    "center3:allEven+col:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "8": 1
+      }
+    },
+    "anyRow:allOdd+x:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "col:ascending+corners:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 1,
+      "pars": {}
+    },
+    "anyRow:ascending+row:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "col:allDifferent+corners:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:equalTo+diag:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:sum+diag:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyCol:fullHouse+diag:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "block:equalTo+col:allEven": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "block:sum+col:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:equalTo+row:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anyCol:palindrome+diag:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:palindrome+x:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "corners:allDifferent+row:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:palindrome+diag:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyRow:fullHouse+diag:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyCol:fullHouse+diag:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "diag:allEqual+plus:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "col:allEqual+diag:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyCol:sum+x:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:sum+col:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:fullHouse+plus:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "8": 1
+      }
+    },
+    "block:allEqual+center3:allEven": {
+      "attempts": 2,
+      "accepted": 1,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1,
+        "8": 1
+      }
+    },
+    "anyLine:allEven+col:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyRow:allEven+plus:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyCol:fullHouse+col:ascending": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "block:allOdd+corners:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "col:allEven+diag:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyLine:palindrome+row:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "1": 1
+      }
+    },
+    "anti:fullHouse+diag:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "9": 1
+      }
+    },
+    "anti:fullHouse+anyRow:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:equalTo+anyRow:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:fullHouse+row:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyRow:allEqual+x:allEven": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyCol:ascending+x:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyCol:equalTo+diag:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anti:allOdd+block:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "corners:allEven+diag:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "center3:sum+row:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyRow:allDifferent+plus:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anti:allDifferent+corners:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyRow:allEqual+diag:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 1,
+      "pars": {}
+    },
+    "diag:allOdd+row:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "corners:sum+diag:fullHouse": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "col:fullHouse+diag:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:fullHouse+corners:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyLine:ascending+block:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "col:allEven+x:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:fullHouse+anyCol:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "col:equalTo+row:allEven": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anti:ascending+diag:allEqual": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anyCol:allEqual+diag:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "diag:palindrome+row:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anti:allOdd+anyRow:palindrome": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "1": 1
+      }
+    },
+    "anti:palindrome+row:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:allDifferent+anyRow:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "anyCol:ascending+block:allOdd": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anti:allDifferent+row:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyRow:sum+diag:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anti:sum+anyCol:allOdd": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "block:sum+corners:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "1": 1
+      }
+    },
+    "anyRow:ascending+block:allOdd": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "8": 1
+      }
+    },
+    "anyRow:allEven+center3:noValue": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "anyCol:allOdd+diag:ascending": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    },
+    "col:allEqual+corners:allEven": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyLine:ascending+plus:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "9": 1
+      }
+    },
+    "anyCol:equalTo+corners:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anyCol:palindrome+col:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "3": 1
+      }
+    },
+    "plus:sum+x:equalTo": {
+      "attempts": 1,
+      "accepted": 1,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "plus:equalTo+x:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "5": 1
+      }
+    },
+    "anyLine:allEven+row:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyCol:sum+x:allDifferent": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyCol:allDifferent+block:sum": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "2": 1
+      }
+    },
+    "anyLine:ascending+block:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "7": 1
+      }
+    },
+    "anyLine:allEqual+corners:equalTo": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "9": 1
+      }
+    },
+    "anti:allEqual+anyCol:allEqual": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 0,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "6": 1
+      }
+    },
+    "anyRow:ascending+corners:allEven": {
+      "attempts": 1,
+      "accepted": 0,
+      "tooEasy": 1,
+      "tooHard": 0,
+      "unsolved": 0,
+      "pars": {
+        "4": 1
+      }
+    }
+  },
+  "perPar": {
+    "6": 105,
+    "7": 54,
+    "8": 26,
+    "9": 9,
+    "10": 6
+  },
+  "solveMs": {
+    "total": 457675,
+    "accepted": 384020,
+    "max": 11460
+  },
+  "nodes": 1541016841,
+  "confidence": {
+    "1.00": 183,
+    "0.13": 5,
+    "0.25": 1,
+    "0.38": 4,
+    "0.75": 4,
+    "0.50": 1,
+    "0.88": 2
+  },
+  "quotaRejected": {
+    "par": 0,
+    "pair": 0
+  },
+  "workers": 4,
+  "startedAt": "2026-10-27T22:15:10.667Z",
+  "finishedAt": "2026-10-27T22:17:09.997Z",
+  "elapsedSeconds": 119.33,
+  "msPerAttempt": 534.6670560747664,
+  "msPerAcceptedPuzzle": 1920.1,
+  "wallSecondsPerBankPuzzle": 0.59665,
+  "calibration": {
+    "sample": 30,
+    "complete": 28,
+    "agree": 27,
+    "agreementRate": 0.9642857142857143,
+    "overestimates": [
+      {
+        "id": "0022",
+        "beam": 8,
+        "ida": 7
+      }
+    ],
+    "results": [
+      {
+        "id": "0004",
+        "beam": 6,
+        "ida": 6,
+        "complete": true,
+        "nodes": 78,
+        "ms": 25
+      },
+      {
+        "id": "0001",
+        "beam": 6,
+        "ida": 6,
+        "complete": true,
+        "nodes": 439437,
+        "ms": 1788
+      },
+      {
+        "id": "0003",
+        "beam": 6,
+        "ida": 6,
+        "complete": true,
+        "nodes": 622177,
+        "ms": 3178
+      },
+      {
+        "id": "0007",
+        "beam": 6,
+        "ida": 6,
+        "complete": true,
+        "nodes": 62969,
+        "ms": 700
+      },
+      {
+        "id": "0002",
+        "beam": 7,
+        "ida": 7,
+        "complete": true,
+        "nodes": 2547857,
+        "ms": 9847
+      },
+      {
+        "id": "0009",
+        "beam": 6,
+        "ida": 6,
+        "complete": true,
+        "nodes": 18107,
+        "ms": 121
+      },
+      {
+        "id": "0011",
+        "beam": 6,
+        "ida": 6,
+        "complete": true,
+        "nodes": 203639,
+        "ms": 1719
+      },
+      {
+        "id": "0012",
+        "beam": 7,
+        "ida": 7,
+        "complete": true,
+        "nodes": 231650,
+        "ms": 1395
+      },
+      {
+        "id": "0013",
+        "beam": 6,
+        "ida": 6,
+        "complete": true,
+        "nodes": 123184,
+        "ms": 601
+      },
+      {
+        "id": "0014",
+        "beam": 6,
+        "ida": 6,
+        "complete": true,
+        "nodes": 85956,
+        "ms": 1732
+      },
+      {
+        "id": "0015",
+        "beam": 7,
+        "ida": 7,
+        "complete": true,
+        "nodes": 1281234,
+        "ms": 4496
+      },
+      {
+        "id": "0008",
+        "beam": 7,
+        "ida": 7,
+        "complete": true,
+        "nodes": 2162969,
+        "ms": 16462
+      },
+      {
+        "id": "0018",
+        "beam": 7,
+        "ida": 7,
+        "complete": true,
+        "nodes": 57259,
+        "ms": 591
+      },
+      {
+        "id": "0019",
+        "beam": 7,
+        "ida": 7,
+        "complete": true,
+        "nodes": 149561,
+        "ms": 906
+      },
+      {
+        "id": "0020",
+        "beam": 6,
+        "ida": 6,
+        "complete": true,
+        "nodes": 27198,
+        "ms": 229
+      },
+      {
+        "id": "0017",
+        "beam": 7,
+        "ida": 7,
+        "complete": true,
+        "nodes": 576046,
+        "ms": 7201
+      },
+      {
+        "id": "0022",
+        "beam": 8,
+        "ida": 7,
+        "complete": true,
+        "nodes": 4086212,
+        "ms": 18239
+      },
+      {
+        "id": "0023",
+        "beam": 6,
+        "ida": 6,
+        "complete": true,
+        "nodes": 8042,
+        "ms": 101
+      },
+      {
+        "id": "0006",
+        "beam": 7,
+        "ida": 7,
+        "complete": true,
+        "nodes": 5876887,
+        "ms": 51087
+      },
+      {
+        "id": "0025",
+        "beam": 6,
+        "ida": 6,
+        "complete": true,
+        "nodes": 165987,
+        "ms": 3792
+      },
+      {
+        "id": "0026",
+        "beam": 8,
+        "ida": 8,
+        "complete": true,
+        "nodes": 2984749,
+        "ms": 10482
+      },
+      {
+        "id": "0027",
+        "beam": 7,
+        "ida": 7,
+        "complete": true,
+        "nodes": 102514,
+        "ms": 425
+      },
+      {
+        "id": "0028",
+        "beam": 6,
+        "ida": 6,
+        "complete": true,
+        "nodes": 167771,
+        "ms": 2489
+      },
+      {
+        "id": "0029",
+        "beam": 6,
+        "ida": 6,
+        "complete": true,
+        "nodes": 483124,
+        "ms": 7616
+      },
+      {
+        "id": "0030",
+        "beam": 6,
+        "ida": 6,
+        "complete": true,
+        "nodes": 184440,
+        "ms": 824
+      },
+      {
+        "id": "0031",
+        "beam": 6,
+        "ida": 6,
+        "complete": true,
+        "nodes": 79174,
+        "ms": 831
+      },
+      {
+        "id": "0032",
+        "beam": 7,
+        "ida": 7,
+        "complete": true,
+        "nodes": 525818,
+        "ms": 2428
+      },
+      {
+        "id": "0005",
+        "beam": 7,
+        "ida": null,
+        "complete": false,
+        "nodes": 20000001,
+        "ms": 84780
+      },
+      {
+        "id": "0024",
+        "beam": 7,
+        "ida": 7,
+        "complete": true,
+        "nodes": 3788669,
+        "ms": 47863
+      },
+      {
+        "id": "0021",
+        "beam": 8,
+        "ida": null,
+        "complete": false,
+        "nodes": 20000001,
+        "ms": 87038
+      }
+    ]
+  }
+}
