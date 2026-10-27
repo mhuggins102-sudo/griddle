@@ -391,3 +391,11 @@ button { font: inherit; color: inherit; }
   .tile { transition: none; }
   .tile.bump { animation: none; }
 }
+
+/* Narrow phones (360 wide): tighter gutters keep tiles and arrows at 44px or more */
+@media (max-width: 374px) {
+  .app { padding-left: 12px; padding-right: 12px; }
+  .board { --gap: 4px; }
+  .hud { padding: 6px 8px; }
+  .goal { font-size: 15px; }
+}

@@ -1,0 +1,745 @@
+// Grid Bid UI: screens, action modes, animations, solution replay, help, share, stats.
+
+import {
+  SIZE, idx, rowOf, colOf, BID_MIN, BID_MAX, ROUNDS_PER_GAME,
+  evalGoal, bestRegionCells, describeGoal, describeAction, decodeAction, applyBoardAction, deal,
+} from './engine.js';
+import {
+  loadStore, saveStore, newGame, currentRound, lockBid, playAction, giveUp, runningTotal, isGameOver, advanceRound,
+  summarizeGame, shareLine, recordGame, findPuzzle, defaultStore,
+} from './game.js';
+
+const $ = (sel) => document.querySelector(sel);
+const ANIM_MS = 200;
+const REPLAY_STEP_MS = 900;
+
+const ui = {
+  bank: null,
+  store: loadStore(),
+  game: null,
+  mode: 'slide',
+  selected: null, // cell index for swap/nudge/draw
+  highlightGoal: null, // 0 | 1 | null
+  animating: false,
+  replaying: false,
+  bidDraft: 8,
+  replayBoard: null, // board shown while the reference solution plays
+};
+
+// ---------------------------------------------------------------------------
+// Boot
+
+async function boot() {
+  buildBoardSkeleton();
+  wireEvents();
+  $('#opt-numerals').checked = !!ui.store.settings.numerals;
+  try {
+    const res = await fetch('data/puzzles.json', { cache: 'no-cache' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    ui.bank = await res.json();
+  } catch (e) {
+    showToast(`Could not load the puzzle bank (${e.message}).`, 6000);
+    return;
+  }
+  // Drop a saved game whose puzzles no longer exist in this bank.
+  if (ui.store.currentGame && !ui.store.currentGame.rounds.every((r) => findPuzzle(ui.bank, r.puzzleId))) {
+    ui.store.currentGame = null;
+    saveStore(ui.store);
+  }
+  showHome();
+}
+
+// ---------------------------------------------------------------------------
+// Screens
+
+function showScreen(id) {
+  for (const s of document.querySelectorAll('.screen')) s.hidden = s.id !== id;
+  window.scrollTo(0, 0);
+}
+
+function showHome() {
+  ui.game = null;
+  $('#btn-continue').hidden = !ui.store.currentGame;
+  const s = ui.store;
+  $('#home-stats').textContent = s.gamesPlayed
+    ? `${s.gamesPlayed} game${s.gamesPlayed === 1 ? '' : 's'} played · best ${s.bestTotal} · ${s.seen.length} of ${ui.bank.puzzles.length} puzzles seen`
+    : `${ui.bank.puzzles.length} puzzles in the bank.`;
+  showScreen('screen-home');
+}
+
+function startNewGame() {
+  ui.game = newGame(ui.bank, ui.store);
+  ui.store.currentGame = ui.game;
+  saveStore(ui.store);
+  showRound();
+}
+
+function continueGame() {
+  ui.game = ui.store.currentGame;
+  showRound();
+}
+
+function persist() {
+  ui.store.currentGame = ui.game;
+  saveStore(ui.store);
+}
+
+function puzzleOf(round) {
+  return findPuzzle(ui.bank, round.puzzleId);
+}
+
+// ---------------------------------------------------------------------------
+// Round screen
+
+function showRound() {
+  const round = currentRound(ui.game);
+  ui.selected = null;
+  ui.highlightGoal = null;
+  ui.replaying = false;
+  ui.replayBoard = null;
+  showScreen('screen-round');
+  renderHud();
+  renderGoals();
+  renderBoard();
+  renderBag();
+  hideNudgePop();
+  if (round.status === 'bid') {
+    ui.bidDraft = 8;
+    renderBid();
+    $('#bid-panel').hidden = false;
+    $('#action-panel').hidden = true;
+    $('#result-panel').hidden = true;
+    setBoardMode('inert');
+  } else if (round.status === 'play') {
+    $('#bid-panel').hidden = true;
+    $('#action-panel').hidden = false;
+    $('#result-panel').hidden = true;
+    setMode(ui.mode || 'slide');
+  } else {
+    showResult();
+  }
+}
+
+function renderHud() {
+  const round = currentRound(ui.game);
+  $('#hud-round').textContent = `${ui.game.index + 1} / ${ROUNDS_PER_GAME}`;
+  const turns = round.state.turns;
+  $('#hud-turn').textContent = round.bid === null ? `0 / –` : `${turns} / ${round.bid}`;
+  $('#hud-score').textContent = String(runningTotal(ui.game));
+}
+
+function shownBoard() {
+  return ui.replayBoard || currentRound(ui.game).state.board;
+}
+
+function renderGoals(board) {
+  const round = currentRound(ui.game);
+  const p = puzzleOf(round);
+  const b = board || shownBoard();
+  p.goals.forEach((g, i) => {
+    const el = $(`#goal-${i}`);
+    const holds = evalGoal(b, g);
+    el.classList.toggle('holds', holds);
+    el.classList.toggle('highlighted', ui.highlightGoal === i);
+    el.querySelector('.goal-text').innerHTML = `${escapeHtml(describeGoal(g))} <small>${holds ? '· holds' : ''}</small>`;
+    el.setAttribute('aria-pressed', ui.highlightGoal === i ? 'true' : 'false');
+    el.setAttribute('aria-label', `${describeGoal(g)}, ${holds ? 'currently holds' : 'not yet'}`);
+  });
+}
+
+function renderBid() {
+  $('#bid-value').textContent = String(ui.bidDraft);
+  $('#bid-minus').disabled = ui.bidDraft <= BID_MIN;
+  $('#bid-plus').disabled = ui.bidDraft >= BID_MAX;
+}
+
+// Board skeleton: 7x7 grid, outer ring = arrows.
+function buildBoardSkeleton() {
+  const board = $('#board');
+  board.innerHTML = '';
+  for (let r = -1; r <= SIZE; r++) {
+    for (let c = -1; c <= SIZE; c++) {
+      const isRowEdge = r === -1 || r === SIZE;
+      const isColEdge = c === -1 || c === SIZE;
+      if (isRowEdge && isColEdge) {
+        const d = document.createElement('div');
+        d.className = 'corner';
+        board.appendChild(d);
+      } else if (isRowEdge) {
+        const dir = r === -1 ? -1 : 1;
+        board.appendChild(makeArrow('col', c, dir));
+      } else if (isColEdge) {
+        const dir = c === -1 ? -1 : 1;
+        board.appendChild(makeArrow('row', r, dir));
+      } else {
+        const t = document.createElement('button');
+        t.className = 'tile';
+        t.dataset.cell = String(idx(r, c));
+        t.setAttribute('role', 'gridcell');
+        const face = document.createElement('div');
+        face.className = 'face';
+        for (let k = 0; k < 9; k++) face.appendChild(Object.assign(document.createElement('span'), { className: 'pip' }));
+        t.appendChild(face);
+        board.appendChild(t);
+      }
+    }
+  }
+}
+
+function makeArrow(axis, index, dir) {
+  const a = document.createElement('button');
+  const name = axis === 'row' ? (dir === 1 ? 'right' : 'left') : dir === 1 ? 'down' : 'up';
+  a.className = `arrow ${name}`;
+  a.dataset.axis = axis;
+  a.dataset.index = String(index);
+  a.dataset.dir = String(dir);
+  a.setAttribute('aria-label', `Slide ${axis === 'row' ? 'row' : 'column'} ${index + 1} ${name}`);
+  a.tabIndex = -1;
+  return a;
+}
+
+function tileEl(cell) {
+  return $(`#board .tile[data-cell="${cell}"]`);
+}
+
+function setFace(face, value) {
+  face.dataset.v = String(value);
+  face.classList.toggle('numeral', !!ui.store.settings.numerals);
+  face.setAttribute('aria-label', String(value));
+  if (ui.store.settings.numerals) {
+    let n = face.querySelector('.num');
+    if (!n) {
+      n = document.createElement('span');
+      n.className = 'num';
+      face.appendChild(n);
+    }
+    n.textContent = String(value);
+  } else {
+    const n = face.querySelector('.num');
+    if (n) n.remove();
+  }
+}
+
+function renderBoard(board) {
+  const round = currentRound(ui.game);
+  const b = board || shownBoard();
+  const p = puzzleOf(round);
+  const regionCells = ui.highlightGoal === null ? null : new Set(bestRegionCells(b, p.goals[ui.highlightGoal]));
+  for (let i = 0; i < b.length; i++) {
+    const t = tileEl(i);
+    setFace(t.firstElementChild, b[i]);
+    t.style.transform = '';
+    t.style.opacity = '';
+    t.classList.remove('moving', 'fade', 'bump');
+    t.classList.toggle('region', !!regionCells && regionCells.has(i));
+    t.classList.toggle('selected', ui.selected === i);
+    t.setAttribute('aria-label', `Row ${rowOf(i) + 1} column ${colOf(i) + 1}: ${b[i]}`);
+  }
+  renderTargets();
+}
+
+function renderTargets() {
+  for (const t of document.querySelectorAll('#board .tile')) t.classList.remove('target');
+  if (ui.mode === 'swap' && ui.selected !== null) {
+    for (const n of neighbours(ui.selected)) tileEl(n).classList.add('target');
+  }
+}
+
+function neighbours(cell) {
+  const r = rowOf(cell);
+  const c = colOf(cell);
+  const out = [];
+  if (r > 0) out.push(idx(r - 1, c));
+  if (r < SIZE - 1) out.push(idx(r + 1, c));
+  if (c > 0) out.push(idx(r, c - 1));
+  if (c < SIZE - 1) out.push(idx(r, c + 1));
+  return out;
+}
+
+function renderBag(bag) {
+  const round = currentRound(ui.game);
+  const counts = bag || round.state.bag;
+  const el = $('#bag');
+  el.innerHTML = '';
+  counts.forEach((n, i) => {
+    const chip = document.createElement('div');
+    chip.className = `bag-chip${n === 0 ? ' empty' : ''}`;
+    const face = document.createElement('div');
+    face.className = 'face small';
+    for (let k = 0; k < 9; k++) face.appendChild(Object.assign(document.createElement('span'), { className: 'pip' }));
+    setFace(face, i + 1);
+    const count = document.createElement('span');
+    count.className = 'count';
+    count.textContent = `×${n}`;
+    chip.append(face, count);
+    chip.setAttribute('aria-label', `${n} tile${n === 1 ? '' : 's'} of value ${i + 1} in the bag`);
+    el.appendChild(chip);
+  });
+}
+
+function setBoardMode(mode) {
+  const board = $('#board');
+  board.classList.toggle('mode-slide', mode === 'slide');
+  for (const t of board.querySelectorAll('.tile')) t.classList.toggle('inert', mode === 'inert');
+}
+
+const MODE_HINTS = {
+  slide: 'Tap an arrow to slide that row or column one step. The tile pushed off wraps around.',
+  swap: 'Tap a tile, then one of its highlighted neighbours to swap them.',
+  nudge: 'Tap a tile, then +1 or −1. 6 wraps to 1 and 1 wraps to 6.',
+  draw: 'Tap a tile to replace it with a random tile from the bag. This cannot be undone.',
+};
+
+function setMode(mode) {
+  ui.mode = mode;
+  ui.selected = null;
+  hideNudgePop();
+  $('#draw-confirm').hidden = true;
+  for (const b of document.querySelectorAll('.mode')) {
+    b.classList.toggle('active', b.dataset.mode === mode);
+    b.setAttribute('aria-selected', b.dataset.mode === mode ? 'true' : 'false');
+  }
+  $('#mode-hint').textContent = MODE_HINTS[mode];
+  setBoardMode(mode);
+  renderBoard();
+}
+
+// ---------------------------------------------------------------------------
+// Interaction
+
+function onTileTap(cell) {
+  const round = currentRound(ui.game);
+  if (round.status !== 'play' || ui.animating || ui.replaying) return;
+  if (ui.mode === 'slide') return;
+  if (ui.mode === 'swap') {
+    if (ui.selected !== null && neighbours(ui.selected).includes(cell)) {
+      const a = ui.selected;
+      ui.selected = null;
+      doAction({ type: 'swap', r: rowOf(a), c: colOf(a), r2: rowOf(cell), c2: colOf(cell) });
+      return;
+    }
+    ui.selected = cell;
+    renderBoard();
+    return;
+  }
+  if (ui.mode === 'nudge') {
+    ui.selected = cell;
+    renderBoard();
+    showNudgePop(cell);
+    return;
+  }
+  if (ui.mode === 'draw') {
+    ui.selected = cell;
+    renderBoard();
+    $('#draw-confirm').hidden = false;
+    $('#draw-confirm-text').textContent = `Replace the ${round.state.board[cell]} at row ${rowOf(cell) + 1}, column ${colOf(cell) + 1} with a random tile from the bag?`;
+  }
+}
+
+function showNudgePop(cell) {
+  const pop = $('#nudge-pop');
+  const tile = tileEl(cell);
+  const wrap = $('.board-wrap');
+  const tr = tile.getBoundingClientRect();
+  const wr = wrap.getBoundingClientRect();
+  pop.hidden = false;
+  const popW = pop.offsetWidth || 120;
+  const popH = pop.offsetHeight || 48;
+  let left = tr.left - wr.left + tr.width / 2;
+  left = Math.max(popW / 2 + 4, Math.min(wr.width - popW / 2 - 4, left));
+  let top = tr.top - wr.top - popH - 6;
+  if (top < 0) top = tr.bottom - wr.top + 6;
+  pop.style.left = `${left}px`;
+  pop.style.top = `${top}px`;
+}
+
+function hideNudgePop() {
+  $('#nudge-pop').hidden = true;
+}
+
+async function doAction(action) {
+  const round = currentRound(ui.game);
+  const puzzle = puzzleOf(round);
+  if (round.status !== 'play' || ui.animating) return;
+  const before = round.state.board.slice();
+  let result;
+  try {
+    result = playAction(round, puzzle, action);
+  } catch (e) {
+    showToast(e.message);
+    return;
+  }
+  persist();
+  hideNudgePop();
+  $('#draw-confirm').hidden = true;
+  ui.selected = null;
+  ui.animating = true;
+  await animateAction(action, before, result.state.board);
+  ui.animating = false;
+  renderBoard();
+  renderBag();
+  renderGoals();
+  renderHud();
+  if (action.type === 'draw' && result.state.lastDraw) {
+    const d = result.state.lastDraw;
+    showToast(`Drew a ${d.drawn}; the ${d.tossed} went into the bag.`);
+  }
+  if (result.solved || result.bust) {
+    await wait(350);
+    showResult();
+  }
+}
+
+/** Animate one action between two boards. Resolves after at most ~ANIM_MS + a little. */
+function animateAction(action, before, after) {
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) return Promise.resolve();
+  const step = tileStep();
+  if (action.type === 'slide') {
+    const cells = [];
+    for (let k = 0; k < SIZE; k++) cells.push(action.axis === 'row' ? idx(action.index, k) : idx(k, action.index));
+    const dx = action.axis === 'row' ? action.dir * step : 0;
+    const dy = action.axis === 'col' ? action.dir * step : 0;
+    const wrapIndex = action.dir === 1 ? SIZE - 1 : 0;
+    cells.forEach((cell, k) => {
+      const t = tileEl(cell);
+      t.classList.add('moving');
+      t.style.transform = `translate(${dx}px, ${dy}px)`;
+      if (k === wrapIndex) t.style.opacity = '0';
+    });
+    return wait(ANIM_MS + 30);
+  }
+  if (action.type === 'swap') {
+    const a = idx(action.r, action.c);
+    const b = idx(action.r2, action.c2);
+    const ta = tileEl(a);
+    const tb = tileEl(b);
+    const dx = (colOf(b) - colOf(a)) * step;
+    const dy = (rowOf(b) - rowOf(a)) * step;
+    ta.classList.add('moving');
+    tb.classList.add('moving');
+    ta.style.transform = `translate(${dx}px, ${dy}px)`;
+    tb.style.transform = `translate(${-dx}px, ${-dy}px)`;
+    return wait(ANIM_MS + 30);
+  }
+  if (action.type === 'nudge') {
+    const t = tileEl(idx(action.r, action.c));
+    t.classList.add('bump');
+    setTimeout(() => setFace(t.firstElementChild, after[idx(action.r, action.c)]), ANIM_MS / 2);
+    return wait(ANIM_MS + 30);
+  }
+  if (action.type === 'draw') {
+    const cell = idx(action.r, action.c);
+    const t = tileEl(cell);
+    t.classList.add('fade');
+    return wait(ANIM_MS / 2).then(() => {
+      setFace(t.firstElementChild, after[cell]);
+      t.classList.remove('fade');
+      return wait(ANIM_MS / 2 + 30);
+    });
+  }
+  return Promise.resolve();
+}
+
+/** Distance between adjacent tile centres in CSS pixels. */
+function tileStep() {
+  const a = tileEl(0).getBoundingClientRect();
+  const b = tileEl(1).getBoundingClientRect();
+  return b.left - a.left;
+}
+
+function wait(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+// ---------------------------------------------------------------------------
+// Result and replay
+
+function showResult() {
+  const round = currentRound(ui.game);
+  const p = puzzleOf(round);
+  ui.selected = null;
+  hideNudgePop();
+  setBoardMode('inert');
+  $('#bid-panel').hidden = true;
+  $('#action-panel').hidden = true;
+  $('#result-panel').hidden = false;
+  $('#replay-bar').hidden = true;
+  const b = round.breakdown;
+  $('#result-title').textContent = b.bust ? 'Bust' : round.turns < p.par ? 'Solved: you beat par!' : 'Solved';
+  $('#result-par').textContent = String(p.par);
+  $('#result-bid').textContent = String(round.bid);
+  $('#result-turns').textContent = round.turns === null ? `${round.state.turns}+` : String(round.turns);
+  $('#result-score').textContent = String(round.score);
+  $('#result-breakdown').textContent = b.bust
+    ? `Bust scores 0. Par was ${p.par}; you had bid ${round.bid}.`
+    : `Base ${b.base} + Bonus ${b.bonus} = ${b.score}.` + (round.bid > p.par ? ` Each turn bid above par cost 15.` : round.bid < p.par ? ` Bidding under par pays 25 per turn.` : ' You matched par exactly.');
+  $('#btn-next').textContent = ui.game.index === ROUNDS_PER_GAME - 1 ? 'See results' : 'Next round';
+  $('#btn-solution').disabled = false;
+  $('#btn-solution').textContent = 'Show solution';
+  renderBoard();
+  renderBag();
+  renderGoals();
+  renderHud();
+  persist();
+}
+
+async function replaySolution() {
+  const round = currentRound(ui.game);
+  const p = puzzleOf(round);
+  if (ui.replaying) return;
+  ui.replaying = true;
+  ui.highlightGoal = null;
+  const btn = $('#btn-solution');
+  btn.disabled = true;
+  const bar = $('#replay-bar');
+  bar.hidden = false;
+  const text = $('#replay-text');
+  const board = p.board.slice();
+  ui.replayBoard = board;
+  renderBoard(board);
+  renderGoals(board);
+  text.textContent = `Reference solution (${p.par} turns). Starting from the dealt board…`;
+  await wait(REPLAY_STEP_MS);
+  const actions = p.solution.map(decodeAction);
+  for (let k = 0; k < actions.length && ui.replaying; k++) {
+    const a = actions[k];
+    const before = board.slice();
+    applyBoardAction(board, a);
+    text.textContent = `${k + 1}/${actions.length}: ${describeAction(a)}`;
+    ui.animating = true;
+    await animateAction(a, before, board);
+    ui.animating = false;
+    renderBoard(board);
+    renderGoals(board);
+    await wait(REPLAY_STEP_MS - ANIM_MS);
+  }
+  if (ui.replaying) text.textContent = `Solution complete: both goals hold after ${p.par} turns. Your final board is shown again below.`;
+  await wait(1200);
+  ui.replayBoard = null;
+  if (!ui.replaying) return;
+  ui.replaying = false;
+  renderBoard();
+  renderGoals();
+  btn.disabled = false;
+  btn.textContent = 'Replay solution';
+}
+
+function nextRound() {
+  ui.replaying = false;
+  ui.replayBoard = null;
+  if (isGameOver(ui.game)) {
+    finishGame();
+    return;
+  }
+  advanceRound(ui.game);
+  persist();
+  showRound();
+}
+
+// ---------------------------------------------------------------------------
+// Game end, stats, share
+
+function finishGame() {
+  const summary = summarizeGame(ui.game, ui.bank);
+  const isBest = recordGame(ui.store, summary);
+  saveStore(ui.store);
+  ui.game = null;
+  const tbody = $('#end-table tbody');
+  tbody.innerHTML = '';
+  summary.rounds.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i + 1}</td><td>${r.bid}</td><td>${r.par}</td><td>${r.bust ? 'bust' : r.turns}</td><td>${r.score}</td>`;
+    tbody.appendChild(tr);
+  });
+  $('#end-total').textContent = String(summary.total);
+  $('#end-best').textContent = isBest ? `New personal best!` : `Personal best: ${ui.store.bestTotal}`;
+  $('#share-line').textContent = shareLine(summary);
+  showScreen('screen-end');
+}
+
+async function copyShare() {
+  const text = $('#share-line').textContent;
+  try {
+    if (navigator.share) {
+      await navigator.share({ text });
+      return;
+    }
+    await navigator.clipboard.writeText(text);
+    showToast('Copied to clipboard.');
+  } catch {
+    const range = document.createRange();
+    range.selectNodeContents($('#share-line'));
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    showToast('Select and copy the text above.');
+  }
+}
+
+function showStats() {
+  const s = ui.store;
+  const body = $('#stats-body');
+  if (!s.gamesPlayed) {
+    body.innerHTML = '<p class="hint">No games finished yet.</p>';
+  } else {
+    const avg = s.history.length ? Math.round(s.history.reduce((a, g) => a + g.total, 0) / s.history.length) : 0;
+    const rounds = s.history.flatMap((g) => g.rounds);
+    const busts = rounds.filter((r) => r.bust).length;
+    body.innerHTML = `
+      <div class="stat-summary">
+        <div><span class="hud-label">Games</span><span class="hud-value">${s.gamesPlayed}</span></div>
+        <div><span class="hud-label">Best</span><span class="hud-value">${s.bestTotal}</span></div>
+        <div><span class="hud-label">Average</span><span class="hud-value">${avg}</span></div>
+        <div><span class="hud-label">Rounds</span><span class="hud-value">${rounds.length}</span></div>
+        <div><span class="hud-label">Bust rate</span><span class="hud-value">${rounds.length ? Math.round((100 * busts) / rounds.length) : 0}%</span></div>
+        <div><span class="hud-label">Beat par</span><span class="hud-value">${s.beatPar.length}</span></div>
+      </div>
+      <h3>Recent games</h3>
+      <ul class="stat-list">${s.history
+        .map((g) => `<li><span>${escapeHtml(shareLine({ total: g.total, rounds: g.rounds }, ''))}</span><span>${new Date(g.at).toLocaleDateString()}</span></li>`)
+        .join('')}</ul>
+      ${s.beatPar.length ? `<p class="hint">Puzzles where you beat the solver's par: ${s.beatPar.join(', ')}. These ids are kept so the solver can be tightened.</p>` : ''}
+    `;
+  }
+  showScreen('screen-stats');
+}
+
+function resetData() {
+  if (!confirm('Erase all Grid Bid data on this device (history, best score, seen puzzles, any game in progress)?')) return;
+  ui.store = defaultStore();
+  saveStore(ui.store);
+  $('#opt-numerals').checked = false;
+  showHome();
+}
+
+// ---------------------------------------------------------------------------
+// Help and toast
+
+function openHelp() {
+  $('#help').hidden = false;
+}
+
+function closeHelp() {
+  $('#help').hidden = true;
+}
+
+let toastTimer = null;
+function showToast(msg, ms = 2200) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (t.hidden = true), ms);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
+// ---------------------------------------------------------------------------
+// Events
+
+function wireEvents() {
+  $('#btn-new-game').addEventListener('click', () => {
+    if (ui.store.currentGame && !confirm('Abandon the game in progress and start a new one?')) return;
+    startNewGame();
+  });
+  $('#btn-continue').addEventListener('click', continueGame);
+  $('#btn-help-home').addEventListener('click', openHelp);
+  $('#btn-help-round').addEventListener('click', openHelp);
+  $('#btn-help-close').addEventListener('click', closeHelp);
+  $('#help').addEventListener('click', (e) => {
+    if (e.target === $('#help')) closeHelp();
+  });
+  $('#btn-stats').addEventListener('click', showStats);
+  $('#btn-stats-back').addEventListener('click', showHome);
+  $('#btn-stats-reset').addEventListener('click', resetData);
+  $('#opt-numerals').addEventListener('change', (e) => {
+    ui.store.settings.numerals = e.target.checked;
+    saveStore(ui.store);
+    if (ui.game) {
+      renderBoard();
+      renderBag();
+    }
+  });
+
+  $('#bid-minus').addEventListener('click', () => {
+    ui.bidDraft = Math.max(BID_MIN, ui.bidDraft - 1);
+    renderBid();
+  });
+  $('#bid-plus').addEventListener('click', () => {
+    ui.bidDraft = Math.min(BID_MAX, ui.bidDraft + 1);
+    renderBid();
+  });
+  $('#btn-lock').addEventListener('click', () => {
+    const round = currentRound(ui.game);
+    lockBid(round, ui.bidDraft);
+    persist();
+    showRound();
+  });
+
+  for (const b of document.querySelectorAll('.mode')) b.addEventListener('click', () => setMode(b.dataset.mode));
+
+  $('#board').addEventListener('click', (e) => {
+    const arrow = e.target.closest('.arrow');
+    if (arrow) {
+      const round = currentRound(ui.game);
+      if (round.status !== 'play' || ui.mode !== 'slide' || ui.animating || ui.replaying) return;
+      doAction({ type: 'slide', axis: arrow.dataset.axis, index: Number(arrow.dataset.index), dir: Number(arrow.dataset.dir) });
+      return;
+    }
+    const tile = e.target.closest('.tile');
+    if (tile) onTileTap(Number(tile.dataset.cell));
+  });
+
+  for (const b of document.querySelectorAll('.nudge-btn')) {
+    b.addEventListener('click', () => {
+      if (ui.selected === null) return;
+      const cell = ui.selected;
+      doAction({ type: 'nudge', r: rowOf(cell), c: colOf(cell), delta: Number(b.dataset.delta) });
+    });
+  }
+  $('#draw-cancel').addEventListener('click', () => {
+    ui.selected = null;
+    $('#draw-confirm').hidden = true;
+    renderBoard();
+  });
+  $('#draw-ok').addEventListener('click', () => {
+    if (ui.selected === null) return;
+    const cell = ui.selected;
+    doAction({ type: 'draw', r: rowOf(cell), c: colOf(cell) });
+  });
+  $('#btn-giveup').addEventListener('click', () => {
+    const round = currentRound(ui.game);
+    if (round.status !== 'play' || ui.animating) return;
+    if (!confirm('Give up this round? It scores 0.')) return;
+    giveUp(round, puzzleOf(round));
+    persist();
+    showResult();
+  });
+
+  for (const g of document.querySelectorAll('.goal')) {
+    g.addEventListener('click', () => {
+      const i = Number(g.dataset.goal);
+      ui.highlightGoal = ui.highlightGoal === i ? null : i;
+      renderGoals();
+      renderBoard();
+    });
+  }
+
+  $('#btn-solution').addEventListener('click', replaySolution);
+  $('#btn-next').addEventListener('click', nextRound);
+  $('#btn-share').addEventListener('click', copyShare);
+  $('#btn-play-again').addEventListener('click', startNewGame);
+  $('#btn-home').addEventListener('click', showHome);
+
+  window.addEventListener('resize', () => {
+    if (!$('#nudge-pop').hidden && ui.selected !== null) showNudgePop(ui.selected);
+  });
+}
+
+// Expose a little for debugging and tests in the console.
+window.gridBid = { ui, deal };
+
+boot();
