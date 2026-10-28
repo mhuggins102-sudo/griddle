@@ -15,21 +15,23 @@
     <section id="screen-home" class="screen" hidden>
       <div class="home">
         <h1 class="title">Grid Bid</h1>
-        <p class="tagline">Five rounds. Two goals each. Bid how many turns you need, then make it so.</p>
+        <p class="tagline" id="tagline">Twenty turns to slide, swap, nudge and draw a 5x5 grid of letters into words. Lock them in to score.</p>
         <div class="home-buttons">
-          <button id="btn-continue" class="btn btn-primary" hidden>Continue game</button>
-          <button id="btn-new-game" class="btn btn-primary">New game</button>
-          <button id="btn-word-continue" class="btn btn-primary" hidden>Continue word game</button>
-          <button id="btn-word" class="btn">Word mode</button>
+          <button id="btn-word-continue" class="btn btn-primary" hidden>Continue game</button>
+          <button id="btn-word" class="btn btn-primary">New game</button>
           <button id="btn-help-home" class="btn">How to play</button>
           <button id="btn-stats" class="btn">Stats</button>
+          <div id="number-game-buttons" class="home-buttons" hidden>
+            <button id="btn-continue" class="btn btn-primary" hidden>Continue number game</button>
+            <button id="btn-new-game" class="btn">Number game</button>
+          </div>
         </div>
         <div class="home-stats" id="home-stats"></div>
         <div class="settings">
-          <label class="toggle"><input type="checkbox" id="opt-numerals"> <span>Show numerals instead of dice pips</span></label>
-          <label class="toggle"><input type="checkbox" id="opt-show-words"> <span>Word mode: list the words on the board</span></label>
+          <label class="toggle"><input type="checkbox" id="opt-show-words"> <span>List the words currently on the board (easier)</span></label>
+          <label class="toggle" id="opt-numerals-row" hidden><input type="checkbox" id="opt-numerals"> <span>Number game: numerals instead of dice pips</span></label>
         </div>
-        <p class="footnote">Puzzles come from a pre-built bank. No account, no tracking; progress stays on this device.</p>
+        <p class="footnote">No account, no tracking; progress stays on this device.</p>
       </div>
     </section>
 
@@ -207,35 +209,51 @@
     <div id="help" class="sheet" hidden>
       <div class="sheet-body">
         <h2>How to play</h2>
-        <p>Each round is one puzzle: a 5x5 grid of tiles valued 1 to 6, and two goals that must both hold at the same moment. Look at the board, then <strong>bid</strong> how many turns you need (1 to 12). Once the bid is locked you cannot change it, and there is no undo.</p>
-        <h3>Actions, one per turn</h3>
+        <p>You get a 5x5 grid of letter tiles and <strong>20 turns</strong>. Rearrange the grid into words, lock the words in to bank their points, and lock as many tiles as you can before the turns run out. The score counts at the end of the game.</p>
+
+        <h3>The grid and the bag</h3>
+        <p>The 25 tiles are dealt from a bag of 98 Scrabble-style letters (no blanks). The other 73 stay in the bag; Draw mode shows how many of each letter remain. Every tile shows its point value in the corner.</p>
+
+        <h3>Turns</h3>
+        <p>Pick a mode, then tap the board. Each of these costs <strong>one turn</strong>:</p>
         <ul>
-          <li><strong>Slide</strong> a row or column one step. The tile pushed off the edge wraps around to the other end.</li>
-          <li><strong>Swap</strong> two tiles that touch sideways or up and down.</li>
-          <li><strong>Nudge</strong> a tile up or down by 1. A 6 nudged up becomes 1, and a 1 nudged down becomes 6.</li>
-          <li><strong>Draw</strong> a random replacement for one tile from the bag. The tile you toss goes into the bag afterwards, so it cannot come straight back on the same turn. Draws are the only random action.</li>
+          <li><strong>Slide</strong>: tap an arrow to move a row or column one step. The tile pushed off the edge wraps around to the other end.</li>
+          <li><strong>Swap</strong>: tap a tile, then a neighbouring tile (up, down, left or right) to exchange them.</li>
+          <li><strong>Nudge</strong>: tap a tile, then −1 or +1 to step it through the alphabet. A wraps to Z and Z wraps to A, so any letter is at most 13 nudges from any other.</li>
+          <li><strong>Draw</strong>: tap a tile to replace it with a random letter from the bag. The tile you toss goes into the bag afterwards, so it cannot come straight back on the same turn. Draw is the only random action and cannot be undone.</li>
+          <li><strong>Lock</strong>: tap the first letter of a word, then its last letter, and confirm. See below.</li>
         </ul>
-        <p>Rows are numbered 1 to 5 from the top and columns 1 to 5 from the left. Tap a goal to highlight its cells. An <em>ascending run</em> reads left to right, top to bottom, and along a diagonal from its top end. A <em>full house</em> is three of one value and two of another. An <em>any row</em> goal holds when at least one row meets the condition.</p>
+        <p>There is no undo. The game ends by itself when the 20th turn is spent; Finish ends it early.</p>
+
+        <h3>Words and locking</h3>
+        <ul>
+          <li>A word is 3 to 5 letters in a straight line: a row, a column, or a diagonal. It may be read in either direction, so tap the letters in the order you read them (last-to-first works for a word spelled backwards). A word may sit inside a longer run of letters.</li>
+          <li>Words are checked against a list of about 13,500 common English words. No proper nouns or abbreviations.</li>
+          <li>Locking banks the word's points and marks its tiles green. Locked tiles never move again: a line still slides, but its locked tiles stay put and the other tiles slide around them; locked tiles cannot be swapped or replaced by a draw.</li>
+          <li>You may lock a new word that reuses locked tiles, as long as it adds at least one tile that was not locked yet. Crossing words is the main way to lock the whole board.</li>
+          <li>You cannot lock the same word twice, and you cannot lock both a word and its plural (DOOR and DOORS, BOX and BOXES, CITY and CITIES): pick one.</li>
+          <li>A locked tile can still be nudged to a neighbouring letter for one turn. That may break the word it was locked for; the points already banked stay banked.</li>
+          <li>For <strong>two turns</strong>, a locked tile can be made <strong>wild</strong> (★): it reads as any letter in any word, but scores no points itself. Locking a word through a wild tile is allowed.</li>
+        </ul>
+
         <h3>Scoring</h3>
-        <p>Every puzzle has a hidden <strong>par</strong>: the turn count of the best draw-free solution found by the solver (always 6 to 10). Par is revealed when the round ends. Using more turns than your bid is a <strong>bust</strong> and scores 0. Otherwise you score a Base set by how far your bid sits above or below par, plus a small bonus for finishing under your bid.</p>
-        <p class="formula">Base = 100 − 15 per turn bid above par (floor 10), or 100 + 25 per turn bid below par.<br>Bonus = 0, 5, 7, 8, 9, 9… for 0, 1, 2, 3, 4, 5+ turns under the bid. It never reaches 15, so one extra turn of insurance always costs more than any number of overtricks can recover.</p>
+        <p class="formula">Word = sum of its letter values, +5 for a 4-letter word, +15 for a 5-letter word.<br>Letter values: A E I O U L N S T R = 1 · D G = 2 · B C M P = 3 · F H V W Y = 4 · K = 5 · J X = 8 · Q Z = 10 · ★ = 0.</p>
+        <p class="formula">Final score = banked words − 10 for every locked tile short of 20 + a bonus for covering the board: +10 for 23 locked tiles, +25 for 24, +50 for all 25. The final score never drops below 0.</p>
         <table class="examples">
-          <thead><tr><th>Bid</th><th>Par</th><th>Turns</th><th>Score</th><th></th></tr></thead>
+          <thead><tr><th>Locked tiles</th><th>Adjustment</th></tr></thead>
           <tbody>
-            <tr><td>8</td><td>8</td><td>8</td><td>100</td><td>matched par exactly</td></tr>
-            <tr><td>9</td><td>8</td><td>8</td><td>90</td><td>one turn of insurance, one overtrick</td></tr>
-            <tr><td>10</td><td>8</td><td>8</td><td>77</td><td>two turns of insurance</td></tr>
-            <tr><td>7</td><td>8</td><td>7</td><td>125</td><td>beat the solver</td></tr>
-            <tr><td>8</td><td>8</td><td>9</td><td>0</td><td>bust</td></tr>
-            <tr><td>12</td><td>8</td><td>12</td><td>40</td><td>max bid, used every turn</td></tr>
-            <tr><td>12</td><td>6</td><td>6</td><td>19</td><td>max bid on an easy grid</td></tr>
-            <tr><td>9</td><td>10</td><td>9</td><td>125</td><td>beat par on a hard grid</td></tr>
+            <tr><td>12</td><td>−80 (8 short of 20)</td></tr>
+            <tr><td>19</td><td>−10</td></tr>
+            <tr><td>20 to 22</td><td>0</td></tr>
+            <tr><td>23</td><td>+10</td></tr>
+            <tr><td>24</td><td>+25</td></tr>
+            <tr><td>25</td><td>+50</td></tr>
           </tbody>
         </table>
-        <p>A game is five rounds; the game score is the sum of the round scores.</p>
-        <h3>Word mode</h3>
-        <p>The same four actions on a grid of letters, with 20 turns and no bidding. Spell a word of 3 to 5 letters along any row, column or diagonal, in either direction. To <strong>lock</strong> it, choose Lock, tap its first letter, then its last letter, and confirm: the tiles change colour and the points are banked. Locking costs one turn. Locked tiles stay put: a line still slides, but its locked tiles do not move and the other tiles slide around them; locked tiles cannot be swapped or drawn. A locked tile can still be nudged to a neighbouring letter for one turn, or turned into a wild tile for two turns; a wild reads as any letter but scores nothing itself. A new word may reuse locked tiles as long as it adds at least one fresh tile. You cannot lock the same word twice, or both a word and its plural (DOOR and DOORS): pick one. The game ends after the 20th turn.</p>
-        <p class="formula">Word score = Scrabble letter values, plus 5 for a 4-letter word or 15 for a 5-letter word. At the end, every locked tile short of 20 costs 10 points (the score never drops below 0), and locking the whole board earns a bonus: +50 for all 25 tiles, +25 for 24, +10 for 23. The home screen has an option to list the words currently on the board.</p>
+        <p>So a game is really two jobs at once: find high-value words, and lock 20 or more tiles within 20 turns. Since every lock costs a turn, 4 to 6 words that cross each other usually beat many short ones.</p>
+
+        <h3>Options</h3>
+        <p>The home screen can list the words currently on the board, with their points, as a hint; tap a listed word to prepare it for locking. It is off by default. Your best score and recent games are kept on this device.</p>
         <button id="btn-help-close" class="btn btn-primary btn-wide">Close</button>
       </div>
     </div>

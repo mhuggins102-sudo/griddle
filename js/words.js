@@ -371,8 +371,8 @@ export function parseDictionary(text) {
   return dict;
 }
 
-/** "Grid Bid Words 87 (QUIZ 25, TONE 9, ...)" */
-export function wordShareLine(score, words, title = 'Grid Bid Words') {
+/** "Grid Bid 87 (QUIZ 25, TONE 9, ...)" */
+export function wordShareLine(score, words, title = 'Grid Bid') {
   const parts = words.map((w) => `${w.word} ${w.score}`);
   return `${title} ${score} (${parts.length ? parts.join(', ') : 'no words'})`;
 }

@@ -1,6 +1,8 @@
 # Grid Bid
 
-A single-player, portrait-phone puzzle. A 5x5 grid of tiles valued 1 to 6, two goals that must hold at the same time, and a bid on how many turns you need. Static HTML/CSS/JS, no framework, no bundler, no server.
+A single-player, portrait-phone word puzzle: a 5x5 grid of letter tiles, 20 turns to slide, swap, nudge and draw them into words, and lock the words in to score. Static HTML/CSS/JS, no framework, no bundler, no server.
+
+The original number game (two goals, a bid on turns, a solver-verified puzzle bank) is still in the code but hidden from the home screen; set `SHOW_NUMBER_GAME` to true in `js/ui.js` to bring it back.
 
 ## Play locally
 

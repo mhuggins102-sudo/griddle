@@ -12,6 +12,8 @@ import {
 } from './game.js';
 
 const $ = (sel) => document.querySelector(sel);
+/** The number game is hidden for now; flip this to bring it back on the home screen. */
+const SHOW_NUMBER_GAME = false;
 const REPLAY_STEP_MS = 900;
 
 const ui = {
@@ -66,13 +68,14 @@ function showScreen(id) {
 
 function showHome() {
   ui.game = null;
+  $('#number-game-buttons').hidden = !SHOW_NUMBER_GAME;
+  $('#opt-numerals-row').hidden = !SHOW_NUMBER_GAME;
   $('#btn-continue').hidden = !ui.store.currentGame;
   $('#btn-word-continue').hidden = !ui.store.wordGame;
   const s = ui.store;
-  $('#home-stats').textContent = s.gamesPlayed
-    ? `${s.gamesPlayed} game${s.gamesPlayed === 1 ? '' : 's'} played · best ${s.bestTotal} · ${s.seen.length} of ${ui.bank.puzzles.length} puzzles seen`
-    : `${ui.bank.puzzles.length} puzzles in the bank.`;
-  if (s.word && s.word.gamesPlayed) $('#home-stats').textContent += ` · Word mode best ${s.word.best}`;
+  const w = s.word || { gamesPlayed: 0, best: null };
+  $('#home-stats').textContent = w.gamesPlayed ? `${w.gamesPlayed} game${w.gamesPlayed === 1 ? '' : 's'} played · best ${w.best}` : '';
+  if (SHOW_NUMBER_GAME && s.gamesPlayed) $('#home-stats').textContent += ` · Number game: ${s.gamesPlayed} played, best ${s.bestTotal}`;
   showScreen('screen-home');
 }
 
@@ -478,34 +481,35 @@ async function copyShare() {
 
 function showStats() {
   const s = ui.store;
+  const w = s.word || { gamesPlayed: 0, best: null, history: [] };
   const body = $('#stats-body');
-  if (!s.gamesPlayed) {
+  if (!w.gamesPlayed) {
     body.innerHTML = '<p class="hint">No games finished yet.</p>';
   } else {
-    const avg = s.history.length ? Math.round(s.history.reduce((a, g) => a + g.total, 0) / s.history.length) : 0;
-    const rounds = s.history.flatMap((g) => g.rounds);
-    const busts = rounds.filter((r) => r.bust).length;
+    const hist = w.history || [];
+    const avg = hist.length ? Math.round(hist.reduce((a, g) => a + g.score, 0) / hist.length) : 0;
+    const wordsPlayed = hist.reduce((a, g) => a + g.words.length, 0);
+    const bestWord = hist.flatMap((g) => g.words).sort((a, b) => b.score - a.score)[0];
     body.innerHTML = `
       <div class="stat-summary">
-        <div><span class="hud-label">Games</span><span class="hud-value">${s.gamesPlayed}</span></div>
-        <div><span class="hud-label">Best</span><span class="hud-value">${s.bestTotal}</span></div>
+        <div><span class="hud-label">Games</span><span class="hud-value">${w.gamesPlayed}</span></div>
+        <div><span class="hud-label">Best</span><span class="hud-value">${w.best}</span></div>
         <div><span class="hud-label">Average</span><span class="hud-value">${avg}</span></div>
-        <div><span class="hud-label">Rounds</span><span class="hud-value">${rounds.length}</span></div>
-        <div><span class="hud-label">Bust rate</span><span class="hud-value">${rounds.length ? Math.round((100 * busts) / rounds.length) : 0}%</span></div>
-        <div><span class="hud-label">Beat par</span><span class="hud-value">${s.beatPar.length}</span></div>
+        <div><span class="hud-label">Words locked</span><span class="hud-value">${wordsPlayed}</span></div>
+        <div><span class="hud-label">Per game</span><span class="hud-value">${hist.length ? (wordsPlayed / hist.length).toFixed(1) : 0}</span></div>
+        <div><span class="hud-label">Best word</span><span class="hud-value">${bestWord ? `${escapeHtml(bestWord.word)} ${bestWord.score}` : '–'}</span></div>
       </div>
       <h3>Recent games</h3>
-      <ul class="stat-list">${s.history
-        .map((g) => `<li><span>${escapeHtml(shareLine({ total: g.total, rounds: g.rounds }, ''))}</span><span>${new Date(g.at).toLocaleDateString()}</span></li>`)
+      <ul class="stat-list">${hist
+        .map((g) => `<li><span>${g.score} · ${g.words.length ? g.words.map((x) => escapeHtml(x.word)).join(', ') : 'no words'}</span><span>${new Date(g.at).toLocaleDateString()}</span></li>`)
         .join('')}</ul>
-      ${s.beatPar.length ? `<p class="hint">Puzzles where you beat the solver's par: ${s.beatPar.join(', ')}. These ids are kept so the solver can be tightened.</p>` : ''}
     `;
   }
   showScreen('screen-stats');
 }
 
 function resetData() {
-  if (!confirm('Erase all Grid Bid data on this device (history, best score, seen puzzles, any game in progress)?')) return;
+  if (!confirm('Erase all Grid Bid data on this device (history, best score, any game in progress)?')) return;
   const fresh = defaultStore();
   for (const k of Object.keys(ui.store)) delete ui.store[k];
   Object.assign(ui.store, fresh);
