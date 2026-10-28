@@ -463,3 +463,6 @@ button { font: inherit; color: inherit; }
   .word-screen .confirm span { font-size: 14px; }
   .app:has(#screen-word:not([hidden])) { padding-top: 4px; padding-bottom: 6px; }
 }
+
+.wild-btn { background: var(--region); position: relative; }
+.wild-btn small { position: absolute; right: 6px; bottom: 3px; font-size: 10px; font-weight: 700; }

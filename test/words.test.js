@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { CELLS, idx } from '../js/engine.js';
 import {
   dealLetters, createWordState, applyWordAction, findWords, lockWord, scoreWord, nudgeLetter, wordLines, parseDictionary,
-  bagTotal, LETTER_COUNTS, WILD, wordShareLine, slideMoves, isPluralPair, findWordAt, coverageBonus, finalScore,
+  bagTotal, LETTER_COUNTS, WILD, wordShareLine, slideMoves, isPluralPair, findWordAt, coverageBonus, finalScore, shortfallPenalty, WORD_TURNS,
 } from '../js/words.js';
 
 const dict = parseDictionary(readFileSync(new URL('../data/words.txt', import.meta.url), 'utf8'));
@@ -76,6 +76,7 @@ test('locking: tiles stop moving, same cells cannot be locked twice, nudge turns
   const cat = findWords(s, dict).find((w) => w.word === 'CAT');
   s = lockWord(s, cat);
   assert.equal(s.score, 5);
+  assert.equal(s.turns, 1, 'locking costs a turn');
   assert.deepEqual(s.locked, [0, 1, 2]);
   // locked tiles stay put; the other tiles in the line slide around them
   const slid = applyWordAction(s, { type: 'slide', axis: 'row', index: 0, dir: 1 });
@@ -86,17 +87,24 @@ test('locking: tiles stop moving, same cells cannot be locked twice, nudge turns
   assert.throws(() => applyWordAction(s, { type: 'swap', r: 0, c: 2, r2: 0, c2: 3 }), /Locked/);
   assert.throws(() => applyWordAction(s, { type: 'draw', r: 0, c: 0 }), /Locked/);
   const ok = applyWordAction(s, { type: 'slide', axis: 'row', index: 1, dir: 1 });
-  assert.equal(ok.turns, 1);
+  assert.equal(ok.turns, 2);
   // the same word cannot be locked again
   const again = findWords(s, dict).find((w) => w.word === 'CAT');
   assert.equal(again.lockable, false);
   assert.match(again.reason, /already locked/);
   assert.throws(() => lockWord(s, again));
-  // nudging a locked tile makes it wild; the locked word stays and the wild matches anything
-  const wild = applyWordAction(s, { type: 'nudge', r: 0, c: 1, delta: 1 });
+  // nudging a locked tile changes its letter normally for one turn; making it wild costs two
+  const nudged = applyWordAction(s, { type: 'nudge', r: 0, c: 1, delta: 1 });
+  assert.equal(nudged.board[1], 'B');
+  assert.equal(nudged.turns, s.turns + 1);
+  assert.ok(nudged.locked.includes(1));
+  const wild = applyWordAction(s, { type: 'wild', r: 0, c: 1 });
   assert.equal(wild.board[1], WILD);
+  assert.equal(wild.turns, s.turns + 2);
   assert.equal(wild.locked.length, 3);
   assert.equal(wild.words.length, 1);
+  assert.throws(() => applyWordAction(s, { type: 'wild', r: 0, c: 3 }), /locked/);
+  assert.throws(() => applyWordAction(wild, { type: 'wild', r: 0, c: 1 }), /already wild/);
   const found = findWords(wild, dict);
   assert.ok(found.find((w) => w.word === 'COT'), 'wild reads as any letter');
   assert.equal(found.find((w) => w.word === 'COT').score, 3 + 0 + 1, 'wild scores 0');
@@ -188,13 +196,32 @@ test('findWordAt: first and last tap define the word, in either direction', () =
   assert.match(findWordAt(s, dict, 0, 0).error, /first and last/);
 });
 
-test('coverage bonus for locking (almost) the whole board', () => {
+test('coverage bonus for locking (almost) the whole board, penalty below 20 tiles', () => {
   assert.equal(coverageBonus(25), 50);
   assert.equal(coverageBonus(24), 25);
   assert.equal(coverageBonus(23), 10);
   assert.equal(coverageBonus(22), 0);
+  assert.equal(shortfallPenalty(20), 0);
+  assert.equal(shortfallPenalty(19), 10);
+  assert.equal(shortfallPenalty(12), 80);
   const s = createWordState(new Array(CELLS).fill('A'), {});
   s.score = 30;
   s.locked = new Array(24).fill(0).map((_, i) => i);
   assert.equal(finalScore(s), 55);
+  s.locked = new Array(17).fill(0).map((_, i) => i);
+  assert.equal(finalScore(s), 0, 'floored at zero');
+  s.score = 60;
+  assert.equal(finalScore(s), 30);
+});
+
+test('turn limit: no action or lock once 20 turns are used; wild needs two turns', () => {
+  const s = createWordState(boardFrom(['CATXX', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']), {});
+  s.turns = WORD_TURNS;
+  assert.throws(() => applyWordAction(s, { type: 'slide', axis: 'row', index: 1, dir: 1 }), /No turns/);
+  assert.throws(() => lockWord(s, findWords(s, dict).find((w) => w.word === 'CAT')), /No turns/);
+  const t = createWordState(boardFrom(['CATXX', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']), {});
+  t.locked = [0, 1, 2];
+  t.turns = WORD_TURNS - 1;
+  assert.throws(() => applyWordAction(t, { type: 'wild', r: 0, c: 0 }), /2 turns/);
+  assert.equal(applyWordAction(t, { type: 'nudge', r: 0, c: 0, delta: 1 }).turns, WORD_TURNS);
 });

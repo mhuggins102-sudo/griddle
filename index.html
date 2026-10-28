@@ -147,6 +147,7 @@
         <div id="w-nudge-pop" class="nudge-pop" hidden>
           <button class="btn nudge-btn" data-delta="-1" aria-label="Previous letter">−1</button>
           <button class="btn nudge-btn" data-delta="1" aria-label="Next letter">+1</button>
+          <button class="btn nudge-btn wild-btn" id="w-wild-btn" aria-label="Make wild, costs two turns" hidden>★<small>2</small></button>
         </div>
       </div>
 
@@ -233,8 +234,8 @@
         </table>
         <p>A game is five rounds; the game score is the sum of the round scores.</p>
         <h3>Word mode</h3>
-        <p>The same four actions on a grid of letters, with 20 moves and no bidding. Spell a word of 3 to 5 letters along any row, column or diagonal, in either direction. To <strong>lock</strong> it, choose Lock, tap its first letter, then its last letter, and confirm: the tiles change colour and the points are banked. Locking never costs a move. Locked tiles stay put: a line still slides, but its locked tiles do not move and the other tiles slide around them; locked tiles cannot be swapped or drawn. Nudging a locked tile turns it into a wild tile that reads as any letter but scores nothing itself. A new word may reuse locked tiles as long as it adds at least one fresh tile. You cannot lock the same word twice, or both a word and its plural (DOOR and DOORS): pick one.</p>
-        <p class="formula">Word score = Scrabble letter values, plus 5 for a 4-letter word or 15 for a 5-letter word. End-of-game bonus for locking the whole board: +50 for all 25 tiles, +25 for 24, +10 for 23. Finish any time, or after the 20th move once you have locked what you can. The home screen has an option to list the words currently on the board.</p>
+        <p>The same four actions on a grid of letters, with 20 turns and no bidding. Spell a word of 3 to 5 letters along any row, column or diagonal, in either direction. To <strong>lock</strong> it, choose Lock, tap its first letter, then its last letter, and confirm: the tiles change colour and the points are banked. Locking costs one turn. Locked tiles stay put: a line still slides, but its locked tiles do not move and the other tiles slide around them; locked tiles cannot be swapped or drawn. A locked tile can still be nudged to a neighbouring letter for one turn, or turned into a wild tile for two turns; a wild reads as any letter but scores nothing itself. A new word may reuse locked tiles as long as it adds at least one fresh tile. You cannot lock the same word twice, or both a word and its plural (DOOR and DOORS): pick one. The game ends after the 20th turn.</p>
+        <p class="formula">Word score = Scrabble letter values, plus 5 for a 4-letter word or 15 for a 5-letter word. At the end, every locked tile short of 20 costs 10 points (the score never drops below 0), and locking the whole board earns a bonus: +50 for all 25 tiles, +25 for 24, +10 for 23. The home screen has an option to list the words currently on the board.</p>
         <button id="btn-help-close" class="btn btn-primary btn-wide">Close</button>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { randomSeed } from './rng.js';
 import { neighbours, buildBoardSkeleton, tileIn, animateAction, animateMoves, clearTileEffects } from './board.js';
 import {
   dealLetters, createWordState, applyWordAction, findWords, findWordAt, lockWord, parseDictionary, bagTotal, letterValue,
-  describeWordCells, wordShareLine, slideMoves, coverageBonus, finalScore, WILD, WORD_TURNS, LETTERS,
+  describeWordCells, wordShareLine, slideMoves, coverageBonus, finalScore, shortfallPenalty, WILD, WORD_TURNS, LETTERS,
 } from './words.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -97,11 +97,7 @@ export function initWordMode(ctx) {
   }
 
   function renderStatus() {
-    const st = w.game.state;
-    const el = $('#w-status');
-    const done = st.turns >= WORD_TURNS;
-    el.hidden = !done || w.over;
-    if (done) el.textContent = 'No moves left. Lock any words you can still see, then finish.';
+    $('#w-status').hidden = true;
   }
 
   function renderBoard() {
@@ -119,7 +115,7 @@ export function initWordMode(ctx) {
       t.classList.toggle('region', !!pendingCells && pendingCells.has(i));
       t.classList.toggle('selected', w.selected === i && !lockMode);
       t.classList.toggle('first-pick', w.selected === i && lockMode);
-      t.classList.toggle('inert', w.over || (outOfMoves && !lockMode));
+      t.classList.toggle('inert', w.over || outOfMoves);
       t.setAttribute('aria-label', `Row ${rowOf(i) + 1} column ${colOf(i) + 1}: ${st.board[i] === WILD ? 'wild' : st.board[i]}${locked ? ', locked' : ''}`);
     }
     for (const t of boardEl.querySelectorAll('.tile')) t.classList.remove('target');
@@ -220,6 +216,7 @@ export function initWordMode(ctx) {
     if (!w.game || w.over || w.animating) return;
     const st = w.game.state;
     if (w.mode === 'lock') {
+      if (st.turns >= WORD_TURNS) return;
       if (w.selected === null) {
         w.selected = cell;
         if (w.pending) setPending(null);
@@ -264,8 +261,10 @@ export function initWordMode(ctx) {
     if (w.mode === 'nudge') {
       w.selected = cell;
       renderBoard();
+      const locked = st.locked.includes(cell);
+      $('#w-wild-btn').hidden = !locked || st.board[cell] === WILD;
       showNudgePop(cell);
-      if (st.locked.includes(cell)) ctx.showToast('Nudging a locked tile turns it wild.');
+      if (locked) ctx.showToast('Locked tile: nudge for 1 turn, or ★ to make it wild for 2 turns.', 2600);
       return;
     }
     if (w.mode === 'draw') {
@@ -319,14 +318,11 @@ export function initWordMode(ctx) {
     w.selected = null;
     w.animating = true;
     if (action.type === 'slide') await animateMoves(boardEl, slideMoves(before, action));
-    else await animateAction(boardEl, action, before.board, next.board, setFace);
+    else await animateAction(boardEl, action.type === 'wild' ? { ...action, type: 'nudge' } : action, before.board, next.board, setFace);
     w.animating = false;
     renderAll();
     if (action.type === 'draw' && next.lastDraw) ctx.showToast(`Drew ${next.lastDraw.drawn}; the ${next.lastDraw.tossed === WILD ? 'wild' : next.lastDraw.tossed} went into the bag.`);
-    if (next.turns >= WORD_TURNS) {
-      setMode('lock');
-      ctx.showToast('No moves left. Lock any words you can see, then finish.', 3500);
-    }
+    if (next.turns >= WORD_TURNS) finish(true);
   }
 
   function lockPending() {
@@ -345,16 +341,18 @@ export function initWordMode(ctx) {
     renderAll();
     for (const c of cand.cells) tileEl(c).classList.add('bump');
     ctx.showToast(`${cand.word} locked for ${cand.score}.`);
+    if (w.game.state.turns >= WORD_TURNS) setTimeout(() => finish(true), 600);
   }
 
-  function finish() {
+  function finish(auto = false) {
+    if (w.over) return;
     const st = w.game.state;
-    const lockable = w.found.filter((c) => c.lockable).length;
-    if (st.turns < WORD_TURNS && !confirm(`Finish now with ${WORD_TURNS - st.turns} moves unused?`)) return;
-    if (showWordsOption() && lockable && !confirm(`${lockable} word${lockable === 1 ? '' : 's'} on the board ${lockable === 1 ? 'is' : 'are'} not locked yet. Finish anyway?`)) return;
+    if (!auto && st.turns < WORD_TURNS && !confirm(`Finish now with ${WORD_TURNS - st.turns} turns unused?`)) return;
     w.over = true;
     setPending(null);
+    hideNudgePop();
     const bonus = coverageBonus(st.locked.length);
+    const penalty = shortfallPenalty(st.locked.length);
     const total = finalScore(st);
     const store = ctx.store;
     store.word ||= { gamesPlayed: 0, best: null, history: [] };
@@ -369,8 +367,12 @@ export function initWordMode(ctx) {
     $('#w-found-wrap').hidden = true;
     $('#w-result').hidden = false;
     $('#w-result-score').textContent = String(total);
-    const wordsText = st.words.length ? st.words.map((x) => `${x.word} ${x.score}`).join(', ') : 'No words locked.';
-    $('#w-result-words').textContent = bonus ? `${wordsText}. Coverage bonus +${bonus} for locking ${st.locked.length} of 25 tiles.` : `${wordsText} ${st.locked.length} of 25 tiles locked.`;
+    const wordsText = st.words.length ? st.words.map((x) => `${x.word} ${x.score}`).join(', ') : 'No words locked';
+    let tally = `${wordsText} = ${st.score}. ${st.locked.length} of 25 tiles locked`;
+    if (bonus) tally += `: coverage bonus +${bonus}`;
+    if (penalty) tally += `: ${st.locked.length < 20 ? 20 - st.locked.length : 0} short of 20, penalty −${penalty}`;
+    if (st.score + bonus - penalty < 0) tally += ' (score floored at 0)';
+    $('#w-result-words').textContent = `${tally}.`;
     $('#w-result-best').textContent = isBest ? 'New personal best!' : `Personal best: ${store.word.best}`;
     $('#w-share-line').textContent = wordShareLine(total, st.words);
     renderHud();
@@ -413,6 +415,11 @@ export function initWordMode(ctx) {
       doAction({ type: 'nudge', r: rowOf(cell), c: colOf(cell), delta: Number(b.dataset.delta) });
     });
   }
+  $('#w-wild-btn').addEventListener('click', () => {
+    if (w.selected === null) return;
+    const cell = w.selected;
+    doAction({ type: 'wild', r: rowOf(cell), c: colOf(cell) });
+  });
   $('#w-draw-cancel').addEventListener('click', () => {
     w.selected = null;
     $('#w-draw-confirm').hidden = true;

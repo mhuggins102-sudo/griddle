@@ -10,14 +10,28 @@ export const MIN_WORD = 3;
 export const LENGTH_BONUS = { 3: 0, 4: 5, 5: 15 };
 /** End-of-game bonus by number of locked tiles (25 = the whole board). */
 export const COVERAGE_BONUS = { 25: 50, 24: 25, 23: 10 };
+/** Fewer locked tiles than this at the end costs SHORTFALL_PENALTY points per missing tile. */
+export const COVERAGE_TARGET = 20;
+export const SHORTFALL_PENALTY = 10;
+/** Turning a locked tile wild costs this many turns. */
+export const WILD_COST = 2;
 
 export function coverageBonus(lockedCount) {
   return COVERAGE_BONUS[lockedCount] || 0;
 }
 
-/** Final score: banked words plus the coverage bonus. */
+export function shortfallPenalty(lockedCount) {
+  return lockedCount < COVERAGE_TARGET ? (COVERAGE_TARGET - lockedCount) * SHORTFALL_PENALTY : 0;
+}
+
+/** Final score: banked words plus the coverage bonus minus the shortfall penalty, never below 0. */
 export function finalScore(state) {
-  return state.score + coverageBonus(state.locked.length);
+  return Math.max(0, state.score + coverageBonus(state.locked.length) - shortfallPenalty(state.locked.length));
+}
+
+/** Turns an action will consume. */
+export function actionCost(action) {
+  return action.type === 'wild' ? WILD_COST : 1;
 }
 
 /** Scrabble letter values. Wild tiles score 0. */
@@ -66,9 +80,14 @@ export function isLocked(state, cell) {
   return state.locked.includes(cell);
 }
 
-/** Throws when the action would move a locked tile; nudging a locked tile is allowed (it goes wild). */
+/**
+ * Throws when the action is illegal: moving a locked tile, drawing onto one, or running out of turns.
+ * Nudging a locked tile is allowed and changes its letter normally; { type: 'wild' } turns a locked
+ * tile wild for WILD_COST turns.
+ */
 export function validateWordAction(state, action) {
   const inRange = (n) => Number.isInteger(n) && n >= 0 && n < SIZE;
+  if (state.turns + actionCost(action) > WORD_TURNS) throw new Error(actionCost(action) > 1 ? `That needs ${actionCost(action)} turns` : 'No turns left');
   switch (action.type) {
     case 'slide': {
       if (action.axis !== 'row' && action.axis !== 'col') throw new Error('Slide axis must be row or col');
@@ -91,6 +110,11 @@ export function validateWordAction(state, action) {
       if (!inRange(action.r) || !inRange(action.c)) throw new Error('Draw cell out of range');
       if (isLocked(state, idx(action.r, action.c))) throw new Error('Locked tiles cannot be replaced');
       return true;
+    case 'wild':
+      if (!inRange(action.r) || !inRange(action.c)) throw new Error('Wild cell out of range');
+      if (!isLocked(state, idx(action.r, action.c))) throw new Error('Only a locked tile can be made wild');
+      if (state.board[idx(action.r, action.c)] === WILD) throw new Error('That tile is already wild');
+      return true;
     default:
       throw new Error(`Unknown action type: ${action.type}`);
   }
@@ -102,10 +126,10 @@ export function nudgeLetter(ch, delta) {
   return LETTERS[(i + delta + 26) % 26];
 }
 
-/** Apply one action; returns the new state (input untouched). Nudging a locked tile makes it wild. */
+/** Apply one action; returns the new state (input untouched). */
 export function applyWordAction(state, action) {
   validateWordAction(state, action);
-  const next = { ...state, board: state.board.slice(), bag: { ...state.bag }, locked: state.locked.slice(), words: state.words.slice(), turns: state.turns + 1 };
+  const next = { ...state, board: state.board.slice(), bag: { ...state.bag }, locked: state.locked.slice(), words: state.words.slice(), turns: state.turns + actionCost(action) };
   delete next.lastDraw;
   switch (action.type) {
     case 'slide': {
@@ -122,7 +146,11 @@ export function applyWordAction(state, action) {
     }
     case 'nudge': {
       const cell = idx(action.r, action.c);
-      next.board[cell] = isLocked(next, cell) ? WILD : nudgeLetter(next.board[cell], action.delta);
+      next.board[cell] = nudgeLetter(next.board[cell], action.delta);
+      break;
+    }
+    case 'wild': {
+      next.board[idx(action.r, action.c)] = WILD;
       break;
     }
     case 'draw': {
@@ -310,10 +338,11 @@ export function findWords(state, dict) {
   return out;
 }
 
-/** Lock a candidate word: its tiles stop moving and its score is banked. Returns the new state. */
+/** Lock a candidate word: its tiles stop moving and its score is banked. Costs one turn. Returns the new state. */
 export function lockWord(state, candidate) {
   if (!candidate.lockable) throw new Error(candidate.reason || 'Cannot lock this word');
-  const next = { ...state, locked: state.locked.slice(), words: state.words.slice() };
+  if (state.turns >= WORD_TURNS) throw new Error('No turns left');
+  const next = { ...state, locked: state.locked.slice(), words: state.words.slice(), turns: state.turns + 1 };
   for (const c of candidate.cells) if (!next.locked.includes(c)) next.locked.push(c);
   next.words.push({ word: candidate.word, cells: candidate.cells.slice(), key: candidate.key, score: candidate.score });
   next.score = state.score + candidate.score;
