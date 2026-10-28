@@ -196,22 +196,25 @@ test('findWordAt: first and last tap define the word, in either direction', () =
   assert.match(findWordAt(s, dict, 0, 0).error, /first and last/);
 });
 
-test('coverage bonus for locking (almost) the whole board, penalty below 20 tiles', () => {
-  assert.equal(coverageBonus(25), 50);
-  assert.equal(coverageBonus(24), 25);
-  assert.equal(coverageBonus(23), 10);
+test('completion adjustment: +25 for 25 tiles, +10 for 24, 0 for 22-23, -10 per tile under 22', () => {
+  assert.equal(coverageBonus(25), 25);
+  assert.equal(coverageBonus(24), 10);
+  assert.equal(coverageBonus(23), 0);
   assert.equal(coverageBonus(22), 0);
-  assert.equal(shortfallPenalty(20), 0);
-  assert.equal(shortfallPenalty(19), 10);
-  assert.equal(shortfallPenalty(12), 80);
+  assert.equal(shortfallPenalty(23), 0);
+  assert.equal(shortfallPenalty(22), 0);
+  assert.equal(shortfallPenalty(21), 10);
+  assert.equal(shortfallPenalty(12), 100);
   const s = createWordState(new Array(CELLS).fill('A'), {});
   s.score = 30;
   s.locked = new Array(24).fill(0).map((_, i) => i);
+  assert.equal(finalScore(s), 40);
+  s.locked = new Array(25).fill(0).map((_, i) => i);
   assert.equal(finalScore(s), 55);
   s.locked = new Array(17).fill(0).map((_, i) => i);
   assert.equal(finalScore(s), 0, 'floored at zero');
   s.score = 60;
-  assert.equal(finalScore(s), 30);
+  assert.equal(finalScore(s), 10);
 });
 
 test('turn limit: no action or lock once 20 turns are used; wild needs two turns', () => {

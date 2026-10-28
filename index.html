@@ -186,9 +186,10 @@
           <code id="w-share-line"></code>
           <button id="w-share" class="btn">Copy</button>
         </div>
-        <div class="result-buttons">
+        <div class="result-buttons three">
           <button id="w-home" class="btn">Home</button>
-          <button id="w-again" class="btn btn-primary">Play again</button>
+          <button id="w-replay" class="btn">Replay board</button>
+          <button id="w-again" class="btn btn-primary">New board</button>
         </div>
       </div>
     </section>
@@ -238,19 +239,18 @@
 
         <h3>Scoring</h3>
         <p class="formula">Word = sum of its letter values, +5 for a 4-letter word, +15 for a 5-letter word.<br>Letter values: A E I O U L N S T R = 1 · D G = 2 · B C M P = 3 · F H V W Y = 4 · K = 5 · J X = 8 · Q Z = 10 · ★ = 0.</p>
-        <p class="formula">Final score = banked words − 10 for every locked tile short of 20 + a bonus for covering the board: +10 for 23 locked tiles, +25 for 24, +50 for all 25. The final score never drops below 0.</p>
+        <p class="formula">Final score = banked words + a completion adjustment for how much of the board you locked. The final score never drops below 0.</p>
         <table class="examples">
           <thead><tr><th>Locked tiles</th><th>Adjustment</th></tr></thead>
           <tbody>
-            <tr><td>12</td><td>−80 (8 short of 20)</td></tr>
-            <tr><td>19</td><td>−10</td></tr>
-            <tr><td>20 to 22</td><td>0</td></tr>
-            <tr><td>23</td><td>+10</td></tr>
-            <tr><td>24</td><td>+25</td></tr>
-            <tr><td>25</td><td>+50</td></tr>
+            <tr><td>All 25</td><td>+25</td></tr>
+            <tr><td>24</td><td>+10</td></tr>
+            <tr><td>22 or 23</td><td>0</td></tr>
+            <tr><td>Under 22</td><td>−10 for each tile short of 22 (for example 17 tiles: −50)</td></tr>
           </tbody>
         </table>
-        <p>So a game is really two jobs at once: find high-value words, and lock 20 or more tiles within 20 turns. Since every lock costs a turn, 4 to 6 words that cross each other usually beat many short ones.</p>
+        <p>So a game is really two jobs at once: find high-value words, and lock 22 or more tiles within 20 turns. Since every lock costs a turn, 4 to 6 words that cross each other usually beat many short ones.</p>
+        <p>After a game you can <strong>replay the same board</strong> (same letters, same draws). Replays do not count towards your stats or personal best, but the game remembers your best score on that board and tells you when you beat it.</p>
 
         <h3>Options</h3>
         <p>The home screen can list the words currently on the board, with their points, as a hint; tap a listed word to prepare it for locking. It is off by default. Your best score and recent games are kept on this device.</p>

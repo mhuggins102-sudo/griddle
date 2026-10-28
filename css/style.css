@@ -466,3 +466,5 @@ button { font: inherit; color: inherit; }
 
 .wild-btn { background: var(--region); position: relative; }
 .wild-btn small { position: absolute; right: 6px; bottom: 3px; font-size: 10px; font-weight: 700; }
+.result-buttons.three { grid-template-columns: 1fr 1fr 1fr; }
+.result-buttons.three .btn { padding: 0 8px; font-size: 14px; }

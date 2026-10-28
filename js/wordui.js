@@ -58,16 +58,18 @@ export function initWordMode(ctx) {
     ctx.saveStore(ctx.store);
   }
 
-  async function start(resume) {
+  /** start(true) resumes the saved game; start(false) deals a new board; start(false, { seed, drawSeed }) replays one. */
+  async function start(resume, replayOf = null) {
     if (!(await ensureDict())) return;
     if (resume && ctx.store.wordGame) {
       w.game = ctx.store.wordGame;
     } else {
-      const seed = randomSeed();
-      const drawSeed = randomSeed();
+      const seed = replayOf ? replayOf.seed : randomSeed();
+      const drawSeed = replayOf ? replayOf.drawSeed : randomSeed();
       const { board, bag } = dealLetters(seed);
-      w.game = { seed, drawSeed, state: createWordState(board, bag, drawSeed), startedAt: new Date().toISOString() };
+      w.game = { seed, drawSeed, state: createWordState(board, bag, drawSeed), startedAt: new Date().toISOString(), replay: !!replayOf };
       persist();
+      if (replayOf) ctx.showToast('Replaying this board. Not counted in your stats.', 2500);
     }
     w.over = false;
     w.selected = null;
@@ -90,7 +92,7 @@ export function initWordMode(ctx) {
 
   function renderHud() {
     const st = w.game.state;
-    $('#w-turn').textContent = `${st.turns} / ${WORD_TURNS}`;
+    $('#w-turn').textContent = `${st.turns} / ${WORD_TURNS}${w.game.replay ? ' ↻' : ''}`;
     $('#w-score').textContent = String(st.score);
     $('#w-finish').classList.toggle('btn-primary', st.turns >= WORD_TURNS);
     $('#w-finish').hidden = w.over;
@@ -349,6 +351,7 @@ export function initWordMode(ctx) {
     const st = w.game.state;
     if (!auto && st.turns < WORD_TURNS && !confirm(`Finish now with ${WORD_TURNS - st.turns} turns unused?`)) return;
     w.over = true;
+    w.lastBoard = { seed: w.game.seed, drawSeed: w.game.drawSeed };
     setPending(null);
     hideNudgePop();
     const bonus = coverageBonus(st.locked.length);
@@ -356,11 +359,19 @@ export function initWordMode(ctx) {
     const total = finalScore(st);
     const store = ctx.store;
     store.word ||= { gamesPlayed: 0, best: null, history: [] };
-    const isBest = store.word.best === null || total > store.word.best;
-    if (isBest) store.word.best = total;
-    store.word.gamesPlayed++;
-    store.word.history.unshift({ at: new Date().toISOString(), seed: w.game.seed, drawSeed: w.game.drawSeed, score: total, bonus, words: st.words.map((x) => ({ word: x.word, score: x.score })) });
-    store.word.history = store.word.history.slice(0, 50);
+    store.word.boards ||= {}; // best score per board seed, replays included
+    const boardKey = `${w.game.seed}:${w.game.drawSeed}`;
+    const previousOnBoard = store.word.boards[boardKey];
+    const beatBoard = previousOnBoard !== undefined && total > previousOnBoard;
+    if (previousOnBoard === undefined || total > previousOnBoard) store.word.boards[boardKey] = total;
+    let isBest = false;
+    if (!w.game.replay) {
+      isBest = store.word.best === null || total > store.word.best;
+      if (isBest) store.word.best = total;
+      store.word.gamesPlayed++;
+      store.word.history.unshift({ at: new Date().toISOString(), seed: w.game.seed, drawSeed: w.game.drawSeed, score: total, bonus, words: st.words.map((x) => ({ word: x.word, score: x.score })) });
+      store.word.history = store.word.history.slice(0, 50);
+    }
     store.wordGame = null;
     ctx.saveStore(store);
     $('#w-action-panel').hidden = true;
@@ -370,10 +381,17 @@ export function initWordMode(ctx) {
     const wordsText = st.words.length ? st.words.map((x) => `${x.word} ${x.score}`).join(', ') : 'No words locked';
     let tally = `${wordsText} = ${st.score}. ${st.locked.length} of 25 tiles locked`;
     if (bonus) tally += `: coverage bonus +${bonus}`;
-    if (penalty) tally += `: ${st.locked.length < 20 ? 20 - st.locked.length : 0} short of 20, penalty −${penalty}`;
+    if (penalty) tally += `: ${22 - st.locked.length} short of 22, penalty −${penalty}`;
     if (st.score + bonus - penalty < 0) tally += ' (score floored at 0)';
     $('#w-result-words').textContent = `${tally}.`;
-    $('#w-result-best').textContent = isBest ? 'New personal best!' : `Personal best: ${store.word.best}`;
+    if (w.game.replay) {
+      $('#w-result-best').textContent = beatBoard
+        ? `Replay: beat your previous best on this board (${previousOnBoard})!`
+        : `Replay: best on this board stays ${previousOnBoard}. Not counted in stats.`;
+    } else {
+      $('#w-result-best').textContent = isBest ? 'New personal best!' : `Personal best: ${store.word.best}`;
+    }
+    $('#w-result h2').textContent = w.game.replay ? 'Replay over' : 'Game over';
     $('#w-share-line').textContent = wordShareLine(total, st.words);
     renderHud();
     renderBoard();
@@ -436,6 +454,10 @@ export function initWordMode(ctx) {
   $('#w-finish').addEventListener('click', finish);
   $('#w-share').addEventListener('click', copyShare);
   $('#w-again').addEventListener('click', () => start(false));
+  $('#w-replay').addEventListener('click', () => {
+    const last = w.lastBoard;
+    if (last) start(false, last);
+  });
   $('#w-home').addEventListener('click', () => {
     w.game = null;
     ctx.showHome();

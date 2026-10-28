@@ -9,9 +9,9 @@ export const WORD_TURNS = 20;
 export const MIN_WORD = 3;
 export const LENGTH_BONUS = { 3: 0, 4: 5, 5: 15 };
 /** End-of-game bonus by number of locked tiles (25 = the whole board). */
-export const COVERAGE_BONUS = { 25: 50, 24: 25, 23: 10 };
+export const COVERAGE_BONUS = { 25: 25, 24: 10 };
 /** Fewer locked tiles than this at the end costs SHORTFALL_PENALTY points per missing tile. */
-export const COVERAGE_TARGET = 20;
+export const COVERAGE_TARGET = 22;
 export const SHORTFALL_PENALTY = 10;
 /** Turning a locked tile wild costs this many turns. */
 export const WILD_COST = 2;
