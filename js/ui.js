@@ -34,6 +34,11 @@ async function boot() {
   buildBoardSkeleton($('#board'), makeDiceFace);
   wireEvents();
   $('#opt-numerals').checked = !!ui.store.settings.numerals;
+  $('#opt-show-words').checked = !!ui.store.settings.showWords;
+  $('#opt-show-words').addEventListener('change', (e) => {
+    ui.store.settings.showWords = e.target.checked;
+    saveStore(ui.store);
+  });
   try {
     const res = await fetch('data/puzzles.json', { cache: 'no-cache' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -506,6 +511,7 @@ function resetData() {
   Object.assign(ui.store, fresh);
   saveStore(ui.store);
   $('#opt-numerals').checked = false;
+  $('#opt-show-words').checked = false;
   showHome();
 }
 

@@ -1,29 +1,22 @@
-// Word mode UI: a 5x5 letter grid, 20 turns, lock words to bank points.
+// Word mode UI: a 5x5 letter grid, 20 turns, lock words to bank points. Fits a portrait phone.
 
 import { SIZE, idx, rowOf, colOf } from './engine.js';
 import { randomSeed } from './rng.js';
-import { neighbours, buildBoardSkeleton, tileIn, animateAction, clearTileEffects } from './board.js';
+import { neighbours, buildBoardSkeleton, tileIn, animateAction, animateMoves, clearTileEffects } from './board.js';
 import {
-  dealLetters, createWordState, applyWordAction, findWords, lockWord, parseDictionary, bagTotal, letterValue,
-  describeWordCells, wordShareLine, WILD, WORD_TURNS, LETTERS,
+  dealLetters, createWordState, applyWordAction, findWords, findWordAt, lockWord, parseDictionary, bagTotal, letterValue,
+  describeWordCells, wordShareLine, slideMoves, coverageBonus, finalScore, WILD, WORD_TURNS, LETTERS,
 } from './words.js';
 
 const $ = (sel) => document.querySelector(sel);
 
-const MODE_HINTS = {
-  slide: 'Tap an arrow to slide that row or column. Lines holding a locked tile cannot slide.',
-  swap: 'Tap a tile, then a highlighted neighbour to swap them. Locked tiles stay put.',
-  nudge: 'Tap a tile, then +1 or −1 to step it through the alphabet (Z wraps to A). Nudging a locked tile turns it wild.',
-  draw: 'Tap a tile to replace it with a random letter from the bag. This cannot be undone.',
-};
-
 export function initWordMode(ctx) {
   const w = {
     dict: null,
-    game: null, // { seed, drawSeed, state }
+    game: null, // { seed, drawSeed, state, startedAt }
     mode: 'slide',
-    selected: null,
-    pending: null, // candidate word awaiting lock confirmation
+    selected: null, // first tap for swap/nudge/draw/lock
+    pending: null, // candidate word awaiting confirmation
     found: [],
     animating: false,
     over: false,
@@ -44,8 +37,8 @@ export function initWordMode(ctx) {
     face.querySelector('.val').textContent = ch === WILD ? '' : String(letterValue(ch));
     face.classList.toggle('wild', ch === WILD);
   }
-  const applyFace = (tile, ch) => setFace(tile, ch);
   const tileEl = (cell) => tileIn(boardEl, cell);
+  const showWordsOption = () => !!(ctx.store.settings && ctx.store.settings.showWords);
 
   async function ensureDict() {
     if (w.dict) return true;
@@ -71,8 +64,8 @@ export function initWordMode(ctx) {
       w.game = ctx.store.wordGame;
     } else {
       const seed = randomSeed();
-      const { board, bag } = dealLetters(seed);
       const drawSeed = randomSeed();
+      const { board, bag } = dealLetters(seed);
       w.game = { seed, drawSeed, state: createWordState(board, bag, drawSeed), startedAt: new Date().toISOString() };
       persist();
     }
@@ -92,23 +85,30 @@ export function initWordMode(ctx) {
     renderBag();
     renderWords();
     renderLocked();
+    renderStatus();
   }
 
   function renderHud() {
     const st = w.game.state;
     $('#w-turn').textContent = `${st.turns} / ${WORD_TURNS}`;
     $('#w-score').textContent = String(st.score);
-    const best = ctx.store.word && ctx.store.word.best;
-    $('#w-best').textContent = best === null || best === undefined ? '–' : String(best);
-    const left = WORD_TURNS - st.turns;
-    $('#w-finish').textContent = left > 0 ? `Finish early` : 'Finish';
-    $('#w-turns-left').textContent = left > 0 ? `${left} move${left === 1 ? '' : 's'} left` : 'No moves left. Lock any words you see, then finish.';
+    $('#w-finish').classList.toggle('btn-primary', st.turns >= WORD_TURNS);
+    $('#w-finish').hidden = w.over;
+  }
+
+  function renderStatus() {
+    const st = w.game.state;
+    const el = $('#w-status');
+    const done = st.turns >= WORD_TURNS;
+    el.hidden = !done || w.over;
+    if (done) el.textContent = 'No moves left. Lock any words you can still see, then finish.';
   }
 
   function renderBoard() {
     const st = w.game.state;
     const pendingCells = w.pending ? new Set(w.pending.cells) : null;
     const outOfMoves = st.turns >= WORD_TURNS;
+    const lockMode = w.mode === 'lock';
     for (let i = 0; i < st.board.length; i++) {
       const t = tileEl(i);
       clearTileEffects(t);
@@ -117,8 +117,9 @@ export function initWordMode(ctx) {
       t.classList.toggle('locked', locked);
       t.classList.toggle('wild', st.board[i] === WILD);
       t.classList.toggle('region', !!pendingCells && pendingCells.has(i));
-      t.classList.toggle('selected', w.selected === i);
-      t.classList.toggle('inert', outOfMoves || w.over);
+      t.classList.toggle('selected', w.selected === i && !lockMode);
+      t.classList.toggle('first-pick', w.selected === i && lockMode);
+      t.classList.toggle('inert', w.over || (outOfMoves && !lockMode));
       t.setAttribute('aria-label', `Row ${rowOf(i) + 1} column ${colOf(i) + 1}: ${st.board[i] === WILD ? 'wild' : st.board[i]}${locked ? ', locked' : ''}`);
     }
     for (const t of boardEl.querySelectorAll('.tile')) t.classList.remove('target');
@@ -129,13 +130,14 @@ export function initWordMode(ctx) {
     for (const a of boardEl.querySelectorAll('.arrow')) {
       const cells = [];
       for (let k = 0; k < SIZE; k++) cells.push(a.dataset.axis === 'row' ? idx(Number(a.dataset.index), k) : idx(k, Number(a.dataset.index)));
-      a.disabled = cells.some((c) => st.locked.includes(c));
+      a.disabled = cells.filter((c) => !st.locked.includes(c)).length < 2;
     }
   }
 
   function renderBag() {
     const bag = w.game.state.bag;
     const el = $('#w-bag');
+    el.hidden = w.mode !== 'draw' || w.over;
     el.innerHTML = `<div class="bag-title">Bag: ${bagTotal(bag)} tiles</div>`;
     for (const ch of LETTERS) {
       const chip = document.createElement('span');
@@ -149,14 +151,16 @@ export function initWordMode(ctx) {
   function renderWords() {
     const st = w.game.state;
     w.found = findWords(st, w.dict);
-    const lockable = w.found.filter((c) => c.lockable);
+    const wrap = $('#w-found-wrap');
+    wrap.hidden = !showWordsOption() || w.over;
     const el = $('#w-found');
     el.innerHTML = '';
-    $('#w-found-count').textContent = lockable.length ? `${lockable.length} to lock` : 'none yet';
+    if (wrap.hidden) return;
+    const lockable = w.found.filter((c) => c.lockable);
     if (!lockable.length) {
       const p = document.createElement('p');
       p.className = 'hint';
-      p.textContent = 'Spell a word of 3 to 5 letters along a row, column or diagonal, in either direction, then tap it here to lock it in.';
+      p.textContent = 'No new words on the board yet.';
       el.appendChild(p);
     }
     for (const c of lockable.slice(0, 30)) {
@@ -165,30 +169,33 @@ export function initWordMode(ctx) {
       b.innerHTML = `<span class="chip-word">${c.word}</span><span class="chip-score">${c.score}</span>`;
       b.setAttribute('aria-label', `${c.word} for ${c.score} points on ${describeWordCells(c.cells)}`);
       b.addEventListener('click', () => {
-        w.pending = w.pending && w.pending.key === c.key && w.pending.word === c.word ? null : c;
-        w.selected = null;
-        hideNudgePop();
-        $('#w-draw-confirm').hidden = true;
-        renderBoard();
-        renderWords();
+        if (w.over) return;
+        setPending(w.pending && w.pending.key === c.key && w.pending.word === c.word ? null : c);
       });
       el.appendChild(b);
     }
-    const confirm = $('#w-lock-confirm');
-    confirm.hidden = !w.pending;
-    if (w.pending) $('#w-lock-text').textContent = `Lock ${w.pending.word} for ${w.pending.score} points? Its tiles will no longer move.`;
   }
 
   function renderLocked() {
     const st = w.game.state;
-    const el = $('#w-locked-list');
-    el.innerHTML = '';
-    $('#w-locked').hidden = st.words.length === 0;
-    for (const word of st.words) {
-      const li = document.createElement('li');
-      li.innerHTML = `<span>${word.word}</span><span>${word.score}</span>`;
-      el.appendChild(li);
+    const el = $('#w-locked');
+    if (!st.words.length) {
+      el.innerHTML = '<span>No words locked yet.</span>';
+      return;
     }
+    el.innerHTML = st.words.map((x) => `<b>${x.word}</b> ${x.score}`).join(' · ') + ` · ${st.locked.length}/25 tiles locked`;
+  }
+
+  function setPending(candidate) {
+    w.pending = candidate;
+    w.selected = null;
+    hideNudgePop();
+    $('#w-draw-confirm').hidden = true;
+    const confirm = $('#w-lock-confirm');
+    confirm.hidden = !candidate;
+    if (candidate) $('#w-lock-text').textContent = `Lock ${candidate.word} for ${candidate.score} points? Its tiles will stay put.`;
+    renderBoard();
+    if (showWordsOption()) renderWords();
   }
 
   function setMode(mode) {
@@ -196,12 +203,13 @@ export function initWordMode(ctx) {
     w.selected = null;
     hideNudgePop();
     $('#w-draw-confirm').hidden = true;
+    if (w.pending) setPending(null);
     for (const b of document.querySelectorAll('#w-modes .mode')) {
       b.classList.toggle('active', b.dataset.mode === mode);
       b.setAttribute('aria-selected', b.dataset.mode === mode ? 'true' : 'false');
     }
-    $('#w-mode-hint').textContent = MODE_HINTS[mode];
     renderBoard();
+    renderBag();
   }
 
   function canAct() {
@@ -209,12 +217,34 @@ export function initWordMode(ctx) {
   }
 
   function onTileTap(cell) {
-    if (!canAct()) return;
+    if (!w.game || w.over || w.animating) return;
     const st = w.game.state;
-    if (w.pending) {
-      w.pending = null;
-      renderWords();
+    if (w.mode === 'lock') {
+      if (w.selected === null) {
+        w.selected = cell;
+        if (w.pending) setPending(null);
+        renderBoard();
+        ctx.showToast('Now tap the last letter of the word.', 1500);
+        return;
+      }
+      const first = w.selected;
+      w.selected = null;
+      const cand = findWordAt(st, w.dict, first, cell);
+      if (cand.error) {
+        ctx.showToast(cand.error, 2600);
+        renderBoard();
+        return;
+      }
+      if (!cand.lockable) {
+        ctx.showToast(`Cannot lock ${cand.word}: ${cand.reason}.`, 3000);
+        renderBoard();
+        return;
+      }
+      setPending(cand);
+      return;
     }
+    if (!canAct()) return;
+    if (w.pending) setPending(null);
     if (w.mode === 'slide') return;
     if (w.mode === 'swap') {
       if (st.locked.includes(cell)) {
@@ -245,6 +275,7 @@ export function initWordMode(ctx) {
       }
       w.selected = cell;
       renderBoard();
+      $('#w-bag').hidden = true; // the confirmation takes the bag's place
       $('#w-draw-confirm').hidden = false;
       $('#w-draw-text').textContent = `Replace the ${st.board[cell]} at row ${rowOf(cell) + 1}, column ${colOf(cell) + 1} with a random letter from the bag?`;
     }
@@ -273,10 +304,10 @@ export function initWordMode(ctx) {
 
   async function doAction(action) {
     if (!canAct()) return;
-    const before = w.game.state.board.slice();
+    const before = w.game.state;
     let next;
     try {
-      next = applyWordAction(w.game.state, action);
+      next = applyWordAction(before, action);
     } catch (e) {
       ctx.showToast(e.message);
       return;
@@ -287,55 +318,65 @@ export function initWordMode(ctx) {
     $('#w-draw-confirm').hidden = true;
     w.selected = null;
     w.animating = true;
-    await animateAction(boardEl, action, before, next.board, applyFace);
+    if (action.type === 'slide') await animateMoves(boardEl, slideMoves(before, action));
+    else await animateAction(boardEl, action, before.board, next.board, setFace);
     w.animating = false;
     renderAll();
     if (action.type === 'draw' && next.lastDraw) ctx.showToast(`Drew ${next.lastDraw.drawn}; the ${next.lastDraw.tossed === WILD ? 'wild' : next.lastDraw.tossed} went into the bag.`);
-    if (next.turns >= WORD_TURNS) ctx.showToast('No moves left. Lock any words you can see, then finish.', 3500);
+    if (next.turns >= WORD_TURNS) {
+      setMode('lock');
+      ctx.showToast('No moves left. Lock any words you can see, then finish.', 3500);
+    }
   }
 
   function lockPending() {
     if (!w.pending) return;
+    const cand = w.pending;
     try {
-      w.game.state = lockWord(w.game.state, w.pending);
+      w.game.state = lockWord(w.game.state, cand);
     } catch (e) {
       ctx.showToast(e.message);
-      w.pending = null;
-      renderWords();
+      setPending(null);
       return;
     }
-    const locked = w.pending;
     w.pending = null;
+    $('#w-lock-confirm').hidden = true;
     persist();
-    for (const c of locked.cells) tileEl(c).classList.add('bump');
     renderAll();
-    ctx.showToast(`${locked.word} locked for ${locked.score}.`);
+    for (const c of cand.cells) tileEl(c).classList.add('bump');
+    ctx.showToast(`${cand.word} locked for ${cand.score}.`);
   }
 
   function finish() {
     const st = w.game.state;
     const lockable = w.found.filter((c) => c.lockable).length;
     if (st.turns < WORD_TURNS && !confirm(`Finish now with ${WORD_TURNS - st.turns} moves unused?`)) return;
-    if (lockable && !confirm(`${lockable} word${lockable === 1 ? '' : 's'} on the board ${lockable === 1 ? 'is' : 'are'} not locked yet. Finish anyway?`)) return;
+    if (showWordsOption() && lockable && !confirm(`${lockable} word${lockable === 1 ? '' : 's'} on the board ${lockable === 1 ? 'is' : 'are'} not locked yet. Finish anyway?`)) return;
     w.over = true;
+    setPending(null);
+    const bonus = coverageBonus(st.locked.length);
+    const total = finalScore(st);
     const store = ctx.store;
     store.word ||= { gamesPlayed: 0, best: null, history: [] };
-    const isBest = store.word.best === null || st.score > store.word.best;
-    if (isBest) store.word.best = st.score;
+    const isBest = store.word.best === null || total > store.word.best;
+    if (isBest) store.word.best = total;
     store.word.gamesPlayed++;
-    store.word.history.unshift({ at: new Date().toISOString(), seed: w.game.seed, drawSeed: w.game.drawSeed, score: st.score, words: st.words.map((x) => ({ word: x.word, score: x.score })) });
+    store.word.history.unshift({ at: new Date().toISOString(), seed: w.game.seed, drawSeed: w.game.drawSeed, score: total, bonus, words: st.words.map((x) => ({ word: x.word, score: x.score })) });
     store.word.history = store.word.history.slice(0, 50);
     store.wordGame = null;
     ctx.saveStore(store);
     $('#w-action-panel').hidden = true;
+    $('#w-found-wrap').hidden = true;
     $('#w-result').hidden = false;
-    $('#w-result-score').textContent = String(st.score);
-    $('#w-result-words').textContent = st.words.length ? st.words.map((x) => `${x.word} ${x.score}`).join(', ') : 'No words locked.';
+    $('#w-result-score').textContent = String(total);
+    const wordsText = st.words.length ? st.words.map((x) => `${x.word} ${x.score}`).join(', ') : 'No words locked.';
+    $('#w-result-words').textContent = bonus ? `${wordsText}. Coverage bonus +${bonus} for locking ${st.locked.length} of 25 tiles.` : `${wordsText} ${st.locked.length} of 25 tiles locked.`;
     $('#w-result-best').textContent = isBest ? 'New personal best!' : `Personal best: ${store.word.best}`;
-    $('#w-share-line').textContent = wordShareLine(st.score, st.words);
+    $('#w-share-line').textContent = wordShareLine(total, st.words);
     renderHud();
     renderBoard();
-    window.scrollTo(0, document.body.scrollHeight);
+    renderBag();
+    renderStatus();
   }
 
   async function copyShare() {
@@ -358,10 +399,7 @@ export function initWordMode(ctx) {
     const arrow = e.target.closest('.arrow');
     if (arrow) {
       if (!canAct() || w.mode !== 'slide') return;
-      if (w.pending) {
-        w.pending = null;
-        renderWords();
-      }
+      if (w.pending) setPending(null);
       doAction({ type: 'slide', axis: arrow.dataset.axis, index: Number(arrow.dataset.index), dir: Number(arrow.dataset.dir) });
       return;
     }
@@ -379,17 +417,14 @@ export function initWordMode(ctx) {
     w.selected = null;
     $('#w-draw-confirm').hidden = true;
     renderBoard();
+    renderBag();
   });
   $('#w-draw-ok').addEventListener('click', () => {
     if (w.selected === null) return;
     const cell = w.selected;
     doAction({ type: 'draw', r: rowOf(cell), c: colOf(cell) });
   });
-  $('#w-lock-cancel').addEventListener('click', () => {
-    w.pending = null;
-    renderBoard();
-    renderWords();
-  });
+  $('#w-lock-cancel').addEventListener('click', () => setPending(null));
   $('#w-lock-ok').addEventListener('click', lockPending);
   $('#w-finish').addEventListener('click', finish);
   $('#w-share').addEventListener('click', copyShare);
@@ -398,9 +433,7 @@ export function initWordMode(ctx) {
     w.game = null;
     ctx.showHome();
   });
-  $('#w-quit').addEventListener('click', () => {
-    ctx.showHome();
-  });
+  $('#w-quit').addEventListener('click', () => ctx.showHome());
   $('#w-help').addEventListener('click', ctx.openHelp);
   window.addEventListener('resize', () => {
     if (!$('#w-nudge-pop').hidden && w.selected !== null) showNudgePop(w.selected);

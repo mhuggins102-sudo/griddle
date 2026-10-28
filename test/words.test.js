@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { CELLS, idx } from '../js/engine.js';
 import {
   dealLetters, createWordState, applyWordAction, findWords, lockWord, scoreWord, nudgeLetter, wordLines, parseDictionary,
-  bagTotal, LETTER_COUNTS, WILD, wordShareLine,
+  bagTotal, LETTER_COUNTS, WILD, wordShareLine, slideMoves, isPluralPair, findWordAt, coverageBonus, finalScore,
 } from '../js/words.js';
 
 const dict = parseDictionary(readFileSync(new URL('../data/words.txt', import.meta.url), 'utf8'));
@@ -77,15 +77,20 @@ test('locking: tiles stop moving, same cells cannot be locked twice, nudge turns
   s = lockWord(s, cat);
   assert.equal(s.score, 5);
   assert.deepEqual(s.locked, [0, 1, 2]);
-  assert.throws(() => applyWordAction(s, { type: 'slide', axis: 'row', index: 0, dir: 1 }), /locked/);
-  assert.throws(() => applyWordAction(s, { type: 'slide', axis: 'col', index: 1, dir: 1 }), /locked/);
+  // locked tiles stay put; the other tiles in the line slide around them
+  const slid = applyWordAction(s, { type: 'slide', axis: 'row', index: 0, dir: 1 });
+  assert.deepEqual(slid.board.slice(0, 5), ['C', 'A', 'T', 'X', 'X']);
+  assert.deepEqual(slideMoves(s, { type: 'slide', axis: 'row', index: 0, dir: 1 }), [{ from: 3, to: 4, wrap: false }, { from: 4, to: 3, wrap: true }]);
+  const col = applyWordAction(s, { type: 'slide', axis: 'col', index: 1, dir: 1 });
+  assert.equal(col.board[1], 'A', 'locked A stays');
   assert.throws(() => applyWordAction(s, { type: 'swap', r: 0, c: 2, r2: 0, c2: 3 }), /Locked/);
   assert.throws(() => applyWordAction(s, { type: 'draw', r: 0, c: 0 }), /Locked/);
   const ok = applyWordAction(s, { type: 'slide', axis: 'row', index: 1, dir: 1 });
   assert.equal(ok.turns, 1);
-  // the same cells cannot be locked again
+  // the same word cannot be locked again
   const again = findWords(s, dict).find((w) => w.word === 'CAT');
   assert.equal(again.lockable, false);
+  assert.match(again.reason, /already locked/);
   assert.throws(() => lockWord(s, again));
   // nudging a locked tile makes it wild; the locked word stays and the wild matches anything
   const wild = applyWordAction(s, { type: 'nudge', r: 0, c: 1, delta: 1 });
@@ -95,10 +100,10 @@ test('locking: tiles stop moving, same cells cannot be locked twice, nudge turns
   const found = findWords(wild, dict);
   assert.ok(found.find((w) => w.word === 'COT'), 'wild reads as any letter');
   assert.equal(found.find((w) => w.word === 'COT').score, 3 + 0 + 1, 'wild scores 0');
-  // a new word that reuses locked tiles plus a fresh one is lockable
-  const cross = createWordState(boardFrom(['CATXX', 'AXXXX', 'TXXXX', 'XXXXX', 'XXXXX']), {});
-  let c = lockWord(cross, findWords(cross, dict).find((w) => w.word === 'CAT' && w.cells[1] === 1));
-  const down = findWords(c, dict).find((w) => w.word === 'CAT' && w.cells[1] === 5);
+  // a new word that reuses locked tiles plus a fresh one is lockable (but not the same word twice)
+  const cross = createWordState(boardFrom(['CATXX', 'AXXXX', 'RXXXX', 'XXXXX', 'XXXXX']), {});
+  let c = lockWord(cross, findWords(cross, dict).find((w) => w.word === 'CAT'));
+  const down = findWords(c, dict).find((w) => w.word === 'CAR');
   assert.ok(down.lockable);
   c = lockWord(c, down);
   assert.equal(c.score, 10);
@@ -134,4 +139,62 @@ test('a dealt board usually has a few words available', () => {
     total += findWords(createWordState(board, bag), dict).length;
   }
   assert.ok(total > 0);
+});
+
+test('slide around locked tiles: the tile before a locked last tile wraps; a fully locked line refuses', () => {
+  const board = boardFrom(['ABCDE', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']);
+  let s = createWordState(board, {});
+  s.locked = [4];
+  const right = applyWordAction(s, { type: 'slide', axis: 'row', index: 0, dir: 1 });
+  assert.deepEqual(right.board.slice(0, 5), ['D', 'A', 'B', 'C', 'E']);
+  const left = applyWordAction(s, { type: 'slide', axis: 'row', index: 0, dir: -1 });
+  assert.deepEqual(left.board.slice(0, 5), ['B', 'C', 'D', 'A', 'E']);
+  s.locked = [1, 3];
+  const mid = applyWordAction(s, { type: 'slide', axis: 'row', index: 0, dir: 1 });
+  assert.deepEqual(mid.board.slice(0, 5), ['E', 'B', 'A', 'D', 'C']);
+  s.locked = [0, 1, 2, 3];
+  assert.throws(() => applyWordAction(s, { type: 'slide', axis: 'row', index: 0, dir: 1 }), /Nothing/);
+});
+
+test('plural rule: a plural or singular of a locked word cannot be locked', () => {
+  assert.ok(isPluralPair('DOOR', 'DOORS'));
+  assert.ok(isPluralPair('DOORS', 'DOOR'));
+  assert.ok(isPluralPair('BOX', 'BOXES'));
+  assert.ok(isPluralPair('CITY', 'CITIES'));
+  assert.ok(!isPluralPair('DOOR', 'DOOR'));
+  assert.ok(!isPluralPair('CAT', 'COTS'));
+  const board = boardFrom(['DOORS', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']);
+  let s = createWordState(board, {});
+  const doors = findWords(s, dict).find((w) => w.word === 'DOORS');
+  const door = findWords(s, dict).find((w) => w.word === 'DOOR');
+  assert.ok(doors.lockable && door.lockable);
+  s = lockWord(s, door);
+  const after = findWords(s, dict).find((w) => w.word === 'DOORS');
+  assert.equal(after.lockable, false);
+  assert.match(after.reason, /plural/);
+  assert.throws(() => lockWord(s, after));
+});
+
+test('findWordAt: first and last tap define the word, in either direction', () => {
+  const board = boardFrom(['XTACX', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']);
+  const s = createWordState(board, {});
+  const cat = findWordAt(s, dict, 3, 1);
+  assert.equal(cat.word, 'CAT');
+  assert.deepEqual(cat.cells, [3, 2, 1]);
+  assert.ok(cat.lockable);
+  assert.match(findWordAt(s, dict, 1, 3).error, /not in the word list/);
+  assert.match(findWordAt(s, dict, 1, 2).error, /at least 3/);
+  assert.match(findWordAt(s, dict, 0, 7).error, /row, column or diagonal/);
+  assert.match(findWordAt(s, dict, 0, 0).error, /first and last/);
+});
+
+test('coverage bonus for locking (almost) the whole board', () => {
+  assert.equal(coverageBonus(25), 50);
+  assert.equal(coverageBonus(24), 25);
+  assert.equal(coverageBonus(23), 10);
+  assert.equal(coverageBonus(22), 0);
+  const s = createWordState(new Array(CELLS).fill('A'), {});
+  s.score = 30;
+  s.locked = new Array(24).fill(0).map((_, i) => i);
+  assert.equal(finalScore(s), 55);
 });

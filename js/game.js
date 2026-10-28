@@ -13,7 +13,7 @@ export function defaultStore() {
     bestTotal: null,
     history: [],
     beatPar: [],
-    settings: { numerals: false },
+    settings: { numerals: false, showWords: false },
     currentGame: null,
     word: { gamesPlayed: 0, best: null, history: [] },
     wordGame: null,

@@ -8,6 +8,17 @@ export const WILD = '*';
 export const WORD_TURNS = 20;
 export const MIN_WORD = 3;
 export const LENGTH_BONUS = { 3: 0, 4: 5, 5: 15 };
+/** End-of-game bonus by number of locked tiles (25 = the whole board). */
+export const COVERAGE_BONUS = { 25: 50, 24: 25, 23: 10 };
+
+export function coverageBonus(lockedCount) {
+  return COVERAGE_BONUS[lockedCount] || 0;
+}
+
+/** Final score: banked words plus the coverage bonus. */
+export function finalScore(state) {
+  return state.score + coverageBonus(state.locked.length);
+}
 
 /** Scrabble letter values. Wild tiles score 0. */
 export const LETTER_VALUES = {
@@ -63,7 +74,7 @@ export function validateWordAction(state, action) {
       if (action.axis !== 'row' && action.axis !== 'col') throw new Error('Slide axis must be row or col');
       if (!inRange(action.index)) throw new Error('Slide index out of range');
       if (action.dir !== 1 && action.dir !== -1) throw new Error('Slide dir must be +1 or -1');
-      for (const c of lineCells(action.axis, action.index)) if (isLocked(state, c)) throw new Error('That line holds a locked tile');
+      if (lineCells(action.axis, action.index).filter((c) => !isLocked(state, c)).length < 2) throw new Error('Nothing in that line can slide');
       return true;
     }
     case 'swap': {
@@ -98,9 +109,7 @@ export function applyWordAction(state, action) {
   delete next.lastDraw;
   switch (action.type) {
     case 'slide': {
-      const cells = lineCells(action.axis, action.index);
-      const vals = cells.map((c) => next.board[c]);
-      for (let k = 0; k < SIZE; k++) next.board[cells[(k + action.dir + SIZE) % SIZE]] = vals[k];
+      for (const m of slideMoves(state, action)) next.board[m.to] = state.board[m.from];
       break;
     }
     case 'swap': {
@@ -142,6 +151,70 @@ export function applyWordAction(state, action) {
       break;
   }
   return next;
+}
+
+/**
+ * Where each unlocked tile of a line goes when it slides: locked tiles stay put and the others
+ * shift one step along the unlocked positions, the last one wrapping to the first.
+ * Returns [{ from, to, wrap }].
+ */
+export function slideMoves(state, action) {
+  const free = lineCells(action.axis, action.index).filter((c) => !isLocked(state, c));
+  const n = free.length;
+  const moves = [];
+  for (let k = 0; k < n; k++) {
+    const j = (k + action.dir + n) % n;
+    moves.push({ from: free[k], to: free[j], wrap: action.dir === 1 ? k === n - 1 : k === 0 });
+  }
+  return moves;
+}
+
+/** Is one word the plural of the other (DOOR/DOORS, BOX/BOXES, CITY/CITIES)? */
+export function isPluralPair(a, b) {
+  if (a === b) return false;
+  const [short, long] = a.length < b.length ? [a, b] : [b, a];
+  if (long === short + 'S') return true;
+  if (long === short + 'ES') return true;
+  if (short.endsWith('Y') && long === short.slice(0, -1) + 'IES') return true;
+  return false;
+}
+
+/** Why a word cannot be locked given the words already locked, or '' when it can. */
+export function lockConflict(state, word, cells) {
+  const key = cellKey(cells);
+  for (const w of state.words) {
+    if (w.word === word) return `${word} is already locked`;
+    if (isPluralPair(w.word, word)) return `${word} clashes with ${w.word} (singular and plural)`;
+    if (w.key === key) return 'those tiles are already locked as a word';
+  }
+  if (cells.every((c) => state.locked.includes(c))) return 'a new word needs at least one unlocked tile';
+  return '';
+}
+
+function makeCandidate(state, word, orderedCells) {
+  const reason = lockConflict(state, word, orderedCells);
+  return { word, cells: orderedCells, score: scoreWord(state.board, orderedCells), key: cellKey(orderedCells), lockable: !reason, reason };
+}
+
+/**
+ * The word running from one tapped tile to another, if the two are on a common row, column or
+ * diagonal 3 to 5 cells apart. Returns a candidate, or { error } when the span or word is invalid.
+ */
+export function findWordAt(state, dict, first, last) {
+  if (first === last) return { error: 'Tap the first and last letter of a word.' };
+  const dr = rowOf(last) - rowOf(first);
+  const dc = colOf(last) - colOf(first);
+  const len = Math.max(Math.abs(dr), Math.abs(dc)) + 1;
+  if (!(dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc))) return { error: 'Words run along a row, column or diagonal.' };
+  if (len < MIN_WORD) return { error: 'Words need at least 3 letters.' };
+  const sr = Math.sign(dr);
+  const sc = Math.sign(dc);
+  const cells = [];
+  for (let k = 0; k < len; k++) cells.push(idx(rowOf(first) + sr * k, colOf(first) + sc * k));
+  const pattern = cells.map((c) => state.board[c]).join('');
+  const matches = matchesForPattern(pattern, dict);
+  if (!matches.length) return { error: `${pattern.replace(/\*/g, '?')} is not in the word list.` };
+  return makeCandidate(state, matches[0], cells);
 }
 
 /** Every line a word can lie on, in reading order: rows, columns, and all diagonals of 3 or more cells. */
@@ -214,7 +287,6 @@ function matchesForPattern(pattern, dict) {
  */
 export function findWords(state, dict) {
   const board = state.board;
-  const lockedKeys = new Set(state.words.map((w) => w.key));
   const seen = new Set();
   const out = [];
   for (const line of LINES) {
@@ -225,20 +297,10 @@ export function findWords(state, dict) {
           const ordered = dir === 1 ? cells : cells.slice().reverse();
           const pattern = ordered.map((c) => board[c]).join('');
           for (const word of matchesForPattern(pattern, dict)) {
-            const key = cellKey(cells);
-            const id = `${word}@${key}`;
+            const id = `${word}@${cellKey(cells)}`;
             if (seen.has(id)) continue;
             seen.add(id);
-            const allLocked = cells.every((c) => state.locked.includes(c));
-            const dup = lockedKeys.has(key);
-            out.push({
-              word,
-              cells: ordered,
-              score: scoreWord(board, cells),
-              key,
-              lockable: !dup && !allLocked,
-              reason: dup ? 'already locked' : allLocked ? 'all tiles already locked' : '',
-            });
+            out.push(makeCandidate(state, word, ordered));
           }
         }
       }

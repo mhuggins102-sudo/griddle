@@ -52,7 +52,7 @@ Every puzzle in the bank is `{ id, seed, board, bag, goals, par, solution, confi
 
 ## Word mode
 
-Same board and actions with letters (Scrabble distribution, 98 tiles, 25 dealt). Twenty moves, no bidding. Any word of 3 to 5 letters along a row, column or diagonal, read either way, can be locked: its tiles stop moving (slide, swap and draw refuse them), its Scrabble letter values plus a length bonus (4 letters +5, 5 letters +15) are banked, and locking costs no move. Nudging a locked tile turns it wild (reads as any letter, scores 0). A new word may reuse locked tiles if it adds at least one fresh tile.
+Same board and actions with letters (Scrabble distribution, 98 tiles, 25 dealt). Twenty moves, no bidding; the whole screen fits a portrait phone without scrolling. Any word of 3 to 5 letters along a row, column or diagonal, read either way, can be locked: choose Lock, tap the word's first and last letter, confirm. Locking costs no move and banks Scrabble letter values plus a length bonus (4 letters +5, 5 letters +15). Locked tiles stay put: a line still slides but its locked tiles do not move and the rest slide around them; locked tiles cannot be swapped or drawn. Nudging a locked tile turns it wild (reads as any letter, scores 0). A new word may reuse locked tiles if it adds at least one fresh tile, but the same word, or a word and its plural (DOOR/DOORS), cannot both be locked. End-of-game coverage bonus: +50 for locking all 25 tiles, +25 for 24, +10 for 23 (`COVERAGE_BONUS` in `js/words.js`). The bag is shown only in Draw mode; a home-screen option lists the words on the board (off by default).
 
 ## Deploy
 

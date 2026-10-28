@@ -126,6 +126,22 @@ export function animateAction(boardEl, action, before, after, applyFace) {
   return Promise.resolve();
 }
 
+/** Animate arbitrary tile moves [{ from, to, wrap }] (used by Word mode slides around locked tiles). */
+export function animateMoves(boardEl, moves) {
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) return Promise.resolve();
+  const step = tileStep(boardEl);
+  for (const m of moves) {
+    const t = tileIn(boardEl, m.from);
+    const dx = (colOf(m.to) - colOf(m.from)) * step;
+    const dy = (rowOf(m.to) - rowOf(m.from)) * step;
+    t.classList.add('moving');
+    t.style.transform = `translate(${dx}px, ${dy}px)`;
+    if (m.wrap) t.style.opacity = '0';
+  }
+  return wait(ANIM_MS + 30);
+}
+
 /** Reset per-tile animation styles and classes (call before re-rendering faces). */
 export function clearTileEffects(tileEl) {
   tileEl.style.transform = '';
