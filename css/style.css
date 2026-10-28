@@ -468,3 +468,12 @@ button { font: inherit; color: inherit; }
 .wild-btn small { position: absolute; right: 6px; bottom: 3px; font-size: 10px; font-weight: 700; }
 .result-buttons.three { grid-template-columns: 1fr 1fr 1fr; }
 .result-buttons.three .btn { padding: 0 8px; font-size: 14px; }
+
+.word-hud { grid-template-columns: 1fr 1fr auto 44px 44px 44px; gap: 6px; }
+.btn-finish { padding: 0 10px; min-width: 48px; }
+#w-undo { font-size: 20px; }
+#w-undo:disabled { opacity: 0.35; }
+@media (max-width: 374px) {
+  .word-hud { gap: 4px; padding-left: 6px; padding-right: 6px; }
+  .word-hud .hud-value { font-size: 16px; }
+}

@@ -74,7 +74,7 @@ function showHome() {
   $('#btn-word-continue').hidden = !ui.store.wordGame;
   const s = ui.store;
   const w = s.word || { gamesPlayed: 0, best: null };
-  $('#home-stats').textContent = w.gamesPlayed ? `${w.gamesPlayed} game${w.gamesPlayed === 1 ? '' : 's'} played · best ${w.best}` : '';
+  $('#home-stats').textContent = w.gamesPlayed ? `${w.gamesPlayed} board${w.gamesPlayed === 1 ? '' : 's'} played · best score ${w.best}${w.bestLevel ? ` · highest level passed ${w.bestLevel}` : ''}` : '';
   if (SHOW_NUMBER_GAME && s.gamesPlayed) $('#home-stats').textContent += ` · Number game: ${s.gamesPlayed} played, best ${s.bestTotal}`;
   showScreen('screen-home');
 }
@@ -498,10 +498,11 @@ function showStats() {
         <div><span class="hud-label">Words locked</span><span class="hud-value">${wordsPlayed}</span></div>
         <div><span class="hud-label">Per game</span><span class="hud-value">${hist.length ? (wordsPlayed / hist.length).toFixed(1) : 0}</span></div>
         <div><span class="hud-label">Best word</span><span class="hud-value">${bestWord ? `${escapeHtml(bestWord.word)} ${bestWord.score}` : '–'}</span></div>
+        <div><span class="hud-label">Top level</span><span class="hud-value">${w.bestLevel || '–'}</span></div>
       </div>
       <h3>Recent games</h3>
       <ul class="stat-list">${hist
-        .map((g) => `<li><span>${g.score} · ${g.words.length ? g.words.map((x) => escapeHtml(x.word)).join(', ') : 'no words'}</span><span>${new Date(g.at).toLocaleDateString()}</span></li>`)
+        .map((g) => `<li><span>${g.mode === 'levels' ? `L${g.level} ${g.passed ? '✓' : '✗'} ` : ''}${g.score}${g.goal ? ` / ${g.goal}` : ''} · ${g.words.length ? g.words.map((x) => escapeHtml(x.word)).join(', ') : 'no words'}</span><span>${new Date(g.at).toLocaleDateString()}</span></li>`)
         .join('')}</ul>
     `;
   }
@@ -555,7 +556,12 @@ function wireEvents() {
   $('#btn-word').addEventListener('click', () => {
     if (ui.store.wordGame && !confirm('Abandon the word game in progress and start a new one?')) return;
     ui.store.wordGame = null;
-    ui.word.start(false);
+    ui.word.start(false, { mode: 'levels', level: 1 });
+  });
+  $('#btn-free').addEventListener('click', () => {
+    if (ui.store.wordGame && !confirm('Abandon the game in progress and start free play?')) return;
+    ui.store.wordGame = null;
+    ui.word.start(false, { mode: 'free' });
   });
   $('#btn-word-continue').addEventListener('click', () => ui.word.start(true));
   $('#btn-help-home').addEventListener('click', openHelp);
