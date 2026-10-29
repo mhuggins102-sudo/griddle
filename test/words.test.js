@@ -197,21 +197,19 @@ test('findWordAt: first and last tap define the word, in either direction', () =
   assert.match(findWordAt(s, dict, 0, 0).error, /first and last/);
 });
 
-test('completion adjustment: +25 for 25 tiles, +10 for 24, 0 for 22-23, -10 per tile under 22', () => {
+test('completion bonus: +25 for 25 tiles, +10 for 24, nothing below; no penalties', () => {
   assert.equal(coverageBonus(25), 25);
   assert.equal(coverageBonus(24), 10);
   assert.equal(coverageBonus(23), 0);
   assert.equal(coverageBonus(22), 0);
-  assert.equal(shortfallPenalty(23), 0);
-  assert.equal(shortfallPenalty(22), 0);
-  assert.equal(shortfallPenalty(21), 10);
-  assert.equal(shortfallPenalty(12), 100);
+  assert.equal(shortfallPenalty(21), 0);
+  assert.equal(shortfallPenalty(0), 0);
   const s = createWordState(new Array(CELLS).fill('A'), {});
   s.score = 30;
   s.locked = new Array(24).fill(0).map((_, i) => i);
+  s.turns = WORD_TURNS;
   assert.equal(finalScore(s), 40);
   s.locked = new Array(25).fill(0).map((_, i) => i);
-  s.turns = WORD_TURNS;
   assert.equal(finalScore(s), 55);
   assert.ok(isBoardFull(s));
   // all 25 locked with turns to spare: +10 per unused turn
@@ -220,12 +218,9 @@ test('completion adjustment: +25 for 25 tiles, +10 for 24, 0 for 22-23, -10 per 
   assert.equal(finalScore(s), 115);
   s.locked = new Array(24).fill(0).map((_, i) => i);
   assert.equal(fullCoverTurnBonus(s), 0, 'only a full board earns the turn bonus');
-  s.turns = WORD_TURNS;
-  s.locked = new Array(17).fill(0).map((_, i) => i);
-  assert.equal(projectedScore(s), -20, 'projected score may be negative');
-  assert.equal(finalScore(s), 0, 'floored at zero');
-  s.score = 60;
-  assert.equal(finalScore(s), 10);
+  s.locked = new Array(3).fill(0).map((_, i) => i);
+  assert.equal(projectedScore(s), 30, 'few tiles: just the word points');
+  assert.equal(finalScore(s), 30);
 });
 
 test('turn limit: no action or lock once 20 turns are used; wild needs two turns', () => {

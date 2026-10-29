@@ -620,3 +620,51 @@ button { font: inherit; color: inherit; }
 }
 .goalbar { cursor: pointer; }
 .words-pop { bottom: auto; top: 110px; }
+
+/* Top card: header, level bar and word list as one section */
+.topcard {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.topcard .hud { border: 0; border-radius: 0; box-shadow: none; background: transparent; padding: 8px 12px; }
+.topcard .goalbar {
+  border: 0; border-radius: 0; box-shadow: none; background: transparent;
+  border-top: 1px solid var(--line);
+  min-height: 44px; padding: 4px 12px;
+}
+.topcard .goalbar-fill { border-radius: 0; }
+.topcard .locked-line { border-top: 1px solid var(--line); padding: 6px 12px; min-height: 0; }
+.topcard .locked-line:empty { display: none; }
+.btn-advance { position: relative; min-height: 36px; padding: 0 12px; font-size: 14px; margin-left: 8px; animation: advancePulse 1.6s ease-in-out infinite; }
+@keyframes advancePulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent); }
+}
+.goalbar.reached .goalbar-fill {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--ok) 35%, transparent), color-mix(in srgb, var(--ok) 55%, transparent), color-mix(in srgb, var(--ok) 35%, transparent));
+  background-size: 200% 100%;
+  animation: shimmer 1.8s linear infinite;
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.goalbar.celebrate { animation: celebrate 700ms ease; }
+@keyframes celebrate {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.04); }
+  50% { transform: scale(0.99); }
+  75% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+@media (max-height: 700px) {
+  .topcard .hud { padding: 4px 8px; }
+  .topcard .goalbar { min-height: 40px; }
+  .topcard .locked-line { padding: 4px 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-advance, .goalbar.reached .goalbar-fill, .goalbar.celebrate { animation: none; }
+}
+.topcard .goalbar { padding-top: 0; padding-bottom: 0; }
+.btn-advance { min-height: 44px; }
+@media (max-height: 700px) { .btn-advance { min-height: 44px; } .topcard .goalbar { min-height: 44px; } }

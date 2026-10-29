@@ -4,7 +4,7 @@
 import { allActions, lineCells, idx } from './engine.js';
 import {
   dealLetters, createWordState, applyWordAction, findWords, lockWord, finalScore, isLocked,
-  WORD_TURNS, COVERAGE_TARGET, SHORTFALL_PENALTY,
+  WORD_TURNS,
 } from './words.js';
 
 const MOVES = allActions(); // 110 deterministic moves: slides, swaps, nudges
@@ -27,11 +27,13 @@ function legal(state, move) {
   return true; // nudge, including a locked tile (its letter changes)
 }
 
-/** Value of locking a candidate now: its points plus credit for each newly locked tile while short of the target. */
+/** How much the bot values each newly locked tile (it steers toward the full-board bonuses). */
+const FRESH_TILE_VALUE = 4;
+
+/** Value of locking a candidate now: its points plus credit for each newly locked tile. */
 function lockValue(state, cand) {
   const fresh = cand.cells.filter((c) => !state.locked.includes(c)).length;
-  const short = Math.max(0, COVERAGE_TARGET - state.locked.length);
-  return cand.score + Math.min(fresh, short) * SHORTFALL_PENALTY + fresh;
+  return cand.score + fresh * FRESH_TILE_VALUE;
 }
 
 function bestLockable(state, dict) {

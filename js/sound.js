@@ -103,6 +103,11 @@ const CUES = {
     [523, 659, 784, 1046].forEach((f, i) => tone(ac, { freq: f, type: 'triangle', start: i * 0.12, dur: 0.35, gain: 0.14 }));
     tone(ac, { freq: 1568, type: 'sine', start: 0.5, dur: 0.6, gain: 0.1 });
   },
+  // goal reached mid-board: a bright rising arpeggio
+  win: (ac) => {
+    [659, 784, 988, 1319].forEach((f, i) => tone(ac, { freq: f, type: 'triangle', start: i * 0.08, dur: 0.3, gain: 0.13 }));
+    tone(ac, { freq: 1976, type: 'sine', start: 0.34, dur: 0.5, gain: 0.08 });
+  },
   // level failed: two falling notes
   fail: (ac) => {
     tone(ac, { freq: 440, to: 330, type: 'triangle', dur: 0.25, gain: 0.12 });

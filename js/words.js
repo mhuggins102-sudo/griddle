@@ -10,9 +10,9 @@ export const MIN_WORD = 3;
 export const LENGTH_BONUS = { 3: 0, 4: 5, 5: 15 };
 /** End-of-game bonus by number of locked tiles (25 = the whole board). */
 export const COVERAGE_BONUS = { 25: 25, 24: 10 };
-/** Fewer locked tiles than this at the end costs SHORTFALL_PENALTY points per missing tile. */
+/** Penalties were removed: the score is word points plus bonuses only. Kept at 0 so the hooks stay. */
 export const COVERAGE_TARGET = 22;
-export const SHORTFALL_PENALTY = 10;
+export const SHORTFALL_PENALTY = 0;
 /** Turning a locked tile wild costs this many turns. */
 export const WILD_COST = 2;
 
@@ -35,7 +35,7 @@ export function isBoardFull(state) {
   return state.locked.length === CELLS;
 }
 
-/** The score as it stands now, bonuses and penalty included; may be negative. */
+/** The score as it stands now, bonuses included (no penalties, so never negative). */
 export function projectedScore(state) {
   return state.score + coverageBonus(state.locked.length) + fullCoverTurnBonus(state) - shortfallPenalty(state.locked.length);
 }

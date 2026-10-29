@@ -193,7 +193,7 @@ export function initWordMode(ctx) {
     $('#w-score').classList.toggle('negative', false);
     $('#w-finish').hidden = w.over || !done; // a board cannot be ended early
     const undo = $('#w-undo');
-    undo.hidden = w.over;
+    undo.hidden = w.over || isLevels(); // no undo in a level run
     undo.disabled = !w.game.prev || w.game.undoUsed;
     undo.title = w.game.undoUsed ? 'Undo already used this game' : !w.game.prev ? 'Nothing to undo (draws cannot be undone)' : 'Undo the last move (once per game)';
   }
@@ -298,12 +298,17 @@ export function initWordMode(ctx) {
     const reached = score >= g.goal;
     $('#w-goalbar-text').textContent = `${score} / ${g.goal}`;
     $('#w-goalbar-fill').style.width = `${Math.max(0, Math.min(100, (100 * score) / g.goal))}%`;
-    if (reached && !bar.classList.contains('reached')) {
+    if (reached && !g.goalCelebrated && !w.over) {
+      g.goalCelebrated = true;
+      persist();
       bar.classList.add('celebrate');
-      setTimeout(() => bar.classList.remove('celebrate'), 700);
+      setTimeout(() => bar.classList.remove('celebrate'), 800);
+      play('win');
+      ctx.showToast(`Goal reached! Move on with Next level, or keep playing for a higher score.`, 3200);
     }
     bar.classList.toggle('reached', reached);
-    bar.setAttribute('aria-label', `Level ${g.level}: score ${score} of goal ${g.goal}`);
+    $('#w-advance').hidden = !(reached && !w.over && !g.replay);
+    bar.setAttribute('aria-label', `Level ${g.level}: score ${score} of goal ${g.goal}${reached ? ', goal reached' : ''}`);
   }
 
   function setPending(candidate) {
@@ -510,7 +515,7 @@ export function initWordMode(ctx) {
 
   function undo() {
     const g = w.game;
-    if (!g || w.over || w.animating || !g.prev || g.undoUsed) return;
+    if (!g || w.over || w.animating || !g.prev || g.undoUsed || g.mode === 'levels') return;
     if (!confirm('Undo your last move? You get one undo per game.')) return;
     g.state = g.prev;
     g.prev = null;
@@ -527,7 +532,18 @@ export function initWordMode(ctx) {
   // ---------------------------------------------------------------------------
   // End of game
 
-  function finish(auto = false) {
+  /** Pass the level now and go straight to the next board (available once the goal is reached). */
+  function advanceEarly() {
+    const g = w.game;
+    if (!g || w.over || w.animating || g.mode !== 'levels' || g.goal === null || finalScore(g.state) < g.goal) return;
+    const level = g.level;
+    const score = finalScore(g.state);
+    finish(true, true);
+    ctx.showToast(`Level ${level} passed with ${score}. On to level ${level + 1}!`, 2500);
+    start(false, { mode: 'levels', level: level + 1 });
+  }
+
+  function finish(auto = false, silent = false) {
     if (w.over) return;
     const g = w.game;
     const st = g.state;
@@ -610,6 +626,7 @@ export function initWordMode(ctx) {
       line = isBest ? 'New personal best!' : `Personal best: ${store.word.best}.`;
     }
     if (g.mode === 'levels' && g.replay) line += ' Replay: not counted.';
+    if (silent) return;
     play(g.mode === 'levels' ? (passed ? 'fanfare' : 'fail') : st.locked.length === 25 ? 'fanfare' : 'lock');
     $('#w-result-title').textContent = title;
     $('#w-result-best').textContent = line;
@@ -617,6 +634,7 @@ export function initWordMode(ctx) {
     const showNext = g.mode === 'levels' && passed && !g.replay;
     $('#w-next').hidden = !showNext;
     $('#w-again').hidden = showNext; // Next level takes its slot
+    $('#w-replay').hidden = g.mode === 'levels'; // replays are a free-play feature
     $('#w-again').textContent = g.mode === 'levels' ? 'New game' : 'New board';
     $('#w-locked').hidden = true;
     w.nextLevel = passed ? g.level + 1 : 1;
@@ -633,14 +651,12 @@ export function initWordMode(ctx) {
     const bonus = coverageBonus(st.locked.length);
     const turnBonus = fullCoverTurnBonus(st);
     const penalty = shortfallPenalty(st.locked.length);
-    const raw = projectedScore(st);
     const total = finalScore(st);
     const parts = [`<b>${st.words.length} word${st.words.length === 1 ? '' : 's'}</b> ${st.score}`];
     if (bonus) parts.push(`full board <b>+${bonus}</b>`);
     if (turnBonus) parts.push(`${WORD_TURNS - st.turns} turns left <b>+${turnBonus}</b>`);
     if (penalty) parts.push(`${COVERAGE_TARGET - st.locked.length} tile${COVERAGE_TARGET - st.locked.length === 1 ? '' : 's'} short of ${COVERAGE_TARGET} <b>−${penalty}</b>`);
     let html = parts.join(' · ') + ` = <b>${total}</b>`;
-    if (raw < 0) html += ` (${raw}, floored at 0)`;
     if (w.game.mode === 'levels' && w.game.goal !== null) html += `<br><span style="opacity:.75">Goal ${w.game.goal}: ${total >= w.game.goal ? 'reached' : `${w.game.goal - total} to go`}</span>`;
     if (st.words.length) html += `<br><span style="opacity:.75">${st.words.map((x) => `${x.word} ${x.score}`).join(', ')}</span>`;
     showPop(html);
@@ -666,7 +682,11 @@ export function initWordMode(ctx) {
     popTimer = setTimeout(() => (pop.hidden = true), 4000);
   }
   $('#w-words-pop').addEventListener('click', () => ($('#w-words-pop').hidden = true));
-  $('#w-goalbar').addEventListener('click', showScorePop);
+  $('#w-goalbar').addEventListener('click', (e) => {
+    if (e.target.closest('#w-advance')) return;
+    showScorePop();
+  });
+  $('#w-advance').addEventListener('click', advanceEarly);
   $('#w-score').parentElement.addEventListener('click', showScorePop);
 
   async function copyShare() {
