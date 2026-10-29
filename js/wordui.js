@@ -187,7 +187,8 @@ export function initWordMode(ctx) {
   function renderHud() {
     const st = w.game.state;
     const done = st.turns >= WORD_TURNS;
-    $('#w-turn').textContent = `${st.turns} / ${WORD_TURNS}${w.game.replay ? ' ↻' : ''}`;
+    // the turn you are on (1-based); shows 20 / 20 once the last turn is spent
+    $('#w-turn').textContent = `${Math.min(st.turns + 1, WORD_TURNS)} / ${WORD_TURNS}${w.game.replay ? ' ↻' : ''}`;
     const live = finalScore(st); // the score if the board ended now, floored at 0 like the final score
     $('#w-score').textContent = String(live);
     $('#w-score').classList.toggle('negative', false);
