@@ -191,7 +191,7 @@ export function initWordMode(ctx) {
     const live = finalScore(st); // the score if the board ended now, floored at 0 like the final score
     $('#w-score').textContent = String(live);
     $('#w-score').classList.toggle('negative', false);
-    $('#w-finish').hidden = w.over || !done; // a board cannot be ended early
+    $('#w-finish').hidden = w.over || !done || isLevels(); // free play only; level boards end by themselves
     const undo = $('#w-undo');
     undo.hidden = w.over || isLevels(); // no undo in a level run
     undo.disabled = !w.game.prev || w.game.undoUsed;
@@ -304,10 +304,17 @@ export function initWordMode(ctx) {
       bar.classList.add('celebrate');
       setTimeout(() => bar.classList.remove('celebrate'), 800);
       play('win');
-      ctx.showToast(`Goal reached! Move on with Next level, or keep playing for a higher score.`, 3200);
+      ctx.showToast(`Level ${g.level} passed! Press Next level.`, 3000);
     }
     bar.classList.toggle('reached', reached);
-    $('#w-advance').hidden = !(reached && !w.over && !g.replay);
+    $('#w-advance').hidden = !(reached && !w.over);
+    if (reached && !w.over) {
+      // play stops here: clear any selection and grey out the actions
+      if (w.mode !== null || w.selected !== null || w.pending) setMode(null);
+      hideNudgePop();
+    }
+    for (const b of document.querySelectorAll('#w-modes .mode')) b.disabled = reached && !w.over;
+    boardEl.classList.toggle('frozen', reached && !w.over);
     bar.setAttribute('aria-label', `Level ${g.level}: score ${score} of goal ${g.goal}${reached ? ', goal reached' : ''}`);
   }
 
@@ -337,13 +344,23 @@ export function initWordMode(ctx) {
     renderBag();
   }
 
+  /** In a level run, play stops the moment the goal is reached; Next level is the only way on. */
+  function goalReached() {
+    const g = w.game;
+    return !!g && g.mode === 'levels' && g.goal !== null && finalScore(g.state) >= g.goal;
+  }
+
   function canAct() {
-    return w.game && !w.over && !w.animating && w.game.state.turns < WORD_TURNS;
+    return w.game && !w.over && !w.animating && !goalReached() && w.game.state.turns < WORD_TURNS;
   }
 
   function onTileTap(cell) {
     if (!w.game || w.over || w.animating) return;
     const st = w.game.state;
+    if (goalReached()) {
+      ctx.showToast('Goal reached! Press Next level to carry on.', 2000);
+      return;
+    }
     if (w.mode === null) {
       ctx.showToast('Pick an action first: Slide, Swap, Nudge, Draw or Lock.', 2000);
       return;
@@ -404,10 +421,6 @@ export function initWordMode(ctx) {
       return;
     }
     if (w.mode === 'draw') {
-      if (st.locked.includes(cell)) {
-        ctx.showToast('That tile is locked.');
-        return;
-      }
       w.selected = cell;
       renderBoard();
       $('#w-bag').hidden = true; // the confirmation takes the bag's place
@@ -470,9 +483,11 @@ export function initWordMode(ctx) {
     w.animating = false;
     renderAll();
     if (action.type === 'draw' && next.lastDraw) ctx.showToast(`Drew ${next.lastDraw.drawn}; the ${next.lastDraw.tossed === WILD ? 'wild' : next.lastDraw.tossed} went into the bag.`);
+    if (goalReached()) return; // the level bar has taken over
     if (next.turns >= WORD_TURNS) {
       setMode(null);
-      ctx.showToast('No turns left. Press Score to finish (or Undo the last move).', 3500);
+      if (isLevels()) finish(true); // run over: below the goal with no turns left
+      else ctx.showToast('No turns left. Press Score to finish (or Undo the last move).', 3500);
     }
   }
 
@@ -496,6 +511,7 @@ export function initWordMode(ctx) {
     play('lock');
     cand.cells.forEach((c, i) => setTimeout(() => tileEl(c).classList.add('lock-pop'), i * 70));
     ctx.showToast(`${cand.word} locked for ${cand.score}.`);
+    if (goalReached()) return; // level passed: the bar shows Next level
     if (isBoardFull(next)) {
       // the whole board is locked: nothing else can score, so end the round now
       const bonus = fullCoverTurnBonus(next);
@@ -509,7 +525,8 @@ export function initWordMode(ctx) {
     }
     if (next.turns >= WORD_TURNS) {
       setMode(null);
-      ctx.showToast('No turns left. Press Score to finish (or Undo the last move).', 3500);
+      if (isLevels()) finish(true);
+      else ctx.showToast('No turns left. Press Score to finish (or Undo the last move).', 3500);
     }
   }
 
@@ -618,8 +635,8 @@ export function initWordMode(ctx) {
     let title = g.replay ? 'Replay over' : 'Board scored';
     let line;
     if (g.mode === 'levels') {
-      title = passed ? `Level ${g.level} passed!` : `Level ${g.level} failed`;
-      line = passed ? `Goal ${g.goal} reached.` : `Goal ${g.goal}: ${g.goal - total} short.`;
+      title = passed ? `Level ${g.level} passed!` : `Run over at level ${g.level}`;
+      line = passed ? `Goal ${g.goal} reached.` : `${total} of the ${g.goal} needed. ${g.level > 1 ? `You passed ${g.level - 1} level${g.level - 1 === 1 ? '' : 's'}.` : ''}`;
     } else if (g.replay) {
       line = beatBoard ? `Beat your previous best on this board (${previousOnBoard})! Not counted in stats.` : `Best on this board stays ${previousOnBoard}. Not counted in stats.`;
     } else {
@@ -627,6 +644,9 @@ export function initWordMode(ctx) {
     }
     if (g.mode === 'levels' && g.replay) line += ' Replay: not counted.';
     if (silent) return;
+    const levelsFail = g.mode === 'levels';
+    $('#w-tally').hidden = levelsFail; // no end-of-board summary in a level run
+    $('#w-share').hidden = levelsFail;
     play(g.mode === 'levels' ? (passed ? 'fanfare' : 'fail') : st.locked.length === 25 ? 'fanfare' : 'lock');
     $('#w-result-title').textContent = title;
     $('#w-result-best').textContent = line;

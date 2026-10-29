@@ -668,3 +668,7 @@ button { font: inherit; color: inherit; }
 .topcard .goalbar { padding-top: 0; padding-bottom: 0; }
 .btn-advance { min-height: 44px; }
 @media (max-height: 700px) { .btn-advance { min-height: 44px; } .topcard .goalbar { min-height: 44px; } }
+
+.mode:disabled { opacity: 0.45; cursor: default; }
+.board.frozen .tile { cursor: default; }
+.result .tally[hidden] { display: none; }

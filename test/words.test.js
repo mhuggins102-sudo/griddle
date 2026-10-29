@@ -86,7 +86,11 @@ test('locking: tiles stop moving, same cells cannot be locked twice, nudge turns
   const col = applyWordAction(s, { type: 'slide', axis: 'col', index: 1, dir: 1 });
   assert.equal(col.board[1], 'A', 'locked A stays');
   assert.throws(() => applyWordAction(s, { type: 'swap', r: 0, c: 2, r2: 0, c2: 3 }), /Locked/);
-  assert.throws(() => applyWordAction(s, { type: 'draw', r: 0, c: 0 }), /Locked/);
+  // a locked tile can be drawn over: it stays locked, only its letter changes
+  const drawn = applyWordAction(s, { type: 'draw', r: 0, c: 0 });
+  assert.ok(drawn.locked.includes(0));
+  assert.ok(drawn.board[0] === 'A' || drawn.board[0] === 'B', 'drawn from the bag');
+  assert.equal(drawn.words.length, 1, 'the locked word stays banked');
   const ok = applyWordAction(s, { type: 'slide', axis: 'row', index: 1, dir: 1 });
   assert.equal(ok.turns, 2);
   // the same word cannot be locked again

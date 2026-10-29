@@ -97,7 +97,7 @@ export function isLocked(state, cell) {
 }
 
 /**
- * Throws when the action is illegal: moving a locked tile, drawing onto one, or running out of turns.
+ * Throws when the action is illegal: moving a locked tile (slide, swap) or running out of turns.
  * Nudging a locked tile is allowed and changes its letter normally; { type: 'wild' } turns a locked
  * tile wild for WILD_COST turns.
  */
@@ -124,8 +124,7 @@ export function validateWordAction(state, action) {
       return true;
     case 'draw':
       if (!inRange(action.r) || !inRange(action.c)) throw new Error('Draw cell out of range');
-      if (isLocked(state, idx(action.r, action.c))) throw new Error('Locked tiles cannot be replaced');
-      return true;
+      return true; // locked tiles may be drawn over: they stay locked, only the letter changes
     case 'wild':
       if (!inRange(action.r) || !inRange(action.c)) throw new Error('Wild cell out of range');
       if (!isLocked(state, idx(action.r, action.c))) throw new Error('Only a locked tile can be made wild');
