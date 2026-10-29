@@ -120,6 +120,10 @@ const CUES = {
   tap: (ac) => {
     tone(ac, { freq: 1200, type: 'sine', dur: 0.03, gain: 0.05 });
   },
+  // not a word / not allowed: a short low buzz
+  buzz: (ac) => {
+    tone(ac, { freq: 160, to: 120, type: 'square', dur: 0.12, gain: 0.06 });
+  },
 };
 
 /** Play a named cue; silently does nothing when sound is off or unavailable. */

@@ -141,6 +141,11 @@ export function nudgeLetter(ch, delta) {
   return LETTERS[(i + delta + 26) % 26];
 }
 
+/** The cells of a row or column that are free to slide (not locked), in reading order. */
+export function lineCellsFree(state, axis, index) {
+  return lineCells(axis, index).filter((c) => !isLocked(state, c));
+}
+
 /** Apply one action; returns the new state (input untouched). */
 export function applyWordAction(state, action) {
   validateWordAction(state, action);

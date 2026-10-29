@@ -3,37 +3,47 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#1f2430">
-  <meta name="description" content="Grid Bid: a 5x5 tile puzzle. Study the board, bid how many turns you need, then make it so.">
+  <meta name="theme-color" content="#f4efe6" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#171a21" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="Grid Bid: a 5x5 word puzzle. Slide, swap and nudge 25 letters into words, lock them in, and beat the goal in 20 turns.">
   <title>Grid Bid</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23f3e9d2'/%3E%3Ccircle cx='18' cy='18' r='7' fill='%231f2430'/%3E%3Ccircle cx='46' cy='18' r='7' fill='%231f2430'/%3E%3Ccircle cx='32' cy='32' r='7' fill='%231f2430'/%3E%3Ccircle cx='18' cy='46' r='7' fill='%231f2430'/%3E%3Ccircle cx='46' cy='46' r='7' fill='%231f2430'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fbf6ea'/%3E%3Crect x='8' y='8' width='22' height='22' rx='5' fill='%23cfe6d9' stroke='%236fae8e' stroke-width='2'/%3E%3Crect x='34' y='8' width='22' height='22' rx='5' fill='%23fff' stroke='%23d8ccb4' stroke-width='2'/%3E%3Crect x='8' y='34' width='22' height='22' rx='5' fill='%23fff' stroke='%23d8ccb4' stroke-width='2'/%3E%3Crect x='34' y='34' width='22' height='22' rx='5' fill='%23cfe6d9' stroke='%236fae8e' stroke-width='2'/%3E%3Ctext x='19' y='25' font-family='Helvetica,Arial,sans-serif' font-weight='800' font-size='17' text-anchor='middle' fill='%231f2430'%3EG%3C/text%3E%3Ctext x='45' y='25' font-family='Helvetica,Arial,sans-serif' font-weight='800' font-size='17' text-anchor='middle' fill='%231f2430'%3ER%3C/text%3E%3Ctext x='19' y='51' font-family='Helvetica,Arial,sans-serif' font-weight='800' font-size='17' text-anchor='middle' fill='%231f2430'%3EI%3C/text%3E%3Ctext x='45' y='51' font-family='Helvetica,Arial,sans-serif' font-weight='800' font-size='17' text-anchor='middle' fill='%231f2430'%3ED%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <div id="app" class="app">
     <!-- Home -->
-    <section id="screen-home" class="screen" hidden>
+    <section id="screen-home" class="screen home-screen" hidden>
       <div class="home">
-        <h1 class="title">Grid Bid</h1>
-        <p class="tagline" id="tagline">Twenty turns to slide, swap, nudge and draw a 5x5 grid of letters into words. Lock them in to score, beat the goal, climb the levels.</p>
+        <h1 class="logo" aria-label="Grid Bid">
+          <span class="logo-row" aria-hidden="true">
+            <span class="logo-tile">G<small>2</small></span><span class="logo-tile">R<small>1</small></span><span class="logo-tile">I<small>1</small></span><span class="logo-tile">D<small>2</small></span>
+          </span>
+          <span class="logo-row" aria-hidden="true">
+            <span class="logo-tile locked">B<small>3</small></span><span class="logo-tile locked">I<small>1</small></span><span class="logo-tile locked">D<small>2</small></span>
+          </span>
+        </h1>
+        <p class="tagline" id="tagline">Slide, swap and nudge 25 letters into words. Lock them in before your 20 turns run out.</p>
         <div class="home-buttons">
-          <button id="btn-word-continue" class="btn btn-primary" hidden>Continue game</button>
-          <button id="btn-word" class="btn btn-primary">New game</button>
-          <button id="btn-free" class="btn">Free play</button>
-          <button id="btn-help-home" class="btn">How to play</button>
-          <button id="btn-stats" class="btn">Stats</button>
+          <button id="btn-word-continue" class="btn btn-primary btn-big" hidden><span class="btn-main">Continue</span><span class="btn-sub" id="continue-sub"></span></button>
+          <button id="btn-word" class="btn btn-primary btn-big"><span class="btn-main">New game</span><span class="btn-sub">Levels with a goal to beat</span></button>
+          <button id="btn-free" class="btn btn-big"><span class="btn-main">Free play</span><span class="btn-sub">One board, no goal, one undo</span></button>
+          <div class="btn-row">
+            <button id="btn-help-home" class="btn">How to play</button>
+            <button id="btn-stats" class="btn">Stats</button>
+          </div>
           <div id="number-game-buttons" class="home-buttons" hidden>
             <button id="btn-continue" class="btn btn-primary" hidden>Continue number game</button>
             <button id="btn-new-game" class="btn">Number game</button>
           </div>
         </div>
-        <div class="home-stats" id="home-stats"></div>
-        <div class="settings">
-          <label class="toggle"><input type="checkbox" id="opt-sound" checked> <span>Sound effects</span></label>
-          <label class="toggle"><input type="checkbox" id="opt-show-words"> <span>List the words currently on the board (easier)</span></label>
-          <label class="toggle" id="opt-numerals-row" hidden><input type="checkbox" id="opt-numerals"> <span>Number game: numerals instead of dice pips</span></label>
+        <div class="home-stats" id="home-stats" hidden></div>
+        <div class="settings card">
+          <label class="toggle"><span>Sound effects</span><input type="checkbox" class="switch" role="switch" id="opt-sound" checked></label>
+          <label class="toggle"><span>Show the words on the board <small>easier</small></span><input type="checkbox" class="switch" role="switch" id="opt-show-words"></label>
+          <label class="toggle" id="opt-numerals-row" hidden><span>Number game: numerals instead of dice pips</span><input type="checkbox" class="switch" role="switch" id="opt-numerals"></label>
         </div>
-        <p class="footnote">No account, no tracking; progress stays on this device.</p>
+        <p class="footnote">No account, no tracking. Progress stays on this device.</p>
       </div>
     </section>
 
@@ -134,13 +144,22 @@
     <section id="screen-word" class="screen word-screen" hidden>
       <div class="topcard">
         <header class="hud word-hud">
-          <div class="hud-item"><span class="hud-label">Turn</span><span id="w-turn" class="hud-value">0 / 20</span></div>
-          <div class="hud-item"><span class="hud-label">Score</span><span id="w-score" class="hud-value">0</span></div>
-          <button id="w-finish" class="btn btn-finish btn-primary" hidden>Score</button>
-          <button id="w-undo" class="btn btn-icon" aria-label="Undo last move (once per game)">↶</button>
-          <button id="w-help" class="btn btn-icon" aria-label="Help">?</button>
-          <button id="w-quit" class="btn btn-icon" aria-label="Home (the game is saved)">⌂</button>
+          <div class="hud-item"><span class="hud-label">Turn</span><span id="w-turn" class="hud-value">1 / 20</span></div>
+          <button class="hud-item hud-button" id="w-score-item" aria-label="Score; tap for the breakdown"><span class="hud-label">Score</span><span id="w-score" class="hud-value">0</span></button>
+          <div class="hud-tools">
+            <button id="w-undo" class="btn btn-icon" aria-label="Undo the last move (once per game)">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 4 8l3.5 3.5M4.5 8H12a4 4 0 0 1 0 8H9"/></svg>
+            </button>
+            <button id="w-bag-btn" class="btn btn-icon" aria-label="Show the letters left in the bag" aria-pressed="false">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6.5 7.5h7l2 9.5h-11zM8 7.5V6a2 2 0 0 1 4 0v1.5"/></svg>
+            </button>
+            <button id="w-help" class="btn btn-icon" aria-label="Help">?</button>
+            <button id="w-quit" class="btn btn-icon" aria-label="Home (the game is saved)">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 9.5 10 4l6.5 5.5M5.5 8.5V16h3v-4h3v4h3V8.5"/></svg>
+            </button>
+          </div>
         </header>
+        <div class="turntrack" id="w-turntrack" aria-hidden="true"></div>
         <div id="w-goalbar" class="goalbar" role="button" tabindex="0" aria-label="Level progress; tap for the score breakdown" hidden>
           <div class="goalbar-fill" id="w-goalbar-fill"></div>
           <span class="goalbar-level" id="w-goalbar-level">Level 1</span>
@@ -150,39 +169,37 @@
         <div id="w-locked" class="locked-line" aria-label="Locked words"></div>
       </div>
 
+      <div class="board-wrap word-board-wrap">
+        <div id="wboard" class="board plain" role="grid" aria-label="Letter board"></div>
+        <div id="w-float" class="float-layer" aria-hidden="true"></div>
+        <div id="w-menu-backdrop" class="menu-backdrop" hidden></div>
+        <div id="w-tilemenu" class="tilemenu" role="menu" aria-label="Tile actions" hidden>
+          <button class="tm-btn" data-act="nudge-down" role="menuitem"><span class="tm-letter"><i class="tm-arrow left"></i><b id="tm-prev">A</b></span><span class="tm-sub">nudge</span></button>
+          <button class="tm-btn" data-act="nudge-up" role="menuitem"><span class="tm-letter"><b id="tm-next">C</b><i class="tm-arrow right"></i></span><span class="tm-sub">nudge</span></button>
+          <button class="tm-btn" data-act="draw" role="menuitem"><span class="tm-letter"><b class="tm-q">?</b></span><span class="tm-sub" id="tm-draw-sub">draw</span></button>
+          <button class="tm-btn wild" data-act="wild" role="menuitem" hidden><span class="tm-letter"><b>★</b></span><span class="tm-sub">wild · 2 turns</span></button>
+        </div>
+      </div>
+
+      <div id="w-strip" class="strip">
+        <div id="w-legend" class="legend" aria-label="Controls">
+          <span class="lg"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7h10m-3-3 3 3-3 3M17 13H7m3-3-3 3 3 3"/></svg><span>Drag<small>swap</small></span></span>
+          <span class="lg"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 10h11m-3.5-3.5L17 10l-3.5 3.5M2 7h2M2 13h2"/></svg><span>Flick<small>slide</small></span></span>
+          <span class="lg"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><circle cx="10" cy="10" r="2.2" fill="currentColor" stroke="none"/></svg><span>Hold<small>nudge · draw</small></span></span>
+          <span class="lg"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="4.5" cy="10" r="2.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r="2.2" fill="currentColor" stroke="none"/><path d="M7.5 10h5" stroke-dasharray="1.5 1.5"/></svg><span>Tap ends<small>lock word</small></span></span>
+        </div>
+        <div id="w-msg" class="strip-msg" hidden></div>
+        <div id="w-strip-action" class="strip-action" hidden>
+          <span id="w-strip-text"></span>
+          <button id="w-strip-primary" class="btn btn-primary btn-small">Lock</button>
+          <button id="w-strip-secondary" class="btn btn-small">Cancel</button>
+        </div>
+      </div>
+
+      <div id="w-bag" class="panel bag letters" aria-label="Letters left in the bag" hidden></div>
+
       <div id="w-found-wrap" class="panel words-panel" hidden>
         <div id="w-found" class="chips"></div>
-      </div>
-
-      <div class="board-wrap word-board-wrap">
-        <div id="wboard" class="board" role="grid" aria-label="Letter board"></div>
-        <div id="w-nudge-pop" class="nudge-pop" hidden>
-          <button class="btn nudge-btn" data-delta="-1" aria-label="Previous letter">−1</button>
-          <button class="btn nudge-btn" data-delta="1" aria-label="Next letter">+1</button>
-          <button class="btn nudge-btn wild-btn" id="w-wild-btn" aria-label="Make wild, costs two turns" hidden>★<small>2</small></button>
-        </div>
-      </div>
-
-      <div id="w-action-panel" class="panel word-actions">
-        <div id="w-modes" class="modes five" role="tablist">
-          <button class="mode" data-mode="slide" role="tab">Slide</button>
-          <button class="mode" data-mode="swap" role="tab">Swap</button>
-          <button class="mode" data-mode="nudge" role="tab">Nudge</button>
-          <button class="mode" data-mode="draw" role="tab">Draw</button>
-          <button class="mode" data-mode="lock" role="tab">Lock</button>
-        </div>
-        <div id="w-bag" class="bag letters" aria-label="Bag" hidden></div>
-        <div id="w-draw-confirm" class="confirm" hidden>
-          <span id="w-draw-text">Draw a random letter here?</span>
-          <button id="w-draw-cancel" class="btn">Cancel</button>
-          <button id="w-draw-ok" class="btn btn-primary">Draw</button>
-        </div>
-        <div id="w-lock-confirm" class="confirm" hidden>
-          <span id="w-lock-text"></span>
-          <button id="w-lock-cancel" class="btn">Cancel</button>
-          <button id="w-lock-ok" class="btn btn-primary">Lock it</button>
-        </div>
-        <div id="w-status" class="hint" hidden></div>
       </div>
 
       <div id="w-result" class="panel result compact" hidden>
@@ -191,7 +208,9 @@
             <h2 id="w-result-title">Game over</h2>
             <span id="w-result-best" class="breakdown"></span>
           </div>
-          <button id="w-share" class="btn btn-icon" aria-label="Copy result">⇪</button>
+          <button id="w-share" class="btn btn-icon" aria-label="Share result">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 12V3m-3.5 3.5L10 3l3.5 3.5M4 10v6h12v-6"/></svg>
+          </button>
         </div>
         <div class="tally" id="w-tally" aria-label="Score breakdown"></div>
         <div class="result-buttons three">
@@ -219,35 +238,36 @@
     <!-- Help sheet -->
     <div id="help" class="sheet" hidden>
       <div class="sheet-body">
-        <h2>How to play</h2>
-        <p>You get a 5x5 grid of letter tiles and <strong>20 turns</strong>. Rearrange the grid into words, lock the words in to bank their points, and lock as many tiles as you can before the turns run out. The score counts at the end of the game.</p>
+        <div class="sheet-head"><h2>How to play</h2><button id="btn-help-close" class="btn btn-icon" aria-label="Close">✕</button></div>
+        <p>You get a 5x5 grid of letter tiles and <strong>20 turns</strong>. Rearrange the grid into words, lock the words in to bank their points, and lock as many tiles as you can before the turns run out.</p>
+
+        <h3>Controls</h3>
+        <p>Everything happens on the board. Each of these costs <strong>one turn</strong>:</p>
+        <ul class="controls">
+          <li><strong>Swap</strong>: drag a tile onto one of its four neighbours and let go. Locked tiles cannot move.</li>
+          <li><strong>Slide</strong>: flick a row or column, or drag a tile a long way along it. The whole line moves one step and the tile pushed off the edge wraps round to the other end. Locked tiles stay put and the rest slide around them.</li>
+          <li><strong>Nudge</strong>: press and hold a tile, then pick the letter before or after it in the alphabet (A and Z wrap round, so any letter is at most 13 nudges away). Locked tiles can be nudged too.</li>
+          <li><strong>Draw</strong>: press and hold a tile, then choose <em>draw</em> to replace it with a random letter from the bag. The old letter goes into the bag afterwards, so it cannot come straight back. Draw is the only random action and cannot be undone. The bag button in the header shows what is left.</li>
+          <li><strong>Lock</strong>: tap the first letter of a word, then its last letter. The word locks at once and its points are banked.</li>
+          <li><strong>Wild</strong> (two turns): press and hold a <em>locked</em> tile and choose ★. A wild tile reads as any letter in any word but scores no points itself.</li>
+        </ul>
+        <p>In free play, <strong>Undo</strong> (↶) takes back your last move or lock, once per board. It cannot follow a Draw, since the draw was random. A board cannot be ended early. When the 20th turn is spent, press <strong>Score board</strong> to finish, or undo the last move first. Locking the 25th tile scores the board at once.</p>
+
         <h3>Levels and free play</h3>
-        <p><strong>New game</strong> starts at level 1. Before you play each board, a bot plays the same board behind the scenes and its score sets the <strong>goal</strong>, shown under the header once it is ready. The moment your score reaches the goal the level is passed: the bar lights up, play on that board stops, and a <strong>Next level</strong> button takes you to a fresh board. Use up the 20 turns (or lock the whole board) below the goal and the run ends. Level runs have no undo, no board replay and no end-of-board summary; tap the level bar at any time for the breakdown. The goal is a share of the bot's score that grows with the level: 35% at level 1, then 5 percentage points more per level, up to 100% at level 14, rounded up to the nearest 10. Harder boards therefore get lower goals. The bar under the header shows the level, the goal and how far your score has got. <strong>Free play</strong> is a single board with no goal.</p>
+        <p><strong>New game</strong> starts at level 1. Before you play each board, a bot plays the same board behind the scenes and its score sets the <strong>goal</strong>, shown under the header once it is ready. The moment your score reaches the goal the level is passed: the bar lights up, play on that board stops, and <strong>Next level</strong> takes you to a fresh board. Use up the 20 turns (or lock the whole board) below the goal and the run ends. Level runs have no undo and no board replay. The goal is a share of the bot's score that grows with the level: 35% at level 1, then 5 percentage points more per level, up to 100% at level 14, rounded up to the nearest 10. Harder boards therefore get lower goals. <strong>Free play</strong> is a single board with no goal.</p>
+        <p>The score in the header, and the level bar, always show the score as it stands <em>right now</em>, bonuses included. Tap either for the current breakdown.</p>
 
         <h3>The grid and the bag</h3>
-        <p>The 25 tiles are dealt from a bag of 98 Scrabble-style letters (no blanks). The other 73 stay in the bag; Draw mode shows how many of each letter remain. Every tile shows its point value in the corner.</p>
-
-        <h3>Turns</h3>
-        <p>Pick a mode, then tap the board. Each of these costs <strong>one turn</strong>:</p>
-        <ul>
-          <li><strong>Slide</strong>: tap an arrow to move a row or column one step. The tile pushed off the edge wraps around to the other end.</li>
-          <li><strong>Swap</strong>: tap a tile, then a neighbouring tile (up, down, left or right) to exchange them.</li>
-          <li><strong>Nudge</strong>: tap a tile, then −1 or +1 to step it through the alphabet. A wraps to Z and Z wraps to A, so any letter is at most 13 nudges from any other.</li>
-          <li><strong>Draw</strong>: tap a tile to replace it with a random letter from the bag. The tile you toss goes into the bag afterwards, so it cannot come straight back on the same turn. Draw is the only random action and cannot be undone.</li>
-          <li><strong>Lock</strong>: tap the first letter of a word, then its last letter, and confirm. See below.</li>
-        </ul>
-        <p>Choose an action first; nothing is selected when a board starts, and tapping a selected action again deselects it. In free play, <strong>Undo</strong> (↶) takes back your last move or lock, once per board. It is meant for misclicks and cannot follow a Draw, since the draw was random. A board cannot be ended early. In free play, when the 20th turn is spent a <strong>Score</strong> button appears: press it to score the board, or undo the last move first. Locking the 25th tile scores the board at once.</p>
-        <p>The score in the header, and the level bar, always show the score as it stands <em>right now</em>, bonuses included. Reaching the goal in the bar means you have passed the level. Tap the level bar (or the score in the header) at any time for a popup with the current breakdown: word points, bonuses, penalty and how far the goal is. At the end, tap the word total on the result panel to see the words you locked.</p>
+        <p>The 25 tiles are dealt from a bag of 98 Scrabble-style letters (no blanks). The other 73 stay in the bag. Every tile shows its point value in the corner.</p>
 
         <h3>Words and locking</h3>
         <ul>
           <li>A word is 3 to 5 letters in a straight line: a row, a column, or a diagonal. It may be read in either direction, so tap the letters in the order you read them (last-to-first works for a word spelled backwards). A word may sit inside a longer run of letters.</li>
-          <li>Words are checked against a list of about 13,500 common English words. No proper nouns or abbreviations.</li>
+          <li>Words are checked against a list of about 13,500 English words. No proper nouns or abbreviations.</li>
           <li>Locking banks the word's points and marks its tiles green. Locked tiles never move again: a line still slides, but its locked tiles stay put and the other tiles slide around them, and they cannot be swapped. They can still be changed in place: nudged, drawn over, or made wild.</li>
           <li>You may lock a new word that reuses locked tiles, as long as it adds at least one tile that was not locked yet. Crossing words is the main way to lock the whole board.</li>
           <li>You cannot lock the same word twice, and you cannot lock both a word and its plural (DOOR and DOORS, BOX and BOXES, CITY and CITIES): pick one.</li>
-          <li>A locked tile can still be nudged to a neighbouring letter for one turn. That may break the word it was locked for; the points already banked stay banked.</li>
-          <li>For <strong>two turns</strong>, a locked tile can be made <strong>wild</strong> (★): it reads as any letter in any word, but scores no points itself. Locking a word through a wild tile is allowed.</li>
+          <li>Nudging a locked tile may break the word it was locked for; the points already banked stay banked.</li>
         </ul>
 
         <h3>Scoring</h3>
@@ -262,11 +282,11 @@
           </tbody>
         </table>
         <p>Since every lock costs a turn, 4 to 6 words that cross each other usually beat many short ones, and clearing the whole board early is worth a lot.</p>
-        <p>After a game you can <strong>replay the same board</strong> (same letters, same draws). Replays do not count towards your stats or personal best, but the game remembers your best score on that board and tells you when you beat it.</p>
+        <p>After a free-play board you can <strong>replay the same board</strong> (same letters, same draws). Replays do not count towards your stats or personal best, but the game remembers your best score on that board and tells you when you beat it.</p>
 
         <h3>Options</h3>
-        <p>The home screen can list the words currently on the board, with their points, as a hint; tap a listed word to prepare it for locking. It is off by default. Your best score and recent games are kept on this device.</p>
-        <button id="btn-help-close" class="btn btn-primary btn-wide">Close</button>
+        <p>The home screen can list the words currently on the board, with their points, as a hint; tap a listed word to lock it. It is off by default. Your best score and recent games are kept on this device.</p>
+        <button id="btn-help-done" class="btn btn-primary btn-wide">Close</button>
       </div>
     </div>
 
