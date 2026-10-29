@@ -16,8 +16,9 @@ export function goalPercent(level) {
   return Math.min(100, GOAL_START_PERCENT + GOAL_STEP_PERCENT * (level - 1));
 }
 
+/** The level goal: the percentage of the bot's score, rounded up to the nearest 10, at least 10. */
 export function goalFor(level, botScore) {
-  return Math.max(10, Math.floor((botScore * goalPercent(level)) / 100));
+  return Math.max(10, Math.ceil((botScore * goalPercent(level)) / 100 / 10) * 10);
 }
 
 function legal(state, move) {

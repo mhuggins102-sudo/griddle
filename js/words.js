@@ -24,9 +24,20 @@ export function shortfallPenalty(lockedCount) {
   return lockedCount < COVERAGE_TARGET ? (COVERAGE_TARGET - lockedCount) * SHORTFALL_PENALTY : 0;
 }
 
-/** Final score: banked words plus the coverage bonus minus the shortfall penalty, never below 0. */
+/** Locking all 25 tiles with turns to spare earns this much per unused turn. */
+export const FULL_COVER_TURN_BONUS = 10;
+
+export function fullCoverTurnBonus(state) {
+  return state.locked.length === CELLS ? Math.max(0, WORD_TURNS - state.turns) * FULL_COVER_TURN_BONUS : 0;
+}
+
+export function isBoardFull(state) {
+  return state.locked.length === CELLS;
+}
+
+/** Final score: banked words plus the coverage and unused-turn bonuses minus the shortfall penalty, never below 0. */
 export function finalScore(state) {
-  return Math.max(0, state.score + coverageBonus(state.locked.length) - shortfallPenalty(state.locked.length));
+  return Math.max(0, state.score + coverageBonus(state.locked.length) + fullCoverTurnBonus(state) - shortfallPenalty(state.locked.length));
 }
 
 /** Turns an action will consume. */

@@ -11,8 +11,9 @@ test('goal schedule: 35% at level 1, +5 per level, capped at 100%', () => {
   assert.equal(goalPercent(2), 40);
   assert.equal(goalPercent(14), 100);
   assert.equal(goalPercent(30), 100);
-  assert.equal(goalFor(1, 150), 52);
+  assert.equal(goalFor(1, 150), 60, '52.5 rounds up to 60');
   assert.equal(goalFor(14, 150), 150);
+  assert.equal(goalFor(2, 100), 40, 'exact multiples stay');
   assert.equal(goalFor(1, 0), 10, 'floor of 10');
 });
 

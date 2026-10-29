@@ -6,6 +6,7 @@ import {
 } from './engine.js';
 import { ANIM_MS, wait, neighbours, buildBoardSkeleton, tileIn, animateAction, clearTileEffects } from './board.js';
 import { initWordMode } from './wordui.js';
+import { setSoundEnabled } from './sound.js';
 import {
   loadStore, saveStore, newGame, currentRound, lockBid, playAction, giveUp, runningTotal, isGameOver, advanceRound,
   summarizeGame, shareLine, recordGame, findPuzzle, defaultStore,
@@ -37,6 +38,13 @@ async function boot() {
   wireEvents();
   $('#opt-numerals').checked = !!ui.store.settings.numerals;
   $('#opt-show-words').checked = !!ui.store.settings.showWords;
+  $('#opt-sound').checked = ui.store.settings.sound !== false;
+  setSoundEnabled(ui.store.settings.sound !== false);
+  $('#opt-sound').addEventListener('change', (e) => {
+    ui.store.settings.sound = e.target.checked;
+    setSoundEnabled(e.target.checked);
+    saveStore(ui.store);
+  });
   $('#opt-show-words').addEventListener('change', (e) => {
     ui.store.settings.showWords = e.target.checked;
     saveStore(ui.store);
@@ -517,6 +525,8 @@ function resetData() {
   saveStore(ui.store);
   $('#opt-numerals').checked = false;
   $('#opt-show-words').checked = false;
+  $('#opt-sound').checked = true;
+  setSoundEnabled(true);
   showHome();
 }
 

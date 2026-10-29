@@ -100,28 +100,25 @@ export function animateAction(boardEl, action, before, after, applyFace) {
     const tb = tile(b);
     const dx = (colOf(b) - colOf(a)) * step;
     const dy = (rowOf(b) - rowOf(a)) * step;
-    ta.classList.add('moving');
+    ta.classList.add('moving', 'swap-arc');
     tb.classList.add('moving');
     ta.style.transform = `translate(${dx}px, ${dy}px)`;
     tb.style.transform = `translate(${-dx}px, ${-dy}px)`;
-    return wait(ANIM_MS + 30);
+    return wait(ANIM_MS + 50);
   }
   if (action.type === 'nudge') {
     const cell = idx(action.r, action.c);
     const t = tile(cell);
-    t.classList.add('bump');
-    setTimeout(() => applyFace(t, after[cell]), ANIM_MS / 2);
-    return wait(ANIM_MS + 30);
+    t.classList.add(action.delta === -1 ? 'flip-down' : 'flip');
+    setTimeout(() => applyFace(t, after[cell]), ANIM_MS / 2 + 10);
+    return wait(ANIM_MS + 50);
   }
   if (action.type === 'draw') {
     const cell = idx(action.r, action.c);
     const t = tile(cell);
-    t.classList.add('fade');
-    return wait(ANIM_MS / 2).then(() => {
-      applyFace(t, after[cell]);
-      t.classList.remove('fade');
-      return wait(ANIM_MS / 2 + 30);
-    });
+    t.classList.add('spin');
+    setTimeout(() => applyFace(t, after[cell]), 170);
+    return wait(380);
   }
   return Promise.resolve();
 }
@@ -146,5 +143,5 @@ export function animateMoves(boardEl, moves) {
 export function clearTileEffects(tileEl) {
   tileEl.style.transform = '';
   tileEl.style.opacity = '';
-  tileEl.classList.remove('moving', 'fade', 'bump');
+  tileEl.classList.remove('moving', 'fade', 'bump', 'swap-arc', 'flip', 'flip-down', 'spin', 'lock-pop', 'wild-pop');
 }

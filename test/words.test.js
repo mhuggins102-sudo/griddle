@@ -5,6 +5,7 @@ import { CELLS, idx } from '../js/engine.js';
 import {
   dealLetters, createWordState, applyWordAction, findWords, lockWord, scoreWord, nudgeLetter, wordLines, parseDictionary,
   bagTotal, LETTER_COUNTS, WILD, wordShareLine, slideMoves, isPluralPair, findWordAt, coverageBonus, finalScore, shortfallPenalty, WORD_TURNS,
+  fullCoverTurnBonus, isBoardFull,
 } from '../js/words.js';
 
 const dict = parseDictionary(readFileSync(new URL('../data/words.txt', import.meta.url), 'utf8'));
@@ -210,7 +211,16 @@ test('completion adjustment: +25 for 25 tiles, +10 for 24, 0 for 22-23, -10 per 
   s.locked = new Array(24).fill(0).map((_, i) => i);
   assert.equal(finalScore(s), 40);
   s.locked = new Array(25).fill(0).map((_, i) => i);
+  s.turns = WORD_TURNS;
   assert.equal(finalScore(s), 55);
+  assert.ok(isBoardFull(s));
+  // all 25 locked with turns to spare: +10 per unused turn
+  s.turns = 14;
+  assert.equal(fullCoverTurnBonus(s), 60);
+  assert.equal(finalScore(s), 115);
+  s.locked = new Array(24).fill(0).map((_, i) => i);
+  assert.equal(fullCoverTurnBonus(s), 0, 'only a full board earns the turn bonus');
+  s.turns = WORD_TURNS;
   s.locked = new Array(17).fill(0).map((_, i) => i);
   assert.equal(finalScore(s), 0, 'floored at zero');
   s.score = 60;

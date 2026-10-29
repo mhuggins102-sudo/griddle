@@ -29,6 +29,7 @@
         </div>
         <div class="home-stats" id="home-stats"></div>
         <div class="settings">
+          <label class="toggle"><input type="checkbox" id="opt-sound" checked> <span>Sound effects</span></label>
           <label class="toggle"><input type="checkbox" id="opt-show-words"> <span>List the words currently on the board (easier)</span></label>
           <label class="toggle" id="opt-numerals-row" hidden><input type="checkbox" id="opt-numerals"> <span>Number game: numerals instead of dice pips</span></label>
         </div>
@@ -140,6 +141,11 @@
         <button id="w-quit" class="btn btn-icon" aria-label="Home (the game is saved)">⌂</button>
       </header>
 
+      <div id="w-goalbar" class="goalbar" hidden>
+        <div class="goalbar-fill" id="w-goalbar-fill"></div>
+        <span class="goalbar-level" id="w-goalbar-level">Level 1</span>
+        <span class="goalbar-text" id="w-goalbar-text">Goal …</span>
+      </div>
       <div id="w-locked" class="locked-line" aria-label="Locked words"></div>
 
       <div id="w-found-wrap" class="panel words-panel" hidden>
@@ -181,18 +187,18 @@
         <h2>Game over</h2>
         <div class="result-grid two">
           <div><span class="hud-label">Score</span><span id="w-result-score" class="hud-value"></span></div>
-          <div><span class="hud-label">Best</span><span id="w-result-best" class="breakdown"></span></div>
+          <div><span class="hud-label" id="w-result-best-label">Best</span><span id="w-result-best" class="breakdown"></span></div>
         </div>
         <p id="w-result-words" class="breakdown"></p>
         <div class="share">
           <code id="w-share-line"></code>
           <button id="w-share" class="btn">Copy</button>
         </div>
-        <button id="w-next" class="btn btn-primary btn-wide" hidden>Next level</button>
         <div class="result-buttons three">
           <button id="w-home" class="btn">Home</button>
           <button id="w-replay" class="btn">Replay board</button>
           <button id="w-again" class="btn">New board</button>
+          <button id="w-next" class="btn btn-primary" hidden>Next level</button>
         </div>
       </div>
     </section>
@@ -215,7 +221,7 @@
         <h2>How to play</h2>
         <p>You get a 5x5 grid of letter tiles and <strong>20 turns</strong>. Rearrange the grid into words, lock the words in to bank their points, and lock as many tiles as you can before the turns run out. The score counts at the end of the game.</p>
         <h3>Levels and free play</h3>
-        <p><strong>New game</strong> starts at level 1. Before you play each board, a bot plays the same board behind the scenes and its score sets the <strong>goal</strong>, shown under the header once it is ready. Reach the goal to pass the level and get a fresh board; miss it and the run ends. The goal is a share of the bot's score that grows with the level: 35% at level 1, then 5 percentage points more per level, up to 100% at level 14. Harder boards therefore get lower goals. <strong>Free play</strong> is a single board with no goal.</p>
+        <p><strong>New game</strong> starts at level 1. Before you play each board, a bot plays the same board behind the scenes and its score sets the <strong>goal</strong>, shown under the header once it is ready. Reach the goal to pass the level and get a fresh board; miss it and the run ends. The goal is a share of the bot's score that grows with the level: 35% at level 1, then 5 percentage points more per level, up to 100% at level 14, rounded up to the nearest 10. Harder boards therefore get lower goals. The bar under the header shows the level, the goal and how far your score has got. <strong>Free play</strong> is a single board with no goal.</p>
 
         <h3>The grid and the bag</h3>
         <p>The 25 tiles are dealt from a bag of 98 Scrabble-style letters (no blanks). The other 73 stay in the bag; Draw mode shows how many of each letter remain. Every tile shows its point value in the corner.</p>
@@ -229,7 +235,7 @@
           <li><strong>Draw</strong>: tap a tile to replace it with a random letter from the bag. The tile you toss goes into the bag afterwards, so it cannot come straight back on the same turn. Draw is the only random action and cannot be undone.</li>
           <li><strong>Lock</strong>: tap the first letter of a word, then its last letter, and confirm. See below.</li>
         </ul>
-        <p>Choose an action first; nothing is selected when a board starts, and tapping a selected action again deselects it. <strong>Undo</strong> (↶) takes back your last move or lock, once per game. It is meant for misclicks and cannot follow a Draw, since the draw was random. When the 20th turn is spent, press <strong>End</strong> to score the board (you can still undo the last move first); End also ends a board early.</p>
+        <p>Choose an action first; nothing is selected when a board starts, and tapping a selected action again deselects it. <strong>Undo</strong> (↶) takes back your last move or lock, once per game. It is meant for misclicks and cannot follow a Draw, since the draw was random. When the 20th turn is spent, press <strong>End</strong> to score the board (you can still undo the last move first); End also ends a board early. Locking the 25th tile ends the board at once.</p>
 
         <h3>Words and locking</h3>
         <ul>
@@ -248,7 +254,7 @@
         <table class="examples">
           <thead><tr><th>Locked tiles</th><th>Adjustment</th></tr></thead>
           <tbody>
-            <tr><td>All 25</td><td>+25</td></tr>
+            <tr><td>All 25</td><td>+25, and +10 for every unused turn</td></tr>
             <tr><td>24</td><td>+10</td></tr>
             <tr><td>22 or 23</td><td>0</td></tr>
             <tr><td>Under 22</td><td>−10 for each tile short of 22 (for example 17 tiles: −50)</td></tr>
