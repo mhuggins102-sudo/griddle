@@ -618,3 +618,5 @@ button { font: inherit; color: inherit; }
   .result-titles { flex-direction: row; align-items: baseline; gap: 8px; flex-wrap: wrap; }
   .result-titles .breakdown { font-size: 12px; }
 }
+.goalbar { cursor: pointer; }
+.words-pop { bottom: auto; top: 110px; }

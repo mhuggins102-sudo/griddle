@@ -626,7 +626,34 @@ export function initWordMode(ctx) {
     renderLocked();
   }
 
+  /** Popup with the score composition as it stands now (tap on the goal bar). */
+  function showScorePop() {
+    if (!w.game) return;
+    const st = w.game.state;
+    const bonus = coverageBonus(st.locked.length);
+    const turnBonus = fullCoverTurnBonus(st);
+    const penalty = shortfallPenalty(st.locked.length);
+    const total = w.over ? finalScore(st) : projectedScore(st);
+    const parts = [`<b>${st.words.length} word${st.words.length === 1 ? '' : 's'}</b> ${st.score}`];
+    if (bonus) parts.push(`full board <b>+${bonus}</b>`);
+    if (turnBonus) parts.push(`${WORD_TURNS - st.turns} turns left <b>+${turnBonus}</b>`);
+    if (penalty) parts.push(`${COVERAGE_TARGET - st.locked.length} tile${COVERAGE_TARGET - st.locked.length === 1 ? '' : 's'} short of ${COVERAGE_TARGET} <b>−${penalty}</b>`);
+    let html = parts.join(' · ') + ` = <b>${total}</b>`;
+    if (!w.over && total < 0) html += ' (0 if it ended now)';
+    if (w.game.mode === 'levels' && w.game.goal !== null) html += `<br><span style="opacity:.75">Goal ${w.game.goal}: ${total >= w.game.goal ? 'reached' : `${w.game.goal - total} to go`}</span>`;
+    if (st.words.length) html += `<br><span style="opacity:.75">${st.words.map((x) => `${x.word} ${x.score}`).join(', ')}</span>`;
+    showPop(html);
+  }
+
   let popTimer = null;
+  function showPop(html) {
+    const pop = $('#w-words-pop');
+    pop.innerHTML = html;
+    pop.hidden = false;
+    clearTimeout(popTimer);
+    popTimer = setTimeout(() => (pop.hidden = true), 4500);
+  }
+
   function showWordsPop() {
     const st = w.game.state;
     const pop = $('#w-words-pop');
@@ -638,6 +665,8 @@ export function initWordMode(ctx) {
     popTimer = setTimeout(() => (pop.hidden = true), 4000);
   }
   $('#w-words-pop').addEventListener('click', () => ($('#w-words-pop').hidden = true));
+  $('#w-goalbar').addEventListener('click', showScorePop);
+  $('#w-score').parentElement.addEventListener('click', showScorePop);
 
   async function copyShare() {
     const text = w.shareText || '';

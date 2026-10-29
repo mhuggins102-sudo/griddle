@@ -141,7 +141,7 @@
         <button id="w-quit" class="btn btn-icon" aria-label="Home (the game is saved)">⌂</button>
       </header>
 
-      <div id="w-goalbar" class="goalbar" hidden>
+      <div id="w-goalbar" class="goalbar" role="button" tabindex="0" aria-label="Level progress; tap for the score breakdown" hidden>
         <div class="goalbar-fill" id="w-goalbar-fill"></div>
         <span class="goalbar-level" id="w-goalbar-level">Level 1</span>
         <span class="goalbar-text" id="w-goalbar-text">Goal …</span>
@@ -235,7 +235,7 @@
           <li><strong>Lock</strong>: tap the first letter of a word, then its last letter, and confirm. See below.</li>
         </ul>
         <p>Choose an action first; nothing is selected when a board starts, and tapping a selected action again deselects it. <strong>Undo</strong> (↶) takes back your last move or lock, once per game. It is meant for misclicks and cannot follow a Draw, since the draw was random. A board cannot be ended early. When the 20th turn is spent, a <strong>Score</strong> button appears: press it to score the board, or undo the last move first. Locking the 25th tile scores the board at once.</p>
-        <p>The score in the header, and the level bar, always show the score as it stands <em>right now</em> with every bonus and penalty applied, so it can be negative early on and only turns positive once enough tiles are locked. Reaching the goal in the bar means you would pass if the board ended this moment. At the end, tap the word total on the result panel to see the words you locked.</p>
+        <p>The score in the header, and the level bar, always show the score as it stands <em>right now</em> with every bonus and penalty applied, so it can be negative early on and only turns positive once enough tiles are locked. Reaching the goal in the bar means you would pass if the board ended this moment. Tap the level bar (or the score in the header) at any time for a popup with the current breakdown: word points, bonuses, penalty and how far the goal is. At the end, tap the word total on the result panel to see the words you locked.</p>
 
         <h3>Words and locking</h3>
         <ul>
