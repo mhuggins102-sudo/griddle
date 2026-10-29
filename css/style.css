@@ -564,15 +564,57 @@ button { font: inherit; color: inherit; }
 }
 
 /* Result: the board is only for reference, so it shrinks to leave room for the result panel */
-.word-screen.over .word-board-wrap { width: min(100%, 250px); }
 .word-screen.over .result { padding: 10px; gap: 8px; }
 .word-screen.over .result h2 { font-size: 24px; }
 .word-screen.over .breakdown { font-size: 14px; }
 .word-screen.over .share code { font-size: 12px; padding: 8px; }
 @media (max-height: 700px) {
-  .word-screen.over .word-board-wrap { width: min(100%, 200px); }
   .word-screen.over .result { padding: 8px; gap: 6px; }
   .word-screen.over .result h2 { font-size: 20px; }
   .word-screen.over .breakdown { font-size: 13px; line-height: 1.25; }
   .word-screen.over .board { --gap: 3px; }
+}
+
+/* Compact result panel */
+.result.compact { gap: 8px; padding: 10px; }
+.result-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.result-head h2 { font-size: 22px; margin: 0; }
+.tally { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; font-variant-numeric: tabular-nums; font-size: 16px; }
+.tally .tally-item { display: inline-flex; align-items: baseline; gap: 4px; padding: 0 8px; min-height: 36px; align-items: center; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); }
+.tally .tally-item .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.tally .tally-item .num { font-weight: 800; }
+.tally .tally-item.neg .num { color: var(--danger); }
+.tally .tally-item.pos .num { color: var(--ok); }
+.tally .tally-op { color: var(--muted); font-weight: 700; }
+.tally .tally-total { font-size: 24px; font-weight: 900; padding-left: 4px; }
+.tally button.tally-item { cursor: pointer; font: inherit; color: inherit; text-decoration: underline dotted var(--muted); text-underline-offset: 3px; }
+.words-pop {
+  position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%);
+  max-width: min(92vw, 420px); background: var(--ink); color: var(--bg);
+  padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; z-index: 25; box-shadow: var(--shadow);
+}
+.words-pop b { font-weight: 800; }
+@media (max-height: 700px) {
+  .result.compact { gap: 6px; padding: 8px; }
+  .result-head h2 { font-size: 19px; }
+  .tally { font-size: 14px; }
+  .tally .tally-item { min-height: 32px; padding: 0 6px; }
+  .tally .tally-total { font-size: 20px; }
+  .result.compact .breakdown { font-size: 13px; }
+}
+#w-score.negative { color: var(--danger); }
+.tally button.tally-item { min-height: 44px; }
+@media (max-height: 700px) {
+  .word-screen { gap: 4px; }
+  .goalbar { min-height: 30px; padding: 3px 10px; }
+  .result.compact { padding: 6px 8px; gap: 4px; }
+  .result-head h2 { font-size: 18px; }
+  .result.compact .breakdown { font-size: 12px; }
+  .tally { gap: 3px 4px; }
+}
+.result-titles { display: flex; flex-direction: column; min-width: 0; }
+.result-titles .breakdown { font-size: 13px; }
+@media (max-height: 700px) {
+  .result-titles { flex-direction: row; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .result-titles .breakdown { font-size: 12px; }
 }

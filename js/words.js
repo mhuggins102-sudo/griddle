@@ -35,9 +35,14 @@ export function isBoardFull(state) {
   return state.locked.length === CELLS;
 }
 
-/** Final score: banked words plus the coverage and unused-turn bonuses minus the shortfall penalty, never below 0. */
+/** The score as it stands now, bonuses and penalty included; may be negative. */
+export function projectedScore(state) {
+  return state.score + coverageBonus(state.locked.length) + fullCoverTurnBonus(state) - shortfallPenalty(state.locked.length);
+}
+
+/** Final score: the projected score, never below 0. */
 export function finalScore(state) {
-  return Math.max(0, state.score + coverageBonus(state.locked.length) + fullCoverTurnBonus(state) - shortfallPenalty(state.locked.length));
+  return Math.max(0, projectedScore(state));
 }
 
 /** Turns an action will consume. */

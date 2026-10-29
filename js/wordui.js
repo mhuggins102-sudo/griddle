@@ -7,7 +7,7 @@ import { neighbours, buildBoardSkeleton, tileIn, animateAction, animateMoves, cl
 import {
   dealLetters, createWordState, applyWordAction, findWords, findWordAt, lockWord, parseDictionary, bagTotal, letterValue,
   describeWordCells, wordShareLine, slideMoves, coverageBonus, finalScore, shortfallPenalty, WILD, WORD_TURNS, LETTERS,
-  COVERAGE_TARGET, fullCoverTurnBonus, isBoardFull,
+  COVERAGE_TARGET, fullCoverTurnBonus, isBoardFull, projectedScore,
 } from './words.js';
 import { botPlay, goalFor, goalPercent } from './wordbot.js';
 import { play } from './sound.js';
@@ -167,6 +167,7 @@ export function initWordMode(ctx) {
     w.mode = null;
     ctx.showScreen('screen-word');
     $('#w-result').hidden = true;
+    $('#w-words-pop').hidden = true;
     $('#screen-word').classList.remove('over');
     $('#w-locked').hidden = false;
     $('#w-action-panel').hidden = false;
@@ -187,9 +188,10 @@ export function initWordMode(ctx) {
     const st = w.game.state;
     const done = st.turns >= WORD_TURNS;
     $('#w-turn').textContent = `${st.turns} / ${WORD_TURNS}${w.game.replay ? ' ↻' : ''}`;
-    $('#w-score').textContent = String(st.score);
-    $('#w-finish').classList.toggle('btn-primary', done && !w.over);
-    $('#w-finish').hidden = w.over;
+    const live = w.over ? finalScore(st) : projectedScore(st);
+    $('#w-score').textContent = String(live);
+    $('#w-score').classList.toggle('negative', live < 0);
+    $('#w-finish').hidden = w.over || !done; // a board cannot be ended early
     const undo = $('#w-undo');
     undo.hidden = w.over;
     undo.disabled = !w.game.prev || w.game.undoUsed;
@@ -284,8 +286,8 @@ export function initWordMode(ctx) {
     const bar = $('#w-goalbar');
     bar.hidden = g.mode !== 'levels';
     if (bar.hidden) return;
-    // banked points while playing (the completion adjustment lands at the end), final score once over
-    const score = w.over ? finalScore(g.state) : g.state.score;
+    // the score as it stands right now, bonuses and penalty included (final, floored, once over)
+    const score = w.over ? finalScore(g.state) : projectedScore(g.state);
     $('#w-goalbar-level').textContent = `Level ${g.level}`;
     if (g.goal === null) {
       $('#w-goalbar-text').textContent = 'Goal: computing…';
@@ -295,7 +297,7 @@ export function initWordMode(ctx) {
     }
     const reached = score >= g.goal;
     $('#w-goalbar-text').textContent = `${score} / ${g.goal}`;
-    $('#w-goalbar-fill').style.width = `${Math.min(100, (100 * score) / g.goal)}%`;
+    $('#w-goalbar-fill').style.width = `${Math.max(0, Math.min(100, (100 * score) / g.goal))}%`;
     if (reached && !bar.classList.contains('reached')) {
       bar.classList.add('celebrate');
       setTimeout(() => bar.classList.remove('celebrate'), 700);
@@ -465,7 +467,7 @@ export function initWordMode(ctx) {
     if (action.type === 'draw' && next.lastDraw) ctx.showToast(`Drew ${next.lastDraw.drawn}; the ${next.lastDraw.tossed === WILD ? 'wild' : next.lastDraw.tossed} went into the bag.`);
     if (next.turns >= WORD_TURNS) {
       setMode(null);
-      ctx.showToast('No turns left. Press End to score the board (or Undo).', 3500);
+      ctx.showToast('No turns left. Press Score to finish (or Undo the last move).', 3500);
     }
   }
 
@@ -502,7 +504,7 @@ export function initWordMode(ctx) {
     }
     if (next.turns >= WORD_TURNS) {
       setMode(null);
-      ctx.showToast('No turns left. Press End to score the board (or Undo).', 3500);
+      ctx.showToast('No turns left. Press Score to finish (or Undo the last move).', 3500);
     }
   }
 
@@ -529,7 +531,7 @@ export function initWordMode(ctx) {
     if (w.over) return;
     const g = w.game;
     const st = g.state;
-    if (!auto && st.turns < WORD_TURNS && !confirm(`End now with ${WORD_TURNS - st.turns} turns unused?`)) return;
+    if (!auto && st.turns < WORD_TURNS && !isBoardFull(st)) return; // no ending early
     ensureGoalNow(g);
     w.over = true;
     w.lastBoard = { seed: g.seed, drawSeed: g.drawSeed };
@@ -566,32 +568,52 @@ export function initWordMode(ctx) {
     $('#w-found-wrap').hidden = true;
     $('#w-result').hidden = false;
     $('#screen-word').classList.add('over');
-    $('#w-result-score').textContent = String(total);
-    const wordsText = st.words.length ? st.words.map((x) => `${x.word} ${x.score}`).join(', ') : 'No words locked';
-    let tally = `${wordsText} = ${st.score}. ${st.locked.length} of 25 tiles locked`;
-    if (bonus) tally += `: bonus +${bonus}`;
-    if (turnBonus) tally += `, ${WORD_TURNS - st.turns} unused turns +${turnBonus}`;
-    if (penalty) tally += `: ${COVERAGE_TARGET - st.locked.length} short of ${COVERAGE_TARGET}, penalty −${penalty}`;
-    if (st.score + bonus - penalty < 0) tally += ' (score floored at 0)';
-    $('#w-result-words').textContent = `${tally}.`;
+    // Score breakdown: words [+ bonus] [+ unused turns] [- penalty] = total
+    const tally = $('#w-tally');
+    tally.innerHTML = '';
+    const item = (label, value, cls = '', asButton = false) => {
+      const el = document.createElement(asButton ? 'button' : 'span');
+      el.className = `tally-item ${cls}`.trim();
+      el.innerHTML = `<span class="lbl">${label}</span><span class="num">${value}</span>`;
+      if (asButton) el.type = 'button';
+      return el;
+    };
+    const op = (text) => Object.assign(document.createElement('span'), { className: 'tally-op', textContent: text });
+    const wordsBtn = item(`${st.words.length} word${st.words.length === 1 ? '' : 's'}`, String(st.score), '', true);
+    wordsBtn.setAttribute('aria-label', 'Show the words you locked');
+    wordsBtn.addEventListener('click', showWordsPop);
+    tally.appendChild(wordsBtn);
+    if (bonus) {
+      tally.appendChild(op('+'));
+      tally.appendChild(item('full board', `+${bonus}`, 'pos'));
+    }
+    if (turnBonus) {
+      tally.appendChild(op('+'));
+      tally.appendChild(item(`${WORD_TURNS - st.turns} turns left`, `+${turnBonus}`, 'pos'));
+    }
+    if (penalty) {
+      tally.appendChild(op('−'));
+      tally.appendChild(item(`${COVERAGE_TARGET - st.locked.length} tiles short`, `−${penalty}`, 'neg'));
+    }
+    tally.appendChild(op('='));
+    tally.appendChild(Object.assign(document.createElement('span'), { className: 'tally-total', textContent: String(total) }));
+    if (st.score + bonus + turnBonus - penalty < 0) tally.appendChild(op('(floored at 0)'));
 
-    let title = g.replay ? 'Replay over' : 'Game over';
+    let title = g.replay ? 'Replay over' : 'Board scored';
     let line;
     if (g.mode === 'levels') {
       title = passed ? `Level ${g.level} passed!` : `Level ${g.level} failed`;
-      line = `Goal ${g.goal} (${goalPercent(g.level)}% of the bot's ${g.botScore}${g.botWords ? `: ${g.botWords.join(', ')}` : ''}).`;
-      if (!passed) line += ` ${g.goal - total} short.`;
+      line = passed ? `Goal ${g.goal} reached.` : `Goal ${g.goal}: ${g.goal - total} short.`;
     } else if (g.replay) {
-      line = beatBoard ? `Replay: beat your previous best on this board (${previousOnBoard})!` : `Replay: best on this board stays ${previousOnBoard}. Not counted in stats.`;
+      line = beatBoard ? `Beat your previous best on this board (${previousOnBoard})! Not counted in stats.` : `Best on this board stays ${previousOnBoard}. Not counted in stats.`;
     } else {
-      line = isBest ? 'New personal best!' : `Personal best: ${store.word.best}`;
+      line = isBest ? 'New personal best!' : `Personal best: ${store.word.best}.`;
     }
     if (g.mode === 'levels' && g.replay) line += ' Replay: not counted.';
     play(g.mode === 'levels' ? (passed ? 'fanfare' : 'fail') : st.locked.length === 25 ? 'fanfare' : 'lock');
-    $('#w-result h2').textContent = title;
-    $('#w-result-best-label').textContent = g.mode === 'levels' ? 'Goal' : g.replay ? 'Replay' : 'Best';
+    $('#w-result-title').textContent = title;
     $('#w-result-best').textContent = line;
-    $('#w-share-line').textContent = (g.mode === 'levels' ? `Level ${g.level} ${passed ? 'passed' : 'failed'} · ` : '') + wordShareLine(total, st.words);
+    w.shareText = (g.mode === 'levels' ? `Level ${g.level} ${passed ? 'passed' : 'failed'} · ` : '') + wordShareLine(total, st.words);
     const showNext = g.mode === 'levels' && passed && !g.replay;
     $('#w-next').hidden = !showNext;
     $('#w-again').hidden = showNext; // Next level takes its slot
@@ -604,8 +626,21 @@ export function initWordMode(ctx) {
     renderLocked();
   }
 
+  let popTimer = null;
+  function showWordsPop() {
+    const st = w.game.state;
+    const pop = $('#w-words-pop');
+    pop.innerHTML = st.words.length
+      ? st.words.map((x) => `<b>${x.word}</b> ${x.score}`).join(' · ') + ` <span style="opacity:.7">· ${st.locked.length}/25 tiles</span>`
+      : 'No words were locked.';
+    pop.hidden = false;
+    clearTimeout(popTimer);
+    popTimer = setTimeout(() => (pop.hidden = true), 4000);
+  }
+  $('#w-words-pop').addEventListener('click', () => ($('#w-words-pop').hidden = true));
+
   async function copyShare() {
-    const text = $('#w-share-line').textContent;
+    const text = w.shareText || '';
     try {
       if (navigator.share) {
         await navigator.share({ text });

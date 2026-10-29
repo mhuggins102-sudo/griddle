@@ -135,7 +135,7 @@
       <header class="hud word-hud">
         <div class="hud-item"><span class="hud-label">Turn</span><span id="w-turn" class="hud-value">0 / 20</span></div>
         <div class="hud-item"><span class="hud-label">Score</span><span id="w-score" class="hud-value">0</span></div>
-        <button id="w-finish" class="btn btn-finish">End</button>
+        <button id="w-finish" class="btn btn-finish btn-primary" hidden>Score</button>
         <button id="w-undo" class="btn btn-icon" aria-label="Undo last move (once per game)">↶</button>
         <button id="w-help" class="btn btn-icon" aria-label="Help">?</button>
         <button id="w-quit" class="btn btn-icon" aria-label="Home (the game is saved)">⌂</button>
@@ -183,17 +183,15 @@
         <div id="w-status" class="hint" hidden></div>
       </div>
 
-      <div id="w-result" class="panel result" hidden>
-        <h2>Game over</h2>
-        <div class="result-grid two">
-          <div><span class="hud-label">Score</span><span id="w-result-score" class="hud-value"></span></div>
-          <div><span class="hud-label" id="w-result-best-label">Best</span><span id="w-result-best" class="breakdown"></span></div>
+      <div id="w-result" class="panel result compact" hidden>
+        <div class="result-head">
+          <div class="result-titles">
+            <h2 id="w-result-title">Game over</h2>
+            <span id="w-result-best" class="breakdown"></span>
+          </div>
+          <button id="w-share" class="btn btn-icon" aria-label="Copy result">⇪</button>
         </div>
-        <p id="w-result-words" class="breakdown"></p>
-        <div class="share">
-          <code id="w-share-line"></code>
-          <button id="w-share" class="btn">Copy</button>
-        </div>
+        <div class="tally" id="w-tally" aria-label="Score breakdown"></div>
         <div class="result-buttons three">
           <button id="w-home" class="btn">Home</button>
           <button id="w-replay" class="btn">Replay board</button>
@@ -201,6 +199,7 @@
           <button id="w-next" class="btn btn-primary" hidden>Next level</button>
         </div>
       </div>
+      <div id="w-words-pop" class="words-pop" hidden></div>
     </section>
 
     <!-- Stats -->
@@ -235,7 +234,8 @@
           <li><strong>Draw</strong>: tap a tile to replace it with a random letter from the bag. The tile you toss goes into the bag afterwards, so it cannot come straight back on the same turn. Draw is the only random action and cannot be undone.</li>
           <li><strong>Lock</strong>: tap the first letter of a word, then its last letter, and confirm. See below.</li>
         </ul>
-        <p>Choose an action first; nothing is selected when a board starts, and tapping a selected action again deselects it. <strong>Undo</strong> (↶) takes back your last move or lock, once per game. It is meant for misclicks and cannot follow a Draw, since the draw was random. When the 20th turn is spent, press <strong>End</strong> to score the board (you can still undo the last move first); End also ends a board early. Locking the 25th tile ends the board at once.</p>
+        <p>Choose an action first; nothing is selected when a board starts, and tapping a selected action again deselects it. <strong>Undo</strong> (↶) takes back your last move or lock, once per game. It is meant for misclicks and cannot follow a Draw, since the draw was random. A board cannot be ended early. When the 20th turn is spent, a <strong>Score</strong> button appears: press it to score the board, or undo the last move first. Locking the 25th tile scores the board at once.</p>
+        <p>The score in the header, and the level bar, always show the score as it stands <em>right now</em> with every bonus and penalty applied, so it can be negative early on and only turns positive once enough tiles are locked. Reaching the goal in the bar means you would pass if the board ended this moment. At the end, tap the word total on the result panel to see the words you locked.</p>
 
         <h3>Words and locking</h3>
         <ul>
