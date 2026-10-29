@@ -188,9 +188,9 @@ export function initWordMode(ctx) {
     const st = w.game.state;
     const done = st.turns >= WORD_TURNS;
     $('#w-turn').textContent = `${st.turns} / ${WORD_TURNS}${w.game.replay ? ' ↻' : ''}`;
-    const live = w.over ? finalScore(st) : projectedScore(st);
+    const live = finalScore(st); // the score if the board ended now, floored at 0 like the final score
     $('#w-score').textContent = String(live);
-    $('#w-score').classList.toggle('negative', live < 0);
+    $('#w-score').classList.toggle('negative', false);
     $('#w-finish').hidden = w.over || !done; // a board cannot be ended early
     const undo = $('#w-undo');
     undo.hidden = w.over;
@@ -286,8 +286,8 @@ export function initWordMode(ctx) {
     const bar = $('#w-goalbar');
     bar.hidden = g.mode !== 'levels';
     if (bar.hidden) return;
-    // the score as it stands right now, bonuses and penalty included (final, floored, once over)
-    const score = w.over ? finalScore(g.state) : projectedScore(g.state);
+    // the score as it stands right now, bonuses and penalty included, floored at 0 like the final score
+    const score = finalScore(g.state);
     $('#w-goalbar-level').textContent = `Level ${g.level}`;
     if (g.goal === null) {
       $('#w-goalbar-text').textContent = 'Goal: computing…';
@@ -633,13 +633,14 @@ export function initWordMode(ctx) {
     const bonus = coverageBonus(st.locked.length);
     const turnBonus = fullCoverTurnBonus(st);
     const penalty = shortfallPenalty(st.locked.length);
-    const total = w.over ? finalScore(st) : projectedScore(st);
+    const raw = projectedScore(st);
+    const total = finalScore(st);
     const parts = [`<b>${st.words.length} word${st.words.length === 1 ? '' : 's'}</b> ${st.score}`];
     if (bonus) parts.push(`full board <b>+${bonus}</b>`);
     if (turnBonus) parts.push(`${WORD_TURNS - st.turns} turns left <b>+${turnBonus}</b>`);
     if (penalty) parts.push(`${COVERAGE_TARGET - st.locked.length} tile${COVERAGE_TARGET - st.locked.length === 1 ? '' : 's'} short of ${COVERAGE_TARGET} <b>−${penalty}</b>`);
     let html = parts.join(' · ') + ` = <b>${total}</b>`;
-    if (!w.over && total < 0) html += ' (0 if it ended now)';
+    if (raw < 0) html += ` (${raw}, floored at 0)`;
     if (w.game.mode === 'levels' && w.game.goal !== null) html += `<br><span style="opacity:.75">Goal ${w.game.goal}: ${total >= w.game.goal ? 'reached' : `${w.game.goal - total} to go`}</span>`;
     if (st.words.length) html += `<br><span style="opacity:.75">${st.words.map((x) => `${x.word} ${x.score}`).join(', ')}</span>`;
     showPop(html);
