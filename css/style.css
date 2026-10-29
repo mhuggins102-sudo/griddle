@@ -403,7 +403,7 @@ button { font: inherit; color: inherit; }
 /* Word mode */
 .face.letter { display: grid; place-items: center; position: relative; width: 100%; height: 100%; }
 .face.letter .ch { font-size: clamp(20px, 7vw, 30px); font-weight: 800; color: var(--pip); line-height: 1; }
-.face.letter .val { position: absolute; right: 4px; bottom: 2px; font-size: 10px; font-weight: 700; color: var(--muted); }
+.face.letter .val { position: absolute; right: 4px; bottom: 2px; font-size: 11px; font-weight: 800; color: #3d4250; }
 .face.letter.wild .ch { color: var(--region); }
 .tile.locked { background: #cfe6d9; border-color: #6fae8e; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.12); }
 .tile.locked::after { content: ""; position: absolute; left: 4px; top: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
