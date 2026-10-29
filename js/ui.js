@@ -79,11 +79,22 @@ function showHome() {
   $('#number-game-buttons').hidden = !SHOW_NUMBER_GAME;
   $('#opt-numerals-row').hidden = !SHOW_NUMBER_GAME;
   $('#btn-continue').hidden = !ui.store.currentGame;
-  $('#btn-word-continue').hidden = !ui.store.wordGame;
   const s = ui.store;
+  const g = s.wordGame;
+  // a game in progress takes the primary slot; New game steps down to secondary
+  $('#btn-word-continue').hidden = !g;
+  $('#btn-word').classList.toggle('btn-primary', !g);
+  if (g && g.state) {
+    const turn = Math.min((g.state.turns || 0) + 1, 20);
+    $('#continue-sub').textContent = `${g.mode === 'levels' ? `Level ${g.level || 1}` : 'Free play'} · turn ${turn} of 20 · ${g.state.score || 0} points`;
+  }
   const w = s.word || { gamesPlayed: 0, best: null };
-  $('#home-stats').textContent = w.gamesPlayed ? `${w.gamesPlayed} board${w.gamesPlayed === 1 ? '' : 's'} played · best score ${w.best}${w.bestLevel ? ` · highest level passed ${w.bestLevel}` : ''}` : '';
-  if (SHOW_NUMBER_GAME && s.gamesPlayed) $('#home-stats').textContent += ` · Number game: ${s.gamesPlayed} played, best ${s.bestTotal}`;
+  const stats = $('#home-stats');
+  stats.hidden = !w.gamesPlayed;
+  if (w.gamesPlayed) {
+    const stat = (label, value) => `<div class="stat"><span class="hud-label">${label}</span><span class="hud-value">${value}</span></div>`;
+    stats.innerHTML = stat('Boards', w.gamesPlayed) + stat('Best score', w.best) + stat('Top level', w.bestLevel || '–');
+  }
   showScreen('screen-home');
 }
 
@@ -577,6 +588,7 @@ function wireEvents() {
   $('#btn-help-home').addEventListener('click', openHelp);
   $('#btn-help-round').addEventListener('click', openHelp);
   $('#btn-help-close').addEventListener('click', closeHelp);
+  $('#btn-help-done').addEventListener('click', closeHelp);
   $('#help').addEventListener('click', (e) => {
     if (e.target === $('#help')) closeHelp();
   });

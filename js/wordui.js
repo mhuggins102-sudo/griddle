@@ -1,33 +1,52 @@
 // Word game UI: a 5x5 letter grid, 20 turns, lock words to bank points. Fits a portrait phone.
+// Everything is played directly on the board with gestures:
+//   drag a tile onto a neighbour  -> swap
+//   flick a row or column         -> slide (a long drag along the line slides too)
+//   press and hold a tile         -> menu: nudge down, nudge up, draw, wild (locked tiles)
+//   tap the first and last letter -> lock the word between them
 // Modes: levels (a bot sets a goal score per board; pass to advance) and free play (no goal).
 
 import { SIZE, idx, rowOf, colOf } from './engine.js';
 import { randomSeed } from './rng.js';
-import { neighbours, buildBoardSkeleton, tileIn, animateAction, animateMoves, clearTileEffects } from './board.js';
+import { ANIM_MS, wait, buildBoardSkeleton, tileIn, tileStep, animateAction, animateMoves, beginMoves, removeGhosts, clearTileEffects } from './board.js';
 import {
   dealLetters, createWordState, applyWordAction, findWords, findWordAt, lockWord, parseDictionary, bagTotal, letterValue,
-  describeWordCells, wordShareLine, slideMoves, coverageBonus, finalScore, shortfallPenalty, WILD, WORD_TURNS, LETTERS,
-  COVERAGE_TARGET, fullCoverTurnBonus, isBoardFull, projectedScore,
+  describeWordCells, wordShareLine, slideMoves, coverageBonus, finalScore, shortfallPenalty, nudgeLetter, lineCellsFree,
+  WILD, WORD_TURNS, LETTERS, COVERAGE_TARGET, WILD_COST, fullCoverTurnBonus, isBoardFull,
 } from './words.js';
-import { botPlay, goalFor, goalPercent } from './wordbot.js';
+import { botPlay, goalFor } from './wordbot.js';
 import { play } from './sound.js';
 
 const $ = (sel) => document.querySelector(sel);
+
+/** Gesture tuning (CSS pixels, milliseconds, tile widths). */
+const LONG_PRESS_MS = 420; // hold this long without moving to open the tile menu
+const TAP_SLOP = 8; // movement below this is a tap
+const FLICK_VELOCITY = 0.45; // px per ms at release: faster than this along the line is a flick
+const SLIDE_TRAVEL = 1.45; // tiles: dragging this far along a line slides it even without a flick
+const SWAP_TRAVEL = 0.4; // tiles: minimum travel towards a neighbour to drop onto it
+const SWAP_CROSS = 0.7; // tiles: maximum sideways wobble for a drop
 
 export function initWordMode(ctx) {
   const w = {
     dict: null,
     game: null, // { seed, drawSeed, state, mode: 'levels'|'free', level, goal, botScore, prev, undoUsed, replay }
-    mode: null, // no action preselected
-    selected: null,
-    pending: null,
+    first: null, // first letter tapped for a lock
+    pending: null, // candidate chosen from the found-words list, awaiting Lock
     found: [],
     animating: false,
     over: false,
+    showBag: false,
+    transient: null, // { text, cls } shown in the strip for a moment
+    transientTimer: null,
+    gesture: null,
+    menuCell: null,
+    pointerTs: 0,
     worker: null,
     workerJob: 0,
   };
   const boardEl = $('#wboard');
+  const wrapEl = boardEl.parentElement;
 
   function makeLetterFace() {
     const face = document.createElement('div');
@@ -35,7 +54,7 @@ export function initWordMode(ctx) {
     face.innerHTML = '<span class="ch"></span><span class="val"></span>';
     return face;
   }
-  buildBoardSkeleton(boardEl, makeLetterFace);
+  buildBoardSkeleton(boardEl, makeLetterFace, { arrows: false });
 
   function setFace(tile, ch) {
     const face = tile.firstElementChild;
@@ -46,6 +65,7 @@ export function initWordMode(ctx) {
   const tileEl = (cell) => tileIn(boardEl, cell);
   const showWordsOption = () => !!(ctx.store.settings && ctx.store.settings.showWords);
   const isLevels = () => w.game && w.game.mode === 'levels';
+  const reduceMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   async function ensureDict() {
     if (w.dict) return true;
@@ -78,6 +98,7 @@ export function initWordMode(ctx) {
       game.goal = goalFor(game.level, result.score);
       persist();
       renderLocked();
+      renderStrip();
     };
     const fallback = () => {
       try {
@@ -128,8 +149,8 @@ export function initWordMode(ctx) {
   // Start / resume
 
   /**
-   * start(true) resumes the saved game. start(false, { mode: 'levels'|'free', level, seed, drawSeed, replay })
-   * starts a new board; seed/drawSeed replay a known board.
+   * start(true) resumes the saved game. start(false, { mode: 'levels'|'free', level, seed, drawSeed, replay, note })
+   * starts a new board; seed/drawSeed replay a known board; note is shown briefly under the board.
    */
   async function start(resume, opts = {}) {
     if (!(await ensureDict())) return;
@@ -159,22 +180,28 @@ export function initWordMode(ctx) {
         replay: !!opts.replay,
       };
       persist();
-      if (opts.replay) ctx.showToast('Replaying this board. Not counted in your stats.', 2500);
     }
     w.over = false;
-    w.selected = null;
+    w.first = null;
     w.pending = null;
-    w.mode = null;
+    w.showBag = false;
+    w.gesture = null;
+    clearTransient();
+    closeMenu();
     ctx.showScreen('screen-word');
     $('#w-result').hidden = true;
     $('#w-words-pop').hidden = true;
     $('#screen-word').classList.remove('over');
     $('#w-locked').hidden = false;
-    $('#w-action-panel').hidden = false;
-    setMode(null);
+    $('#w-strip').hidden = false;
     renderAll();
+    if (opts.note) say(opts.note, 'good', 2800);
+    else if (opts.replay) say('Replaying this board · not counted in your stats', '', 3000);
     computeGoal(w.game);
   }
+
+  // ---------------------------------------------------------------------------
+  // Rendering
 
   function renderAll() {
     renderHud();
@@ -182,62 +209,63 @@ export function initWordMode(ctx) {
     renderBag();
     renderWords();
     renderLocked();
+    renderStrip();
   }
 
   function renderHud() {
     const st = w.game.state;
-    const done = st.turns >= WORD_TURNS;
-    // the turn you are on (1-based); shows 20 / 20 once the last turn is spent
     $('#w-turn').textContent = `${Math.min(st.turns + 1, WORD_TURNS)} / ${WORD_TURNS}${w.game.replay ? ' ↻' : ''}`;
-    const live = finalScore(st); // the score if the board ended now, floored at 0 like the final score
-    $('#w-score').textContent = String(live);
-    $('#w-score').classList.toggle('negative', false);
-    $('#w-finish').hidden = w.over || !done || isLevels(); // free play only; level boards end by themselves
+    $('#w-score').textContent = String(finalScore(st));
+    const track = $('#w-turntrack');
+    if (track.childElementCount !== WORD_TURNS) {
+      track.innerHTML = '';
+      for (let i = 0; i < WORD_TURNS; i++) track.appendChild(document.createElement('span'));
+    }
+    const urgent = WORD_TURNS - st.turns <= 3 && !w.over;
+    Array.from(track.children).forEach((seg, i) => {
+      seg.classList.toggle('spent', i < st.turns);
+      seg.classList.toggle('last', urgent && i >= st.turns);
+    });
     const undo = $('#w-undo');
     undo.hidden = w.over || isLevels(); // no undo in a level run
     undo.disabled = !w.game.prev || w.game.undoUsed;
     undo.title = w.game.undoUsed ? 'Undo already used this game' : !w.game.prev ? 'Nothing to undo (draws cannot be undone)' : 'Undo the last move (once per game)';
+    const bagBtn = $('#w-bag-btn');
+    bagBtn.hidden = w.over;
+    bagBtn.setAttribute('aria-pressed', w.showBag ? 'true' : 'false');
   }
 
   function renderBoard() {
     const st = w.game.state;
     const pendingCells = w.pending ? new Set(w.pending.cells) : null;
-    const outOfMoves = st.turns >= WORD_TURNS;
-    const lockMode = w.mode === 'lock';
+    const inert = !canInteract();
+    removeGhosts(boardEl);
     for (let i = 0; i < st.board.length; i++) {
       const t = tileEl(i);
       clearTileEffects(t);
+      t.classList.remove('dragging', 'drop-target', 'no-drop', 'shake');
       setFace(t, st.board[i]);
       const locked = st.locked.includes(i);
       t.classList.toggle('locked', locked);
       t.classList.toggle('wild', st.board[i] === WILD);
       t.classList.toggle('region', !!pendingCells && pendingCells.has(i));
-      t.classList.toggle('selected', w.selected === i && !lockMode);
-      t.classList.toggle('first-pick', w.selected === i && lockMode);
-      t.classList.toggle('inert', w.over || outOfMoves || w.mode === null);
+      t.classList.toggle('first-pick', w.first === i);
+      t.classList.toggle('inert', inert);
       t.setAttribute('aria-label', `Row ${rowOf(i) + 1} column ${colOf(i) + 1}: ${st.board[i] === WILD ? 'wild' : st.board[i]}${locked ? ', locked' : ''}`);
     }
-    for (const t of boardEl.querySelectorAll('.tile')) t.classList.remove('target');
-    if (w.mode === 'swap' && w.selected !== null) {
-      for (const n of neighbours(w.selected)) if (!st.locked.includes(n)) tileEl(n).classList.add('target');
-    }
-    boardEl.classList.toggle('mode-slide', w.mode === 'slide' && !outOfMoves && !w.over);
-    for (const a of boardEl.querySelectorAll('.arrow')) {
-      const cells = [];
-      for (let k = 0; k < SIZE; k++) cells.push(a.dataset.axis === 'row' ? idx(Number(a.dataset.index), k) : idx(k, Number(a.dataset.index)));
-      a.disabled = cells.filter((c) => !st.locked.includes(c)).length < 2;
-    }
+    boardEl.classList.toggle('frozen', goalReached() && !w.over);
   }
 
   function renderBag() {
     const bag = w.game.state.bag;
     const el = $('#w-bag');
-    el.hidden = w.mode !== 'draw' || w.over;
-    el.innerHTML = `<div class="bag-title">Bag: ${bagTotal(bag)} tiles</div>`;
+    el.hidden = !w.showBag || w.over;
+    if (el.hidden) return;
+    el.innerHTML = `<div class="bag-title">In the bag: ${bagTotal(bag)} letters</div>`;
     for (const ch of LETTERS) {
       const chip = document.createElement('span');
       chip.className = `bag-letter${bag[ch] === 0 ? ' empty' : ''}`;
-      chip.textContent = `${ch}${bag[ch]}`;
+      chip.innerHTML = `${ch}<small>${bag[ch]}</small>`;
       chip.setAttribute('aria-label', `${bag[ch]} ${ch}`);
       el.appendChild(chip);
     }
@@ -264,7 +292,7 @@ export function initWordMode(ctx) {
       b.innerHTML = `<span class="chip-word">${c.word}</span><span class="chip-score">${c.score}</span>`;
       b.setAttribute('aria-label', `${c.word} for ${c.score} points on ${describeWordCells(c.cells)}`);
       b.addEventListener('click', () => {
-        if (w.over || st.turns >= WORD_TURNS) return;
+        if (!canInteract()) return;
         setPending(w.pending && w.pending.key === c.key && w.pending.word === c.word ? null : c);
       });
       el.appendChild(b);
@@ -273,12 +301,13 @@ export function initWordMode(ctx) {
 
   function renderLocked() {
     const st = w.game.state;
-    const g = w.game;
-    const parts = [];
-    if (st.words.length) parts.push(st.words.map((x) => `<b>${x.word}</b> ${x.score}`).join(' · '));
-    else parts.push('no words yet');
-    parts.push(`${st.locked.length}/25 locked`);
-    $('#w-locked').innerHTML = parts.join(' · ');
+    const el = $('#w-locked');
+    const list = st.words.length
+      ? `<span class="lw-list">${st.words.map((x) => `<span class="lw">${x.word}<b>${x.score}</b></span>`).join('')}</span>`
+      : '<span class="lw-list"><span>No words locked yet</span></span>';
+    el.innerHTML = `${list}<span class="lw-count"><b>${st.locked.length}</b>/25 tiles</span>`;
+    const scroller = el.querySelector('.lw-list');
+    if (scroller) scroller.scrollLeft = scroller.scrollWidth;
     renderGoalBar();
   }
 
@@ -287,13 +316,13 @@ export function initWordMode(ctx) {
     const bar = $('#w-goalbar');
     bar.hidden = g.mode !== 'levels';
     if (bar.hidden) return;
-    // the score as it stands right now, bonuses and penalty included, floored at 0 like the final score
     const score = finalScore(g.state);
     $('#w-goalbar-level').textContent = `Level ${g.level}`;
     if (g.goal === null) {
       $('#w-goalbar-text').textContent = 'Goal: computing…';
       $('#w-goalbar-fill').style.width = '0%';
       bar.classList.remove('reached');
+      $('#w-advance').hidden = true;
       return;
     }
     const reached = score >= g.goal;
@@ -305,44 +334,86 @@ export function initWordMode(ctx) {
       bar.classList.add('celebrate');
       setTimeout(() => bar.classList.remove('celebrate'), 800);
       play('win');
-      ctx.showToast(`Level ${g.level} passed! Press Next level.`, 3000);
     }
     bar.classList.toggle('reached', reached);
     $('#w-advance').hidden = !(reached && !w.over);
     if (reached && !w.over) {
-      // play stops here: clear any selection and grey out the actions
-      if (w.mode !== null || w.selected !== null || w.pending) setMode(null);
-      hideNudgePop();
+      // play stops here: drop any selection and close the menu
+      w.first = null;
+      w.pending = null;
+      closeMenu();
     }
-    for (const b of document.querySelectorAll('#w-modes .mode')) b.disabled = reached && !w.over;
-    boardEl.classList.toggle('frozen', reached && !w.over);
     bar.setAttribute('aria-label', `Level ${g.level}: score ${score} of goal ${g.goal}${reached ? ', goal reached' : ''}`);
+  }
+
+  /** The strip under the board: a legend, a transient message, or a pending action. */
+  function renderStrip() {
+    const legend = $('#w-legend');
+    const msg = $('#w-msg');
+    const act = $('#w-strip-action');
+    const show = (el) => {
+      legend.hidden = el !== legend;
+      msg.hidden = el !== msg;
+      act.hidden = el !== act;
+    };
+    const message = (text, cls = '') => {
+      msg.textContent = text;
+      msg.className = `strip-msg ${cls}`.trim();
+      show(msg);
+    };
+    const action = (text, primary, secondary) => {
+      $('#w-strip-text').textContent = text;
+      const p = $('#w-strip-primary');
+      const s = $('#w-strip-secondary');
+      p.textContent = primary.label;
+      p.onclick = primary.fn;
+      p.disabled = !!primary.disabled;
+      s.hidden = !secondary;
+      if (secondary) {
+        s.textContent = secondary.label;
+        s.onclick = secondary.fn;
+        s.disabled = !!secondary.disabled;
+      }
+      show(act);
+    };
+    if (!w.game || w.over) return;
+    const g = w.game;
+    const st = g.state;
+    if (goalReached()) return message(`Level ${g.level} passed! Press Next level to carry on.`, 'good');
+    if (st.turns >= WORD_TURNS) {
+      if (isLevels()) return message('Out of turns.', 'bad');
+      return action('Out of turns.', { label: 'Score board', fn: () => finish(false) }, { label: 'Undo', fn: undo, disabled: !g.prev || g.undoUsed });
+    }
+    if (w.pending) return action(`Lock ${w.pending.word} for ${w.pending.score}?`, { label: 'Lock', fn: () => commitLock(w.pending) }, { label: 'Cancel', fn: () => setPending(null) });
+    if (w.first !== null) return message('Now tap the last letter of the word');
+    if (w.transient) return message(w.transient.text, w.transient.cls);
+    show(legend);
+  }
+
+  function clearTransient() {
+    clearTimeout(w.transientTimer);
+    w.transientTimer = null;
+    w.transient = null;
+  }
+
+  /** Show a short message under the board (cls: '', 'good', 'bad'). */
+  function say(text, cls = '', ms = 2200) {
+    clearTransient();
+    w.transient = { text, cls };
+    w.transientTimer = setTimeout(() => {
+      w.transient = null;
+      if (w.game) renderStrip();
+    }, ms);
+    renderStrip();
   }
 
   function setPending(candidate) {
     w.pending = candidate;
-    w.selected = null;
-    hideNudgePop();
-    $('#w-draw-confirm').hidden = true;
-    const confirmEl = $('#w-lock-confirm');
-    confirmEl.hidden = !candidate;
-    if (candidate) $('#w-lock-text').textContent = `Lock ${candidate.word} for ${candidate.score} points? Its tiles will stay put.`;
+    w.first = null;
+    closeMenu();
     renderBoard();
+    renderStrip();
     if (showWordsOption()) renderWords();
-  }
-
-  function setMode(mode) {
-    w.mode = mode;
-    w.selected = null;
-    hideNudgePop();
-    $('#w-draw-confirm').hidden = true;
-    if (w.pending) setPending(null);
-    for (const b of document.querySelectorAll('#w-modes .mode')) {
-      b.classList.toggle('active', b.dataset.mode === mode);
-      b.setAttribute('aria-selected', b.dataset.mode === mode ? 'true' : 'false');
-    }
-    renderBoard();
-    renderBag();
   }
 
   /** In a level run, play stops the moment the goal is reached; Next level is the only way on. */
@@ -351,130 +422,433 @@ export function initWordMode(ctx) {
     return !!g && g.mode === 'levels' && g.goal !== null && finalScore(g.state) >= g.goal;
   }
 
-  function canAct() {
-    return w.game && !w.over && !w.animating && !goalReached() && w.game.state.turns < WORD_TURNS;
+  function canInteract() {
+    return !!w.game && !w.over && !w.animating && !goalReached() && w.game.state.turns < WORD_TURNS;
   }
+
+  // ---------------------------------------------------------------------------
+  // Board feedback: floating labels, shakes
+
+  function floatAt(cell, text, cls = '') {
+    const layer = $('#w-float');
+    const tr = tileEl(cell).getBoundingClientRect();
+    const wr = wrapEl.getBoundingClientRect();
+    const el = document.createElement('span');
+    el.className = `float ${cls}`.trim();
+    el.textContent = text;
+    el.style.left = `${tr.left - wr.left + tr.width / 2}px`;
+    el.style.top = `${tr.top - wr.top + tr.height / 2}px`;
+    layer.appendChild(el);
+    setTimeout(() => el.remove(), 1300);
+  }
+
+  function shakeCells(cells) {
+    if (reduceMotion()) return;
+    for (const c of cells) {
+      const t = tileEl(c);
+      t.classList.remove('shake');
+      void t.offsetWidth; // restart the animation
+      t.classList.add('shake');
+      setTimeout(() => t.classList.remove('shake'), 400);
+    }
+  }
+
+  /** Cells from a to b when they share a row, column or diagonal; otherwise null. */
+  function spanCells(a, b) {
+    const dr = rowOf(b) - rowOf(a);
+    const dc = colOf(b) - colOf(a);
+    if (!(dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc))) return null;
+    const len = Math.max(Math.abs(dr), Math.abs(dc)) + 1;
+    const cells = [];
+    for (let k = 0; k < len; k++) cells.push(idx(rowOf(a) + Math.sign(dr) * k, colOf(a) + Math.sign(dc) * k));
+    return cells;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Tap: lock a word between the first and last letter tapped
 
   function onTileTap(cell) {
-    if (!w.game || w.over || w.animating) return;
-    const st = w.game.state;
-    if (goalReached()) {
-      ctx.showToast('Goal reached! Press Next level to carry on.', 2000);
-      return;
-    }
-    if (w.mode === null) {
-      ctx.showToast('Pick an action first: Slide, Swap, Nudge, Draw or Lock.', 2000);
-      return;
-    }
-    if (st.turns >= WORD_TURNS) {
-      ctx.showToast('No turns left. Press End to score the board.', 2000);
-      return;
-    }
-    if (w.mode === 'lock') {
-      if (w.selected === null) {
-        w.selected = cell;
-        if (w.pending) setPending(null);
-        renderBoard();
-        ctx.showToast('Now tap the last letter of the word.', 1500);
-        return;
-      }
-      const first = w.selected;
-      w.selected = null;
-      const cand = findWordAt(st, w.dict, first, cell);
-      if (cand.error) {
-        ctx.showToast(cand.error, 2600);
-        renderBoard();
-        return;
-      }
-      if (!cand.lockable) {
-        ctx.showToast(`Cannot lock ${cand.word}: ${cand.reason}.`, 3000);
-        renderBoard();
-        return;
-      }
-      setPending(cand);
-      return;
-    }
-    if (!canAct()) return;
+    if (!canInteract()) return;
     if (w.pending) setPending(null);
-    if (w.mode === 'slide') return;
-    if (w.mode === 'swap') {
-      if (st.locked.includes(cell)) {
-        ctx.showToast('That tile is locked.');
-        return;
-      }
-      if (w.selected !== null && neighbours(w.selected).includes(cell)) {
-        const a = w.selected;
-        w.selected = null;
-        doAction({ type: 'swap', r: rowOf(a), c: colOf(a), r2: rowOf(cell), c2: colOf(cell) });
-        return;
-      }
-      w.selected = cell;
+    const st = w.game.state;
+    if (w.first === null) {
+      w.first = cell;
+      play('tap');
       renderBoard();
+      renderStrip();
       return;
     }
-    if (w.mode === 'nudge') {
-      w.selected = cell;
+    if (w.first === cell) {
+      w.first = null;
       renderBoard();
-      const locked = st.locked.includes(cell);
-      $('#w-wild-btn').hidden = !locked || st.board[cell] === WILD;
-      showNudgePop(cell);
-      if (locked) ctx.showToast('Locked tile: nudge for 1 turn, or ★ to make it wild for 2 turns.', 2600);
+      renderStrip();
       return;
     }
-    if (w.mode === 'draw') {
-      w.selected = cell;
+    const first = w.first;
+    const cand = findWordAt(st, w.dict, first, cell);
+    if (cand.error) {
+      const span = spanCells(first, cell);
+      if (span && span.length >= 3) {
+        // in line but not a word: shake it off
+        w.first = null;
+        renderBoard();
+        shakeCells(span);
+        play('buzz');
+        say(`${span.map((c) => (st.board[c] === WILD ? '?' : st.board[c])).join('')} is not in the word list`, 'bad');
+      } else {
+        // not in line (or too close): treat the tap as a new first letter
+        w.first = cell;
+        play('tap');
+        renderBoard();
+        renderStrip();
+      }
+      return;
+    }
+    if (!cand.lockable) {
+      w.first = null;
       renderBoard();
-      $('#w-bag').hidden = true; // the confirmation takes the bag's place
-      $('#w-draw-confirm').hidden = false;
-      $('#w-draw-text').textContent = `Replace the ${st.board[cell]} at row ${rowOf(cell) + 1}, column ${colOf(cell) + 1} with a random letter from the bag? Draws cannot be undone.`;
+      shakeCells(cand.cells);
+      play('buzz');
+      say(`${cand.word}: ${cand.reason}`, 'bad', 2800);
+      return;
+    }
+    w.first = null;
+    commitLock(cand);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Pointer gestures: drag to swap, flick or long drag to slide, hold for the menu
+
+  function neighbourIn(cell, axis, dir) {
+    const r = rowOf(cell) + (axis === 'col' ? dir : 0);
+    const c = colOf(cell) + (axis === 'row' ? dir : 0);
+    if (r < 0 || r >= SIZE || c < 0 || c >= SIZE) return null;
+    return idx(r, c);
+  }
+
+  function swapLegal(a, b) {
+    const st = w.game.state;
+    return !st.locked.includes(a) && !st.locked.includes(b);
+  }
+
+  function canSlideLine(axis, index) {
+    return lineCellsFree(w.game.state, axis, index).length >= 2;
+  }
+
+  function onPointerDown(e) {
+    if (!e.isPrimary || e.button !== 0 || w.gesture) return;
+    const tile = e.target.closest('.tile');
+    if (!tile || !canInteract()) return;
+    if (!$('#w-tilemenu').hidden) {
+      closeMenu();
+      return;
+    }
+    const cell = Number(tile.dataset.cell);
+    const t = performance.now();
+    w.gesture = {
+      id: e.pointerId,
+      cell,
+      x0: e.clientX,
+      y0: e.clientY,
+      x: e.clientX,
+      y: e.clientY,
+      samples: [{ t, x: e.clientX, y: e.clientY }],
+      mode: 'press', // press | drag | line | menu
+      step: tileStep(boardEl) || 60,
+      axis: null,
+      dir: 0,
+      target: null,
+      timer: setTimeout(() => openMenuFromGesture(cell), LONG_PRESS_MS),
+    };
+    try {
+      boardEl.setPointerCapture(e.pointerId);
+    } catch {
+      // capture is best-effort
+    }
+    e.preventDefault();
+  }
+
+  function pushSample(g, e) {
+    const t = performance.now();
+    g.samples.push({ t, x: e.clientX, y: e.clientY });
+    if (g.samples.length > 8) g.samples.shift();
+  }
+
+  function geometry(g) {
+    const dx = g.x - g.x0;
+    const dy = g.y - g.y0;
+    const axis = Math.abs(dx) >= Math.abs(dy) ? 'row' : 'col';
+    const along = axis === 'row' ? dx : dy;
+    const cross = axis === 'row' ? dy : dx;
+    return { dx, dy, axis, dir: along >= 0 ? 1 : -1, travel: Math.abs(along) / g.step, cross: Math.abs(cross) / g.step, index: axis === 'row' ? rowOf(g.cell) : colOf(g.cell) };
+  }
+
+  function onPointerMove(e) {
+    const g = w.gesture;
+    if (!g || e.pointerId !== g.id) return;
+    g.x = e.clientX;
+    g.y = e.clientY;
+    pushSample(g, e);
+    if (g.mode === 'menu') return;
+    const { dx, dy, axis, dir, travel, cross, index } = geometry(g);
+    if (g.mode === 'press') {
+      if (Math.hypot(dx, dy) < TAP_SLOP) return;
+      clearTimeout(g.timer);
+      g.mode = 'drag';
+      if (w.first !== null || w.pending) {
+        w.first = null;
+        w.pending = null;
+        renderBoard();
+        renderStrip();
+      }
+      tileEl(g.cell).classList.add('dragging');
+    }
+    if (g.mode === 'line') {
+      if (travel >= SLIDE_TRAVEL - 0.35 && axis === g.axis && dir === g.dir) return;
+      clearLinePreview(g);
+      g.mode = 'drag';
+      tileEl(g.cell).classList.add('dragging');
+    }
+    // drag mode: the tile follows the finger; far enough along a line and the whole line moves instead
+    if (travel >= SLIDE_TRAVEL && canSlideLine(axis, index)) {
+      const t = tileEl(g.cell);
+      t.classList.remove('dragging');
+      t.style.transform = '';
+      setDropTarget(g, null);
+      g.mode = 'line';
+      g.axis = axis;
+      g.dir = dir;
+      previewLine(g, axis, index, dir);
+      return;
+    }
+    tileEl(g.cell).style.transform = `translate(${dx}px, ${dy}px) scale(1.08)`;
+    const target = travel >= SWAP_TRAVEL && cross < SWAP_CROSS ? neighbourIn(g.cell, axis, dir) : null;
+    setDropTarget(g, target, axis, dir);
+  }
+
+  function setDropTarget(g, cell, axis, dir) {
+    if (g.target === cell) return;
+    if (g.target !== null) {
+      const old = tileEl(g.target);
+      old.classList.remove('drop-target', 'no-drop');
+      old.style.transform = '';
+    }
+    g.target = cell;
+    if (cell === null) return;
+    const t = tileEl(cell);
+    if (swapLegal(g.cell, cell)) {
+      t.classList.add('drop-target');
+      // the neighbour slips into the dragged tile's old place: a preview of the swap
+      t.style.transform = axis === 'row' ? `translate(${-dir * g.step}px, 0)` : `translate(0, ${-dir * g.step}px)`;
+    } else {
+      t.classList.add('no-drop');
     }
   }
 
-  function showNudgePop(cell) {
-    const pop = $('#w-nudge-pop');
-    const tile = tileEl(cell);
-    const wrap = boardEl.parentElement;
-    const tr = tile.getBoundingClientRect();
-    const wr = wrap.getBoundingClientRect();
-    pop.hidden = false;
-    const popW = pop.offsetWidth || 120;
-    const popH = pop.offsetHeight || 48;
-    let left = tr.left - wr.left + tr.width / 2;
-    left = Math.max(popW / 2 + 4, Math.min(wr.width - popW / 2 - 4, left));
-    let top = tr.top - wr.top - popH - 6;
-    if (top < 0) top = tr.bottom - wr.top + 6;
-    pop.style.left = `${left}px`;
-    pop.style.top = `${top}px`;
+  function previewLine(g, axis, index, dir) {
+    const moves = slideMoves(w.game.state, { type: 'slide', axis, index, dir });
+    g.preview = { axis, index, undo: beginMoves(boardEl, moves) };
   }
 
-  function hideNudgePop() {
-    $('#w-nudge-pop').hidden = true;
+  function clearLinePreview(g) {
+    if (!g.preview) return;
+    g.preview.undo();
+    g.preview = null;
   }
+
+  /** Signed velocity along the gesture's main axis over the last ~80 ms, in px per ms. */
+  function releaseVelocity(g, axis) {
+    const s = g.samples;
+    const last = s[s.length - 1];
+    let first = s[0];
+    for (let i = s.length - 2; i >= 0; i--) {
+      first = s[i];
+      if (last.t - s[i].t >= 80) break;
+    }
+    const dt = last.t - first.t;
+    if (dt < 1) return 0;
+    return ((axis === 'row' ? last.x - first.x : last.y - first.y)) / dt;
+  }
+
+  function endGesture(e) {
+    const g = w.gesture;
+    if (!g || e.pointerId !== g.id) return null;
+    w.gesture = null;
+    clearTimeout(g.timer);
+    try {
+      boardEl.releasePointerCapture(e.pointerId);
+    } catch {
+      // nothing to release
+    }
+    w.pointerTs = performance.now();
+    return g;
+  }
+
+  function snapBack(g) {
+    const t = tileEl(g.cell);
+    t.classList.remove('dragging');
+    t.style.transform = '';
+    setDropTarget(g, null);
+    clearLinePreview(g);
+  }
+
+  function onPointerUp(e) {
+    const g = endGesture(e);
+    if (!g || g.mode === 'menu') return;
+    if (g.mode === 'press') {
+      onTileTap(g.cell);
+      return;
+    }
+    g.x = e.clientX;
+    g.y = e.clientY;
+    pushSample(g, e);
+    const { axis, dir, travel, cross, index } = geometry(g);
+    const v = releaseVelocity(g, axis);
+    const flick = Math.abs(v) >= FLICK_VELOCITY && Math.sign(v) === dir && travel >= 0.2;
+    const t = tileEl(g.cell);
+    if (g.mode === 'line' || flick) {
+      if (canSlideLine(axis, index)) {
+        if (g.mode !== 'line') setDropTarget(g, null);
+        t.classList.remove('dragging');
+        if (g.mode !== 'line') t.style.transform = '';
+        doAction({ type: 'slide', axis, index, dir }, { previewed: g.mode === 'line' });
+      } else {
+        snapBack(g);
+        shakeCells(axis === 'row' ? Array.from({ length: SIZE }, (_, k) => idx(index, k)) : Array.from({ length: SIZE }, (_, k) => idx(k, index)));
+        play('buzz');
+        say('That line is locked in place', 'bad');
+      }
+      return;
+    }
+    const target = travel >= SWAP_TRAVEL && cross < SWAP_CROSS ? neighbourIn(g.cell, axis, dir) : null;
+    if (target !== null && swapLegal(g.cell, target)) {
+      t.classList.remove('dragging');
+      doAction({ type: 'swap', r: rowOf(g.cell), c: colOf(g.cell), r2: rowOf(target), c2: colOf(target) });
+      return;
+    }
+    snapBack(g);
+    if (target !== null) {
+      shakeCells([g.cell, target]);
+      play('buzz');
+      say('Locked tiles cannot be swapped', 'bad');
+    }
+  }
+
+  function onPointerCancel(e) {
+    const g = endGesture(e);
+    if (!g || g.mode === 'menu') return;
+    snapBack(g);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Long-press menu: nudge down / nudge up / draw / wild
+
+  function openMenuFromGesture(cell) {
+    const g = w.gesture;
+    if (!g || g.cell !== cell || g.mode !== 'press') return;
+    g.mode = 'menu';
+    openMenu(cell);
+  }
+
+  function openMenu(cell) {
+    if (!canInteract()) return;
+    const st = w.game.state;
+    const ch = st.board[cell];
+    const locked = st.locked.includes(cell);
+    w.menuCell = cell;
+    w.first = null;
+    renderBoard();
+    renderStrip();
+    const menu = $('#w-tilemenu');
+    const isWild = ch === WILD;
+    menu.querySelector('[data-act="nudge-down"]').hidden = isWild;
+    menu.querySelector('[data-act="nudge-up"]').hidden = isWild;
+    if (!isWild) {
+      $('#tm-prev').textContent = nudgeLetter(ch, -1);
+      $('#tm-next').textContent = nudgeLetter(ch, 1);
+    }
+    $('#tm-draw-sub').textContent = `draw · ${bagTotal(st.bag)}`;
+    menu.querySelector('[data-act="wild"]').hidden = !(locked && !isWild && st.turns + WILD_COST <= WORD_TURNS);
+    menu.hidden = false;
+    $('#w-menu-backdrop').hidden = false;
+    tileEl(cell).classList.add('selected');
+    positionMenu();
+    play('tap');
+    if (navigator.vibrate) {
+      try {
+        navigator.vibrate(12);
+      } catch {
+        // optional
+      }
+    }
+  }
+
+  function positionMenu() {
+    const menu = $('#w-tilemenu');
+    if (menu.hidden || w.menuCell === null) return;
+    const tr = tileEl(w.menuCell).getBoundingClientRect();
+    const wr = wrapEl.getBoundingClientRect();
+    const mw = menu.offsetWidth || 200;
+    const mh = menu.offsetHeight || 72;
+    const cx = tr.left - wr.left + tr.width / 2;
+    const left = Math.max(mw / 2 + 2, Math.min(wr.width - mw / 2 - 2, cx));
+    let top = tr.top - wr.top - mh - 12;
+    const below = top < 0;
+    if (below) top = tr.bottom - wr.top + 12;
+    menu.classList.toggle('below', below);
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+    menu.style.setProperty('--caret', `${Math.max(14, Math.min(mw - 14, cx - (left - mw / 2)))}px`);
+  }
+
+  function closeMenu() {
+    const menu = $('#w-tilemenu');
+    if (menu.hidden) return;
+    menu.hidden = true;
+    $('#w-menu-backdrop').hidden = true;
+    if (w.menuCell !== null) tileEl(w.menuCell).classList.remove('selected');
+    w.menuCell = null;
+  }
+
+  function onMenuAction(act) {
+    const cell = w.menuCell;
+    closeMenu();
+    if (cell === null) return;
+    const r = rowOf(cell);
+    const c = colOf(cell);
+    if (act === 'nudge-down') doAction({ type: 'nudge', r, c, delta: -1 });
+    else if (act === 'nudge-up') doAction({ type: 'nudge', r, c, delta: 1 });
+    else if (act === 'draw') doAction({ type: 'draw', r, c });
+    else if (act === 'wild') doAction({ type: 'wild', r, c });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Actions
 
   function snapshotForUndo(state) {
     return JSON.parse(JSON.stringify(state));
   }
 
-  async function doAction(action) {
-    if (!canAct()) return;
+  async function doAction(action, { previewed = false } = {}) {
+    if (!canInteract()) return;
     const before = w.game.state;
     let next;
     try {
       next = applyWordAction(before, action);
     } catch (e) {
-      ctx.showToast(e.message);
+      renderBoard();
+      say(e.message, 'bad');
       return;
     }
     // A draw is random, so it cannot be undone; anything else can (once per game).
     w.game.prev = action.type === 'draw' ? null : snapshotForUndo(before);
     w.game.state = next;
     persist();
-    hideNudgePop();
-    $('#w-draw-confirm').hidden = true;
-    w.selected = null;
+    w.first = null;
+    w.pending = null;
     w.animating = true;
     play(action.type === 'nudge' ? (action.delta === -1 ? 'nudgeDown' : 'nudge') : action.type);
-    if (action.type === 'slide') await animateMoves(boardEl, slideMoves(before, action));
+    if (action.type === 'slide') await (previewed ? wait(ANIM_MS / 2) : animateMoves(boardEl, slideMoves(before, action)));
     else if (action.type === 'wild') {
       const t = tileEl(idx(action.r, action.c));
       t.classList.add('wild-pop');
@@ -483,68 +857,72 @@ export function initWordMode(ctx) {
     } else await animateAction(boardEl, action, before.board, next.board, setFace);
     w.animating = false;
     renderAll();
-    if (action.type === 'draw' && next.lastDraw) ctx.showToast(`Drew ${next.lastDraw.drawn}; the ${next.lastDraw.tossed === WILD ? 'wild' : next.lastDraw.tossed} went into the bag.`);
-    if (goalReached()) return; // the level bar has taken over
-    if (next.turns >= WORD_TURNS) {
-      setMode(null);
-      if (isLevels()) finish(true); // run over: below the goal with no turns left
-      else ctx.showToast('No turns left. Press Score to finish (or Undo the last move).', 3500);
+    if (action.type === 'draw' && next.lastDraw) {
+      const d = next.lastDraw;
+      floatAt(d.cell, `${d.tossed === WILD ? '★' : d.tossed} → ${d.drawn}`, 'neutral');
     }
+    afterTurn(next, 0);
   }
 
-  function lockPending() {
-    if (!w.pending) return;
-    const cand = w.pending;
+  function commitLock(cand) {
+    if (!cand || !canInteract()) return;
     let next;
     try {
       next = lockWord(w.game.state, cand);
     } catch (e) {
-      ctx.showToast(e.message);
       setPending(null);
+      say(e.message, 'bad');
       return;
     }
     w.game.prev = snapshotForUndo(w.game.state);
     w.game.state = next;
     w.pending = null;
-    $('#w-lock-confirm').hidden = true;
+    w.first = null;
     persist();
     renderAll();
     play('lock');
-    cand.cells.forEach((c, i) => setTimeout(() => tileEl(c).classList.add('lock-pop'), i * 70));
-    ctx.showToast(`${cand.word} locked for ${cand.score}.`);
-    if (goalReached()) return; // level passed: the bar shows Next level
+    const motion = reduceMotion() ? 0 : 60;
+    cand.cells.forEach((c, i) => setTimeout(() => tileEl(c).classList.add('lock-pop'), i * motion));
+    floatAt(cand.cells[Math.floor(cand.cells.length / 2)], `${cand.word} +${cand.score}`, 'good');
+    afterTurn(next, cand.cells.length * motion);
+  }
+
+  /** What happens once a turn is spent: the level bar takes over, the board fills, or the turns run out. */
+  function afterTurn(next, delay) {
+    if (goalReached()) return; // the level bar shows Next level
     if (isBoardFull(next)) {
-      // the whole board is locked: nothing else can score, so end the round now
       const bonus = fullCoverTurnBonus(next);
-      if (bonus) ctx.showToast(`Board complete with ${WORD_TURNS - next.turns} turns to spare: +${bonus}!`, 2500);
+      say(bonus ? `Board complete with ${WORD_TURNS - next.turns} turns to spare: +${bonus}!` : 'Board complete!', 'good', 4000);
       w.animating = true;
       setTimeout(() => {
         w.animating = false;
         finish(true);
-      }, 700 + cand.cells.length * 70);
+      }, 900 + delay);
       return;
     }
-    if (next.turns >= WORD_TURNS) {
-      setMode(null);
-      if (isLevels()) finish(true);
-      else ctx.showToast('No turns left. Press Score to finish (or Undo the last move).', 3500);
+    if (next.turns >= WORD_TURNS && isLevels()) {
+      w.animating = true;
+      setTimeout(() => {
+        w.animating = false;
+        finish(true); // run over: below the goal with no turns left
+      }, 500 + delay);
     }
+    // free play: the strip offers Score board / Undo
   }
 
   function undo() {
     const g = w.game;
     if (!g || w.over || w.animating || !g.prev || g.undoUsed || g.mode === 'levels') return;
-    if (!confirm('Undo your last move? You get one undo per game.')) return;
     g.state = g.prev;
     g.prev = null;
     g.undoUsed = true;
     persist();
     play('undo');
-    w.selected = null;
-    setPending(null);
-    setMode(null);
+    w.first = null;
+    w.pending = null;
+    closeMenu();
     renderAll();
-    ctx.showToast('Last move undone.');
+    say('Last move undone', '', 1800);
   }
 
   // ---------------------------------------------------------------------------
@@ -557,8 +935,7 @@ export function initWordMode(ctx) {
     const level = g.level;
     const score = finalScore(g.state);
     finish(true, true);
-    ctx.showToast(`Level ${level} passed with ${score}. On to level ${level + 1}!`, 2500);
-    start(false, { mode: 'levels', level: level + 1 });
+    start(false, { mode: 'levels', level: level + 1, note: `Level ${level} passed with ${score} · now level ${level + 1}` });
   }
 
   function finish(auto = false, silent = false) {
@@ -569,8 +946,10 @@ export function initWordMode(ctx) {
     ensureGoalNow(g);
     w.over = true;
     w.lastBoard = { seed: g.seed, drawSeed: g.drawSeed };
-    setPending(null);
-    hideNudgePop();
+    w.pending = null;
+    w.first = null;
+    closeMenu();
+    clearTransient();
     const bonus = coverageBonus(st.locked.length);
     const turnBonus = fullCoverTurnBonus(st);
     const penalty = shortfallPenalty(st.locked.length);
@@ -597,9 +976,11 @@ export function initWordMode(ctx) {
     }
     store.wordGame = null;
     ctx.saveStore(store);
+    if (silent) return;
 
-    $('#w-action-panel').hidden = true;
+    $('#w-strip').hidden = true;
     $('#w-found-wrap').hidden = true;
+    $('#w-bag').hidden = true;
     $('#w-result').hidden = false;
     $('#screen-word').classList.add('over');
     // Score breakdown: words [+ bonus] [+ unused turns] [- penalty] = total
@@ -644,19 +1025,18 @@ export function initWordMode(ctx) {
       line = isBest ? 'New personal best!' : `Personal best: ${store.word.best}.`;
     }
     if (g.mode === 'levels' && g.replay) line += ' Replay: not counted.';
-    if (silent) return;
-    const levelsFail = g.mode === 'levels';
-    $('#w-tally').hidden = levelsFail; // no end-of-board summary in a level run
-    $('#w-share').hidden = levelsFail;
-    play(g.mode === 'levels' ? (passed ? 'fanfare' : 'fail') : st.locked.length === 25 ? 'fanfare' : 'lock');
+    const levelsRun = g.mode === 'levels';
+    $('#w-tally').hidden = levelsRun; // no end-of-board summary in a level run
+    $('#w-share').hidden = levelsRun;
+    play(levelsRun ? (passed ? 'fanfare' : 'fail') : st.locked.length === 25 ? 'fanfare' : 'lock');
     $('#w-result-title').textContent = title;
     $('#w-result-best').textContent = line;
-    w.shareText = (g.mode === 'levels' ? `Level ${g.level} ${passed ? 'passed' : 'failed'} · ` : '') + wordShareLine(total, st.words);
-    const showNext = g.mode === 'levels' && passed && !g.replay;
+    w.shareText = (levelsRun ? `Level ${g.level} ${passed ? 'passed' : 'failed'} · ` : '') + wordShareLine(total, st.words);
+    const showNext = levelsRun && passed && !g.replay;
     $('#w-next').hidden = !showNext;
     $('#w-again').hidden = showNext; // Next level takes its slot
-    $('#w-replay').hidden = g.mode === 'levels'; // replays are a free-play feature
-    $('#w-again').textContent = g.mode === 'levels' ? 'New game' : 'New board';
+    $('#w-replay').hidden = levelsRun; // replays are a free-play feature
+    $('#w-again').textContent = levelsRun ? 'New game' : 'New board';
     $('#w-locked').hidden = true;
     w.nextLevel = passed ? g.level + 1 : 1;
     renderHud();
@@ -665,7 +1045,7 @@ export function initWordMode(ctx) {
     renderLocked();
   }
 
-  /** Popup with the score composition as it stands now (tap on the goal bar). */
+  /** Popup with the score composition as it stands now (tap on the goal bar or the score). */
   function showScorePop() {
     if (!w.game) return;
     const st = w.game.state;
@@ -694,21 +1074,10 @@ export function initWordMode(ctx) {
 
   function showWordsPop() {
     const st = w.game.state;
-    const pop = $('#w-words-pop');
-    pop.innerHTML = st.words.length
+    showPop(st.words.length
       ? st.words.map((x) => `<b>${x.word}</b> ${x.score}`).join(' · ') + ` <span style="opacity:.7">· ${st.locked.length}/25 tiles</span>`
-      : 'No words were locked.';
-    pop.hidden = false;
-    clearTimeout(popTimer);
-    popTimer = setTimeout(() => (pop.hidden = true), 4000);
+      : 'No words were locked.');
   }
-  $('#w-words-pop').addEventListener('click', () => ($('#w-words-pop').hidden = true));
-  $('#w-goalbar').addEventListener('click', (e) => {
-    if (e.target.closest('#w-advance')) return;
-    showScorePop();
-  });
-  $('#w-advance').addEventListener('click', advanceEarly);
-  $('#w-score').parentElement.addEventListener('click', showScorePop);
 
   async function copyShare() {
     const text = w.shareText || '';
@@ -720,53 +1089,60 @@ export function initWordMode(ctx) {
       await navigator.clipboard.writeText(text);
       ctx.showToast('Copied to clipboard.');
     } catch {
-      ctx.showToast('Select and copy the text above.');
+      ctx.showToast('Could not share; the result is in your history.');
     }
   }
 
   // ---------------------------------------------------------------------------
   // Events
 
-  for (const b of document.querySelectorAll('#w-modes .mode')) {
-    b.addEventListener('click', () => setMode(w.mode === b.dataset.mode ? null : b.dataset.mode));
-  }
+  boardEl.addEventListener('pointerdown', onPointerDown);
+  boardEl.addEventListener('pointermove', onPointerMove);
+  boardEl.addEventListener('pointerup', onPointerUp);
+  boardEl.addEventListener('pointercancel', onPointerCancel);
+  boardEl.addEventListener('contextmenu', (e) => e.preventDefault());
   boardEl.addEventListener('click', (e) => {
-    const arrow = e.target.closest('.arrow');
-    if (arrow) {
-      if (!canAct() || w.mode !== 'slide') return;
-      if (w.pending) setPending(null);
-      doAction({ type: 'slide', axis: arrow.dataset.axis, index: Number(arrow.dataset.index), dir: Number(arrow.dataset.dir) });
-      return;
-    }
+    // keyboard activation only: pointer taps are handled in pointerup
+    if (performance.now() - w.pointerTs < 600) return;
     const tile = e.target.closest('.tile');
     if (tile) onTileTap(Number(tile.dataset.cell));
   });
-  for (const b of document.querySelectorAll('#w-nudge-pop .nudge-btn:not(.wild-btn)')) {
-    b.addEventListener('click', () => {
-      if (w.selected === null) return;
-      const cell = w.selected;
-      doAction({ type: 'nudge', r: rowOf(cell), c: colOf(cell), delta: Number(b.dataset.delta) });
-    });
-  }
-  $('#w-wild-btn').addEventListener('click', () => {
-    if (w.selected === null) return;
-    const cell = w.selected;
-    doAction({ type: 'wild', r: rowOf(cell), c: colOf(cell) });
+  boardEl.addEventListener('keydown', (e) => {
+    // keyboard: Enter/Space taps (native click); M or the context-menu key opens the tile menu
+    const tile = e.target.closest('.tile');
+    if (!tile) return;
+    if (e.key === 'm' || e.key === 'M' || e.key === 'ContextMenu') {
+      e.preventDefault();
+      openMenu(Number(tile.dataset.cell));
+    }
   });
-  $('#w-draw-cancel').addEventListener('click', () => {
-    w.selected = null;
-    $('#w-draw-confirm').hidden = true;
-    renderBoard();
+  $('#w-menu-backdrop').addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    closeMenu();
+  });
+  for (const b of document.querySelectorAll('#w-tilemenu .tm-btn')) b.addEventListener('click', () => onMenuAction(b.dataset.act));
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || $('#screen-word').hidden) return;
+    if (!$('#w-tilemenu').hidden) closeMenu();
+    else if (w.first !== null || w.pending) {
+      w.first = null;
+      w.pending = null;
+      renderBoard();
+      renderStrip();
+    }
+  });
+  $('#w-words-pop').addEventListener('click', () => ($('#w-words-pop').hidden = true));
+  $('#w-goalbar').addEventListener('click', (e) => {
+    if (e.target.closest('#w-advance')) return;
+    showScorePop();
+  });
+  $('#w-advance').addEventListener('click', advanceEarly);
+  $('#w-score-item').addEventListener('click', showScorePop);
+  $('#w-bag-btn').addEventListener('click', () => {
+    w.showBag = !w.showBag;
+    renderHud();
     renderBag();
   });
-  $('#w-draw-ok').addEventListener('click', () => {
-    if (w.selected === null) return;
-    const cell = w.selected;
-    doAction({ type: 'draw', r: rowOf(cell), c: colOf(cell) });
-  });
-  $('#w-lock-cancel').addEventListener('click', () => setPending(null));
-  $('#w-lock-ok').addEventListener('click', lockPending);
-  $('#w-finish').addEventListener('click', finish);
   $('#w-undo').addEventListener('click', undo);
   $('#w-share').addEventListener('click', copyShare);
   $('#w-next').addEventListener('click', () => start(false, { mode: 'levels', level: w.nextLevel || 1 }));
@@ -783,11 +1159,12 @@ export function initWordMode(ctx) {
     w.game = null;
     ctx.showHome();
   });
-  $('#w-quit').addEventListener('click', () => ctx.showHome());
-  $('#w-help').addEventListener('click', ctx.openHelp);
-  window.addEventListener('resize', () => {
-    if (!$('#w-nudge-pop').hidden && w.selected !== null) showNudgePop(w.selected);
+  $('#w-quit').addEventListener('click', () => {
+    closeMenu();
+    ctx.showHome();
   });
+  $('#w-help').addEventListener('click', ctx.openHelp);
+  window.addEventListener('resize', positionMenu);
 
-  return { start, state: w };
+  return { start, state: w, render: renderAll };
 }
