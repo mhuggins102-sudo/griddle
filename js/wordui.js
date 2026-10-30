@@ -116,7 +116,7 @@ export function initWordMode(ctx) {
     };
     const fallback = () => {
       try {
-        const { board, bag } = dealLetters(game.seed);
+        const { board, bag } = dealLetters(game.seed, game.size);
         apply(botPlay(board, bag, w.dict));
       } catch (e) {
         ctx.showToast('Could not compute a goal for this board.');
@@ -147,7 +147,7 @@ export function initWordMode(ctx) {
         };
         w.pendingJobs = new Map();
       }
-      const { board, bag } = dealLetters(game.seed);
+      const { board, bag } = dealLetters(game.seed, game.size);
       w.pendingJobs.set(job, { apply, fallback });
       w.worker.postMessage({ id: job, board, bag });
     } catch {
@@ -159,7 +159,7 @@ export function initWordMode(ctx) {
   function ensureGoalNow(game) {
     if (game.mode !== 'levels' || game.botScore !== null) return;
     try {
-      const { board, bag } = dealLetters(game.seed);
+      const { board, bag } = dealLetters(game.seed, game.size);
       const result = botPlay(board, bag, w.dict);
       game.botScore = result.banked;
       game.botFinal = result.score;
