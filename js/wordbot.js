@@ -6,14 +6,18 @@ import {
   dealLetters, createWordState, applyWordAction, findWords, lockWord, finalScore, isLocked, isBoardFull, turnLimit,
 } from './words.js';
 
-/** Goal for a level as a share of the bot's banked word points (its fill bonuses excluded): 50% at level 1, +4% per level, 100% from level 14. */
+/**
+ * Goal for a level as a share of the bot's banked word points (its fill bonuses excluded): 50% at level 1
+ * and 5 points more per level, with no cap (100% at level 11, 150% at level 21), so the player's own
+ * coverage and spare-turn bonuses are what carry a run past the bot.
+ */
 export const GOAL_START_PERCENT = 50;
-export const GOAL_STEP_PERCENT = 4;
+export const GOAL_STEP_PERCENT = 5;
 export function goalPercent(level) {
-  return Math.min(100, GOAL_START_PERCENT + GOAL_STEP_PERCENT * (level - 1));
+  return GOAL_START_PERCENT + GOAL_STEP_PERCENT * (level - 1);
 }
 
-/** The level goal: the percentage of the bot's banked points, rounded up to the nearest 10, at least 10. */
+/** The level goal: the percentage of the bot's banked points (above 100% from level 12), rounded up to the nearest 10, at least 10. */
 export function goalFor(level, botScore) {
   return Math.max(10, Math.ceil((botScore * goalPercent(level)) / 100 / 10) * 10);
 }

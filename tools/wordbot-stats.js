@@ -47,4 +47,4 @@ const mix = {};
 for (const r of rows) for (const n of r.lengths) mix[n] = (mix[n] || 0) + 1;
 const totalWords = rows.reduce((a, r) => a + r.lengths.length, 0);
 console.log('word lengths   ' + Object.keys(mix).sort().map((n) => `${n}-letter ${(100 * mix[n] / totalWords).toFixed(0)}% (${(mix[n] / rows.length).toFixed(1)} per board)`).join('  '));
-console.log('goal by level  ' + [1, 3, 5, 8, 10, 12, 14].map((L) => `L${L} ${mean(rows.map((r) => goalFor(L, r.banked))).toFixed(0)}`).join('  ') + '   (from banked word points, as the game does)');
+console.log('goal by level  ' + [1, 5, 8, 11, 15, 18, 21, 25].map((L) => `L${L} ${mean(rows.map((r) => goalFor(L, r.banked))).toFixed(0)}`).join('  ') + '   (from banked word points, as the game does)');
