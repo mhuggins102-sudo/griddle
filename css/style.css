@@ -73,7 +73,12 @@ body {
   -webkit-tap-highlight-color: transparent;
   overflow-x: hidden;
   line-height: 1.35;
+  /* no text selection, callout or magnifier on a long press anywhere in the app (the help text opts back in) */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
+.sheet-body p, .sheet-body li, .sheet-body td, .share code { user-select: text; -webkit-user-select: text; }
 button { font: inherit; color: inherit; }
 svg { display: block; }
 
@@ -150,9 +155,13 @@ svg { display: block; }
 .btn-big .btn-main { font-size: 18px; font-weight: 700; }
 .btn-big .btn-sub { font-size: 12.5px; font-weight: 500; opacity: 0.75; }
 .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn-row.three { grid-template-columns: 1fr 1fr 52px; }
+.btn-gear { padding: 0; display: grid; place-items: center; }
+.btn-gear svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
-.settings { padding: 2px 14px; }
-.toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; cursor: pointer; }
+.settings { padding: 0; }
+.sheet .footnote { margin: 12px 0 14px; }
+.toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; cursor: pointer; }
 .toggle + .toggle { border-top: 1px solid var(--line); }
 .toggle small { display: block; color: var(--muted); font-size: 12.5px; }
 .switch {
