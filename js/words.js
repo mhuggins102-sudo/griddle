@@ -9,6 +9,8 @@ import { gridOf, gridOfState, sizeOfBoard, MIN_WORD } from './grid.js';
 export { MIN_WORD, gridOf, gridOfState };
 
 export const WILD = '*';
+/** Bump when data/words.txt changes: it is part of the fetch URL, so browsers never keep a stale list. */
+export const DICT_VERSION = '2026-10-30-enable36';
 export const SIZES = [5, 6];
 export const MAX_WORD = 6;
 /** Turns per board size. WORD_TURNS is the 5x5 value, kept for callers that assume it. */
