@@ -40,6 +40,7 @@ export function initWordMode(ctx) {
     transient: null, // { text, cls } shown in the strip for a moment
     transientTimer: null,
     gesture: null,
+    finishTimer: null, // a deferred end-of-board finish, bound to the game it was scheduled for
     menuCell: null,
     pointerTs: 0,
     worker: null,
@@ -81,6 +82,7 @@ export function initWordMode(ctx) {
   }
 
   function persist() {
+    if (w.over) return; // a finished board has already been recorded and cleared from the store
     ctx.store.wordGame = w.game;
     ctx.saveStore(ctx.store);
   }
@@ -92,13 +94,13 @@ export function initWordMode(ctx) {
     if (game.mode !== 'levels' || game.botScore !== null) return;
     const job = ++w.workerJob;
     const apply = (result) => {
-      if (w.game !== game || job !== w.workerJob) return;
+      // ignore a late reply: the board may have finished (and computed its goal itself) meanwhile
+      if (w.game !== game || job !== w.workerJob || w.over || game.botScore !== null) return;
       game.botScore = result.score;
       game.botWords = result.words.map((x) => x.word);
       game.goal = goalFor(game.level, result.score);
       persist();
-      renderLocked();
-      renderStrip();
+      renderAll(); // the goal may already be met: the bar lights up and the board greys out
     };
     const fallback = () => {
       try {
@@ -108,7 +110,8 @@ export function initWordMode(ctx) {
         ctx.showToast('Could not compute a goal for this board.');
       }
     };
-    if (typeof Worker === 'undefined') return fallback();
+    // without a Worker the bot runs on the main thread: let the board paint first
+    if (typeof Worker === 'undefined') return void setTimeout(fallback, 0);
     try {
       if (!w.worker) {
         w.worker = new Worker(new URL('./wordbot-worker.js', import.meta.url), { type: 'module' });
@@ -122,6 +125,11 @@ export function initWordMode(ctx) {
         w.worker.onerror = () => {
           const jobs = w.pendingJobs;
           w.pendingJobs = new Map();
+          try {
+            w.worker.terminate();
+          } catch {
+            // already gone
+          }
           w.worker = null;
           for (const p of jobs.values()) p.fallback();
         };
@@ -138,11 +146,19 @@ export function initWordMode(ctx) {
   /** Make sure the goal is known before scoring a levels game (synchronous fallback). */
   function ensureGoalNow(game) {
     if (game.mode !== 'levels' || game.botScore !== null) return;
-    const { board, bag } = dealLetters(game.seed);
-    const result = botPlay(board, bag, w.dict);
-    game.botScore = result.score;
-    game.botWords = result.words.map((x) => x.word);
-    game.goal = goalFor(game.level, result.score);
+    try {
+      const { board, bag } = dealLetters(game.seed);
+      const result = botPlay(board, bag, w.dict);
+      game.botScore = result.score;
+      game.botWords = result.words.map((x) => x.word);
+      game.goal = goalFor(game.level, result.score);
+    } catch (e) {
+      // the bot failed (it should never: it is pure): do not strand the run on an unscorable board
+      game.botScore = 0;
+      game.botWords = [];
+      game.goal = 10;
+      ctx.showToast('Could not compute a goal for this board; the level counts as passed.', 4000);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -186,6 +202,8 @@ export function initWordMode(ctx) {
     w.pending = null;
     w.showBag = false;
     w.gesture = null;
+    clearTimeout(w.finishTimer);
+    w.finishTimer = null;
     clearTransient();
     closeMenu();
     ctx.showScreen('screen-word');
@@ -198,6 +216,9 @@ export function initWordMode(ctx) {
     if (opts.note) say(opts.note, 'good', 2800);
     else if (opts.replay) say('Replaying this board · not counted in your stats', '', 3000);
     computeGoal(w.game);
+    // a board saved in its last moment (full, or a level run out of turns) is scored straight away
+    const st = w.game.state;
+    if (!goalReached() && (isBoardFull(st) || (st.turns >= WORD_TURNS && isLevels()))) finish(true);
   }
 
   // ---------------------------------------------------------------------------
@@ -334,6 +355,7 @@ export function initWordMode(ctx) {
       bar.classList.add('celebrate');
       setTimeout(() => bar.classList.remove('celebrate'), 800);
       play('win');
+      renderBoard(); // the goal may have landed from the worker mid-board: grey the tiles out now
     }
     bar.classList.toggle('reached', reached);
     $('#w-advance').hidden = !(reached && !w.over);
@@ -830,7 +852,10 @@ export function initWordMode(ctx) {
   }
 
   async function doAction(action, { previewed = false } = {}) {
-    if (!canInteract()) return;
+    if (!canInteract()) {
+      renderBoard(); // drop any drag or preview visuals
+      return;
+    }
     const before = w.game.state;
     let next;
     try {
@@ -887,26 +912,37 @@ export function initWordMode(ctx) {
     afterTurn(next, cand.cells.length * motion);
   }
 
+  /** Finish the current board after a short pause for the animations; cancelled if the game changes. */
+  function finishSoon(ms) {
+    const game = w.game;
+    w.animating = true;
+    clearTimeout(w.finishTimer);
+    w.finishTimer = setTimeout(() => {
+      w.finishTimer = null;
+      w.animating = false;
+      if (w.game === game && !w.over) finish(true);
+    }, ms);
+  }
+
+  /** Score a board whose end was still pending (used when leaving the screen inside that pause). */
+  function flushFinish() {
+    if (!w.finishTimer) return;
+    clearTimeout(w.finishTimer);
+    w.finishTimer = null;
+    w.animating = false;
+    if (w.game && !w.over) finish(true, true);
+  }
+
   /** What happens once a turn is spent: the level bar takes over, the board fills, or the turns run out. */
   function afterTurn(next, delay) {
     if (goalReached()) return; // the level bar shows Next level
     if (isBoardFull(next)) {
       const bonus = fullCoverTurnBonus(next);
       say(bonus ? `Board complete with ${WORD_TURNS - next.turns} turns to spare: +${bonus}!` : 'Board complete!', 'good', 4000);
-      w.animating = true;
-      setTimeout(() => {
-        w.animating = false;
-        finish(true);
-      }, 900 + delay);
+      finishSoon(1600 + delay);
       return;
     }
-    if (next.turns >= WORD_TURNS && isLevels()) {
-      w.animating = true;
-      setTimeout(() => {
-        w.animating = false;
-        finish(true); // run over: below the goal with no turns left
-      }, 500 + delay);
-    }
+    if (next.turns >= WORD_TURNS && isLevels()) finishSoon(500 + delay); // run over: below the goal with no turns left
     // free play: the strip offers Score board / Undo
   }
 
@@ -1161,6 +1197,7 @@ export function initWordMode(ctx) {
   });
   $('#w-quit').addEventListener('click', () => {
     closeMenu();
+    flushFinish();
     ctx.showHome();
   });
   $('#w-help').addEventListener('click', ctx.openHelp);

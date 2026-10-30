@@ -6,8 +6,14 @@ let dictPromise = null;
 function dict() {
   if (!dictPromise) {
     dictPromise = fetch(new URL('../data/words.txt', import.meta.url), { cache: 'force-cache' })
-      .then((r) => r.text())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.text();
+      })
       .then(parseDictionary);
+    dictPromise.catch(() => {
+      dictPromise = null; // try again on the next job instead of failing forever
+    });
   }
   return dictPromise;
 }

@@ -90,10 +90,12 @@ function showHome() {
   }
   const w = s.word || { gamesPlayed: 0, best: null };
   const stats = $('#home-stats');
-  stats.hidden = !w.gamesPlayed;
-  if (w.gamesPlayed) {
+  const numberStats = SHOW_NUMBER_GAME && s.gamesPlayed;
+  stats.hidden = !w.gamesPlayed && !numberStats;
+  if (!stats.hidden) {
     const stat = (label, value) => `<div class="stat"><span class="hud-label">${label}</span><span class="hud-value">${value}</span></div>`;
-    stats.innerHTML = stat('Boards', w.gamesPlayed) + stat('Best score', w.best) + stat('Top level', w.bestLevel || '–');
+    stats.innerHTML = w.gamesPlayed ? stat('Boards', w.gamesPlayed) + stat('Best score', w.best) + stat('Top level', w.bestLevel || '–') : '';
+    if (numberStats) stats.innerHTML += stat('Number game', `${s.gamesPlayed} · best ${s.bestTotal}`);
   }
   showScreen('screen-home');
 }

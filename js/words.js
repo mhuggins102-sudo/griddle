@@ -354,7 +354,7 @@ export function findWords(state, dict) {
       }
     }
   }
-  out.sort((a, b) => b.score - a.score || a.word.localeCompare(b.word));
+  out.sort((a, b) => b.score - a.score || (a.word < b.word ? -1 : a.word > b.word ? 1 : 0)); // code-point order: the same on every device
   return out;
 }
 
