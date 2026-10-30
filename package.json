@@ -1,7 +1,7 @@
 {
-  "name": "grid-bid",
+  "name": "gridlock",
   "version": "0.1.0",
-  "description": "Grid Bid: a 5x5 tile puzzle where you bid on how many turns you need.",
+  "description": "GridLock: a 5x5 word puzzle. Slide, swap and nudge letters into words and lock them in before the turns run out.",
   "type": "module",
   "private": true,
   "scripts": {

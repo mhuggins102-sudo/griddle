@@ -96,10 +96,12 @@ export function initWordMode(ctx) {
     const apply = (result) => {
       // ignore a late reply: the board may have finished (and computed its goal itself) meanwhile
       if (w.game !== game || job !== w.workerJob || w.over || game.botScore !== null) return;
-      game.botScore = result.score;
+      game.botScore = result.banked; // the yardstick is the bot's word points, not its fill bonuses
+      game.botFinal = result.score;
       game.botWords = result.words.map((x) => x.word);
-      game.goal = goalFor(game.level, result.score);
+      game.goal = goalFor(game.level, result.banked);
       persist();
+      cancelGesture();
       renderAll(); // the goal may already be met: the bar lights up and the board greys out
     };
     const fallback = () => {
@@ -149,9 +151,10 @@ export function initWordMode(ctx) {
     try {
       const { board, bag } = dealLetters(game.seed);
       const result = botPlay(board, bag, w.dict);
-      game.botScore = result.score;
+      game.botScore = result.banked;
+      game.botFinal = result.score;
       game.botWords = result.words.map((x) => x.word);
-      game.goal = goalFor(game.level, result.score);
+      game.goal = goalFor(game.level, result.banked);
     } catch (e) {
       // the bot failed (it should never: it is pure): do not strand the run on an unscorable board
       game.botScore = 0;
@@ -201,7 +204,7 @@ export function initWordMode(ctx) {
     w.first = null;
     w.pending = null;
     w.showBag = false;
-    w.gesture = null;
+    cancelGesture();
     clearTimeout(w.finishTimer);
     w.finishTimer = null;
     clearTransient();
@@ -491,6 +494,7 @@ export function initWordMode(ctx) {
 
   function onTileTap(cell) {
     if (!canInteract()) return;
+    if (!$('#w-tilemenu').hidden) closeMenu(); // a tap elsewhere dismisses the menu, like the backdrop
     if (w.pending) setPending(null);
     const st = w.game.state;
     if (w.first === null) {
@@ -612,39 +616,50 @@ export function initWordMode(ctx) {
     g.y = e.clientY;
     pushSample(g, e);
     if (g.mode === 'menu') return;
+    if (!canInteract()) {
+      cancelGesture(); // the board changed under the finger (goal reached, board scored)
+      return;
+    }
     const { dx, dy, axis, dir, travel, cross, index } = geometry(g);
     if (g.mode === 'press') {
       if (Math.hypot(dx, dy) < TAP_SLOP) return;
       clearTimeout(g.timer);
       g.mode = 'drag';
+      g.lockedTile = w.game.state.locked.includes(g.cell);
       if (w.first !== null || w.pending) {
         w.first = null;
         w.pending = null;
         renderBoard();
         renderStrip();
       }
-      tileEl(g.cell).classList.add('dragging');
+      if (!g.lockedTile) tileEl(g.cell).classList.add('dragging');
     }
     if (g.mode === 'line') {
       if (travel >= SLIDE_TRAVEL - 0.35 && axis === g.axis && dir === g.dir) return;
       clearLinePreview(g);
       g.mode = 'drag';
-      tileEl(g.cell).classList.add('dragging');
+      if (!g.lockedTile) tileEl(g.cell).classList.add('dragging');
     }
-    // drag mode: the tile follows the finger; far enough along a line and the whole line moves instead
-    if (travel >= SLIDE_TRAVEL && canSlideLine(axis, index)) {
+    // drag mode: the tile follows the finger; far enough along a line (or past the board's edge) the whole line moves instead
+    const br = boardEl.getBoundingClientRect();
+    const beyond = axis === 'row' ? (dir === 1 ? g.x - br.right : br.left - g.x) : dir === 1 ? g.y - br.bottom : br.top - g.y;
+    if ((travel >= SLIDE_TRAVEL || beyond > 0.3 * g.step) && canSlideLine(axis, index)) {
       const t = tileEl(g.cell);
       t.classList.remove('dragging');
       t.style.transform = '';
       setDropTarget(g, null);
       g.mode = 'line';
+      g.hadLine = true;
       g.axis = axis;
       g.dir = dir;
       previewLine(g, axis, index, dir);
       return;
     }
+    if (g.lockedTile) return; // a locked tile cannot be dragged anywhere; only its line can slide
     tileEl(g.cell).style.transform = `translate(${dx}px, ${dy}px) scale(1.08)`;
-    const target = travel >= SWAP_TRAVEL && cross < SWAP_CROSS ? neighbourIn(g.cell, axis, dir) : null;
+    if (g.hadLine && travel < SWAP_TRAVEL) g.hadLine = false; // back at the start: a fresh drag may swap again
+    // after a line preview was shown, pulling back cancels rather than swapping
+    const target = !g.hadLine && travel >= SWAP_TRAVEL && cross < SWAP_CROSS ? neighbourIn(g.cell, axis, dir) : null;
     setDropTarget(g, target, axis, dir);
   }
 
@@ -682,14 +697,28 @@ export function initWordMode(ctx) {
   function releaseVelocity(g, axis) {
     const s = g.samples;
     const last = s[s.length - 1];
-    let first = s[0];
+    let first = s.length > 1 ? s[s.length - 2] : last;
     for (let i = s.length - 2; i >= 0; i--) {
+      if (last.t - s[i].t > 80) break; // a pause before the fling must not dilute the speed
       first = s[i];
-      if (last.t - s[i].t >= 80) break;
     }
     const dt = last.t - first.t;
     if (dt < 1) return 0;
-    return ((axis === 'row' ? last.x - first.x : last.y - first.y)) / dt;
+    return (axis === 'row' ? last.x - first.x : last.y - first.y) / dt;
+  }
+
+  /** Abandon a gesture in flight (the board changed under it, or the screen is leaving). */
+  function cancelGesture() {
+    const g = w.gesture;
+    if (!g) return;
+    w.gesture = null;
+    clearTimeout(g.timer);
+    try {
+      boardEl.releasePointerCapture(g.id);
+    } catch {
+      // nothing captured
+    }
+    if (g.mode === 'drag' || g.mode === 'line') snapBack(g);
   }
 
   function endGesture(e) {
@@ -717,6 +746,10 @@ export function initWordMode(ctx) {
   function onPointerUp(e) {
     const g = endGesture(e);
     if (!g || g.mode === 'menu') return;
+    if (!canInteract()) {
+      snapBack(g);
+      return;
+    }
     if (g.mode === 'press') {
       onTileTap(g.cell);
       return;
@@ -728,7 +761,7 @@ export function initWordMode(ctx) {
     const v = releaseVelocity(g, axis);
     const flick = Math.abs(v) >= FLICK_VELOCITY && Math.sign(v) === dir && travel >= 0.2;
     const t = tileEl(g.cell);
-    if (g.mode === 'line' || flick) {
+    if (g.mode === 'line' || flick || travel >= SLIDE_TRAVEL) {
       if (canSlideLine(axis, index)) {
         if (g.mode !== 'line') setDropTarget(g, null);
         t.classList.remove('dragging');
@@ -742,8 +775,12 @@ export function initWordMode(ctx) {
       }
       return;
     }
+    if (g.hadLine) {
+      snapBack(g); // pulled back after seeing the line move: nothing happens
+      return;
+    }
     const target = travel >= SWAP_TRAVEL && cross < SWAP_CROSS ? neighbourIn(g.cell, axis, dir) : null;
-    if (target !== null && swapLegal(g.cell, target)) {
+    if (target !== null && !g.lockedTile && swapLegal(g.cell, target)) {
       t.classList.remove('dragging');
       doAction({ type: 'swap', r: rowOf(g.cell), c: colOf(g.cell), r2: rowOf(target), c2: colOf(target) });
       return;
@@ -774,6 +811,7 @@ export function initWordMode(ctx) {
 
   function openMenu(cell) {
     if (!canInteract()) return;
+    if (w.gesture && w.gesture.mode !== 'menu') cancelGesture(); // opened from the keyboard mid-drag
     const st = w.game.state;
     const ch = st.board[cell];
     const locked = st.locked.includes(cell);
@@ -790,6 +828,7 @@ export function initWordMode(ctx) {
       $('#tm-next').textContent = nudgeLetter(ch, 1);
     }
     $('#tm-draw-sub').textContent = `draw · ${bagTotal(st.bag)}`;
+    menu.querySelector('[data-act="draw"]').disabled = bagTotal(st.bag) === 0;
     menu.querySelector('[data-act="wild"]').hidden = !(locked && !isWild && st.turns + WILD_COST <= WORD_TURNS);
     menu.hidden = false;
     $('#w-menu-backdrop').hidden = false;
@@ -949,6 +988,7 @@ export function initWordMode(ctx) {
   function undo() {
     const g = w.game;
     if (!g || w.over || w.animating || !g.prev || g.undoUsed || g.mode === 'levels') return;
+    cancelGesture();
     g.state = g.prev;
     g.prev = null;
     g.undoUsed = true;
@@ -980,6 +1020,7 @@ export function initWordMode(ctx) {
     const st = g.state;
     if (!auto && st.turns < WORD_TURNS && !isBoardFull(st)) return; // no ending early
     ensureGoalNow(g);
+    cancelGesture();
     w.over = true;
     w.lastBoard = { seed: g.seed, drawSeed: g.drawSeed };
     w.pending = null;
@@ -1036,7 +1077,7 @@ export function initWordMode(ctx) {
     tally.appendChild(wordsBtn);
     if (bonus) {
       tally.appendChild(op('+'));
-      tally.appendChild(item('full board', `+${bonus}`, 'pos'));
+      tally.appendChild(item(`${st.locked.length} tiles`, `+${bonus}`, 'pos'));
     }
     if (turnBonus) {
       tally.appendChild(op('+'));
@@ -1090,7 +1131,7 @@ export function initWordMode(ctx) {
     const penalty = shortfallPenalty(st.locked.length);
     const total = finalScore(st);
     const parts = [`<b>${st.words.length} word${st.words.length === 1 ? '' : 's'}</b> ${st.score}`];
-    if (bonus) parts.push(`full board <b>+${bonus}</b>`);
+    if (bonus) parts.push(`${st.locked.length} tiles <b>+${bonus}</b>`);
     if (turnBonus) parts.push(`${WORD_TURNS - st.turns} turns left <b>+${turnBonus}</b>`);
     if (penalty) parts.push(`${COVERAGE_TARGET - st.locked.length} tile${COVERAGE_TARGET - st.locked.length === 1 ? '' : 's'} short of ${COVERAGE_TARGET} <b>−${penalty}</b>`);
     let html = parts.join(' · ') + ` = <b>${total}</b>`;
@@ -1149,7 +1190,7 @@ export function initWordMode(ctx) {
     if (!tile) return;
     if (e.key === 'm' || e.key === 'M' || e.key === 'ContextMenu') {
       e.preventDefault();
-      openMenu(Number(tile.dataset.cell));
+      if (!w.gesture) openMenu(Number(tile.dataset.cell));
     }
   });
   $('#w-menu-backdrop').addEventListener('pointerdown', (e) => {
@@ -1192,10 +1233,12 @@ export function initWordMode(ctx) {
     if (w.lastBoard) start(false, { mode: 'free', seed: w.lastBoard.seed, drawSeed: w.lastBoard.drawSeed, replay: true });
   });
   $('#w-home').addEventListener('click', () => {
+    cancelGesture();
     w.game = null;
     ctx.showHome();
   });
   $('#w-quit').addEventListener('click', () => {
+    cancelGesture();
     closeMenu();
     flushFinish();
     ctx.showHome();

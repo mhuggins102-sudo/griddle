@@ -71,9 +71,8 @@ export function tileIn(boardEl, cell) {
 
 /** Distance between adjacent tile centres in CSS pixels. */
 export function tileStep(boardEl) {
-  const a = tileIn(boardEl, 0).getBoundingClientRect();
-  const b = tileIn(boardEl, 1).getBoundingClientRect();
-  return b.left - a.left;
+  // layout positions, not rendered boxes: tiles 0 and 1 may be mid-transform when a gesture starts on them
+  return tileIn(boardEl, 1).offsetLeft - tileIn(boardEl, 0).offsetLeft;
 }
 
 /**
@@ -199,7 +198,13 @@ export function removeGhosts(boardEl) {
 
 /** Reset per-tile animation styles and classes (call before re-rendering faces). */
 export function clearTileEffects(tileEl) {
-  tileEl.style.transform = '';
-  tileEl.style.opacity = '';
+  if (tileEl.style.transform || tileEl.style.opacity) {
+    // reset without the transition, or the re-rendered tile would glide back from its old offset
+    tileEl.style.transition = 'none';
+    tileEl.style.transform = '';
+    tileEl.style.opacity = '';
+    void tileEl.offsetWidth;
+    tileEl.style.transition = '';
+  }
   tileEl.classList.remove('moving', 'wrapping', 'fade', 'bump', 'swap-arc', 'flip', 'flip-down', 'spin', 'lock-pop', 'wild-pop');
 }

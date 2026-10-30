@@ -1,4 +1,4 @@
-// Grid Bid UI: screens, action modes, animations, solution replay, help, share, stats.
+// GridLock UI: screens, action modes, animations, solution replay, help, share, stats.
 
 import {
   SIZE, idx, rowOf, colOf, BID_MIN, BID_MAX, ROUNDS_PER_GAME,
@@ -531,7 +531,7 @@ function showStats() {
 }
 
 function resetData() {
-  if (!confirm('Erase all Grid Bid data on this device (history, best score, any game in progress)?')) return;
+  if (!confirm('Erase all GridLock data on this device (history, best score, any game in progress)?')) return;
   const fresh = defaultStore();
   for (const k of Object.keys(ui.store)) delete ui.store[k];
   Object.assign(ui.store, fresh);
@@ -682,6 +682,6 @@ function wireEvents() {
 }
 
 // Expose a little for debugging and tests in the console.
-window.gridBid = { ui, deal };
+window.gridlock = { ui, deal };
 
 boot();

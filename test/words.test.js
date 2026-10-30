@@ -141,8 +141,8 @@ test('nudge wraps Z to A and A to Z; draw keeps the bag size and never returns t
 
 test('scoreWord and share line', () => {
   assert.equal(scoreWord(['Q', 'U', 'I', 'Z', WILD], [0, 1, 2, 3]), 10 + 1 + 1 + 10 + 5);
-  assert.equal(wordShareLine(14, [{ word: 'CAT', score: 5 }, { word: 'TONE', score: 9 }]), 'Grid Bid 14 (CAT 5, TONE 9)');
-  assert.equal(wordShareLine(0, []), 'Grid Bid 0 (no words)');
+  assert.equal(wordShareLine(14, [{ word: 'CAT', score: 5 }, { word: 'TONE', score: 9 }]), 'GridLock 14 (CAT 5, TONE 9)');
+  assert.equal(wordShareLine(0, []), 'GridLock 0 (no words)');
 });
 
 test('a dealt board usually has a few words available', () => {
@@ -201,25 +201,28 @@ test('findWordAt: first and last tap define the word, in either direction', () =
   assert.match(findWordAt(s, dict, 0, 0).error, /first and last/);
 });
 
-test('completion bonus: +25 for 25 tiles, +10 for 24, nothing below; no penalties', () => {
-  assert.equal(coverageBonus(25), 25);
-  assert.equal(coverageBonus(24), 10);
-  assert.equal(coverageBonus(23), 0);
-  assert.equal(coverageBonus(22), 0);
+test('coverage ladder: +5 per locked tile from the 20th, +30 for all 25, nothing below 20; no penalties', () => {
+  assert.equal(coverageBonus(25), 30);
+  assert.equal(coverageBonus(24), 25);
+  assert.equal(coverageBonus(23), 20);
+  assert.equal(coverageBonus(22), 15);
+  assert.equal(coverageBonus(21), 10);
+  assert.equal(coverageBonus(20), 5);
+  assert.equal(coverageBonus(19), 0);
   assert.equal(shortfallPenalty(21), 0);
   assert.equal(shortfallPenalty(0), 0);
   const s = createWordState(new Array(CELLS).fill('A'), {});
   s.score = 30;
   s.locked = new Array(24).fill(0).map((_, i) => i);
   s.turns = WORD_TURNS;
-  assert.equal(finalScore(s), 40);
-  s.locked = new Array(25).fill(0).map((_, i) => i);
   assert.equal(finalScore(s), 55);
+  s.locked = new Array(25).fill(0).map((_, i) => i);
+  assert.equal(finalScore(s), 60);
   assert.ok(isBoardFull(s));
   // all 25 locked with turns to spare: +10 per unused turn
   s.turns = 14;
   assert.equal(fullCoverTurnBonus(s), 60);
-  assert.equal(finalScore(s), 115);
+  assert.equal(finalScore(s), 120);
   s.locked = new Array(24).fill(0).map((_, i) => i);
   assert.equal(fullCoverTurnBonus(s), 0, 'only a full board earns the turn bonus');
   s.locked = new Array(3).fill(0).map((_, i) => i);
