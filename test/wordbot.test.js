@@ -6,14 +6,15 @@ import { botPlay, botPlaySeed, goalFor, goalPercent } from '../js/wordbot.js';
 
 const dict = parseDictionary(readFileSync(new URL('../data/words.txt', import.meta.url), 'utf8'));
 
-test('goal schedule: 35% at level 1, +5 per level, capped at 100%', () => {
-  assert.equal(goalPercent(1), 35);
-  assert.equal(goalPercent(2), 40);
+test('goal schedule: 50% at level 1, +4 per level, capped at 100% from level 14', () => {
+  assert.equal(goalPercent(1), 50);
+  assert.equal(goalPercent(2), 54);
+  assert.equal(goalPercent(13), 98);
   assert.equal(goalPercent(14), 100);
   assert.equal(goalPercent(30), 100);
-  assert.equal(goalFor(1, 150), 60, '52.5 rounds up to 60');
+  assert.equal(goalFor(1, 150), 80, '75 rounds up to 80');
   assert.equal(goalFor(14, 150), 150);
-  assert.equal(goalFor(2, 100), 40, 'exact multiples stay');
+  assert.equal(goalFor(1, 200), 100, 'exact multiples stay');
   assert.equal(goalFor(1, 0), 10, 'floor of 10');
 });
 

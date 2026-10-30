@@ -193,4 +193,5 @@ An independent numeric re-check of the simulation findings was planned but did n
 2. ~~Lock without confirmation~~ decided: immediate.
 3. ~~Coverage ladder~~ adopted; +10 per unused turn kept.
 4. ~~Bot yardstick~~ decided: banked points.
+6. Goal schedule raised on 30 October: 50% at level 1 and +4 per level (100% from level 14) instead of 35% and +5, because with the banked-points yardstick the old start let level 1 pass with two or three words on either size (level-1 goals are now about 70 on 5x5 and 120 on 6x6).
 5. ~~6x6~~ built: 25 turns, ladder from the 29th tile, +30 for 6-letter words, a 3-to-6-letter dictionary, a board-size choice on the home screen; `js/grid.js` holds the geometry and the 5x5 bot's play is unchanged (identical statistics before and after the refactor). The 6x6 bot takes about 0.55 s per board in Node and fills 45% of boards at 25 turns (20-seed sample), with goals from about 90 at level 1 to 240 at level 14.

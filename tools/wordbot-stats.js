@@ -23,7 +23,7 @@ const t0 = Date.now();
 for (let seed = from; seed < from + count; seed++) {
   const { board, bag } = dealLetters(seed, size);
   const r = botPlay(board, bag, dict);
-  rows.push({ seed, score: r.score, banked: r.banked, locked: r.locked, turns: r.turnsUsed, words: r.words.length });
+  rows.push({ seed, score: r.score, banked: r.banked, locked: r.locked, turns: r.turnsUsed, words: r.words.length, lengths: r.words.map((w) => w.word.length) });
 }
 const ms = Date.now() - t0;
 
@@ -43,4 +43,8 @@ const hist = {};
 for (const r of rows) hist[r.locked] = (hist[r.locked] || 0) + 1;
 console.log('locked tiles   ' + Object.keys(hist).sort((a, b) => b - a).map((k) => `${k}: ${(100 * hist[k] / rows.length).toFixed(1)}%`).join('  '));
 console.log(`full boards    ${(100 * rows.filter((r) => r.locked === CELLS).length / rows.length).toFixed(1)}%; boards using all ${WORD_TURNS} turns ${(100 * rows.filter((r) => r.turns >= WORD_TURNS).length / rows.length).toFixed(1)}%\n`);
+const mix = {};
+for (const r of rows) for (const n of r.lengths) mix[n] = (mix[n] || 0) + 1;
+const totalWords = rows.reduce((a, r) => a + r.lengths.length, 0);
+console.log('word lengths   ' + Object.keys(mix).sort().map((n) => `${n}-letter ${(100 * mix[n] / totalWords).toFixed(0)}% (${(mix[n] / rows.length).toFixed(1)} per board)`).join('  '));
 console.log('goal by level  ' + [1, 3, 5, 8, 10, 12, 14].map((L) => `L${L} ${mean(rows.map((r) => goalFor(L, r.banked))).toFixed(0)}`).join('  ') + '   (from banked word points, as the game does)');

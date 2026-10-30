@@ -6,9 +6,9 @@ import {
   dealLetters, createWordState, applyWordAction, findWords, lockWord, finalScore, isLocked, isBoardFull, turnLimit,
 } from './words.js';
 
-/** Goal for a level as a share of the bot's banked word points (its fill bonuses excluded): 35% at level 1, +5% per level, 100% from level 14. */
-export const GOAL_START_PERCENT = 35;
-export const GOAL_STEP_PERCENT = 5;
+/** Goal for a level as a share of the bot's banked word points (its fill bonuses excluded): 50% at level 1, +4% per level, 100% from level 14. */
+export const GOAL_START_PERCENT = 50;
+export const GOAL_STEP_PERCENT = 4;
 export function goalPercent(level) {
   return Math.min(100, GOAL_START_PERCENT + GOAL_STEP_PERCENT * (level - 1));
 }
