@@ -1,7 +1,7 @@
 // Shared board DOM helpers: the 7x7 skeleton (tiles plus a ring of slide arrows), tile lookup
 // and the per-action animations. Used by the number game (ui.js) and Word mode (wordui.js).
 
-import { SIZE, idx, rowOf, colOf } from './engine.js';
+import { SIZE, idx, rowOf, colOf } from './engine.js'; // the 5x5 constants; the Word mode paths below read the size off the board
 
 export const ANIM_MS = 200;
 
@@ -37,14 +37,14 @@ export function makeArrow(axis, index, dir) {
  * With arrows (the default) the grid is 7x7: the outer ring holds the slide arrows. With
  * { arrows: false } it is a plain 5x5 of tiles (Word mode slides by gesture instead).
  */
-export function buildBoardSkeleton(boardEl, makeFace, { arrows = true } = {}) {
+export function buildBoardSkeleton(boardEl, makeFace, { arrows = true, size = SIZE } = {}) {
   boardEl.innerHTML = '';
   const lo = arrows ? -1 : 0;
-  const hi = arrows ? SIZE : SIZE - 1;
+  const hi = arrows ? size : size - 1;
   for (let r = lo; r <= hi; r++) {
     for (let c = lo; c <= hi; c++) {
-      const isRowEdge = r === -1 || r === SIZE;
-      const isColEdge = c === -1 || c === SIZE;
+      const isRowEdge = r === -1 || r === size;
+      const isColEdge = c === -1 || c === size;
       if (isRowEdge && isColEdge) {
         const d = document.createElement('div');
         d.className = 'corner';
@@ -56,7 +56,7 @@ export function buildBoardSkeleton(boardEl, makeFace, { arrows = true } = {}) {
       } else {
         const t = document.createElement('button');
         t.className = 'tile';
-        t.dataset.cell = String(idx(r, c));
+        t.dataset.cell = String(r * size + c);
         t.setAttribute('role', 'gridcell');
         t.appendChild(makeFace());
         boardEl.appendChild(t);
@@ -84,12 +84,16 @@ export function animateAction(boardEl, action, before, after, applyFace) {
   if (reduce) return Promise.resolve();
   const step = tileStep(boardEl);
   const tile = (cell) => tileIn(boardEl, cell);
+  const n = Math.round(Math.sqrt(before.length)); // the board's size: 5 or 6
+  const idx = (r, c) => r * n + c;
+  const rowOf = (i) => Math.floor(i / n);
+  const colOf = (i) => i % n;
   if (action.type === 'slide') {
     const cells = [];
-    for (let k = 0; k < SIZE; k++) cells.push(action.axis === 'row' ? idx(action.index, k) : idx(k, action.index));
+    for (let k = 0; k < n; k++) cells.push(action.axis === 'row' ? idx(action.index, k) : idx(k, action.index));
     const dx = action.axis === 'row' ? action.dir * step : 0;
     const dy = action.axis === 'col' ? action.dir * step : 0;
-    const wrapIndex = action.dir === 1 ? SIZE - 1 : 0;
+    const wrapIndex = action.dir === 1 ? n - 1 : 0;
     cells.forEach((cell, k) => {
       const t = tile(cell);
       t.classList.add('moving');
@@ -136,6 +140,9 @@ export function animateAction(boardEl, action, before, after, applyFace) {
  */
 export function beginMoves(boardEl, moves) {
   const step = tileStep(boardEl);
+  const n = Math.round(Math.sqrt(boardEl.querySelectorAll('.tile[data-cell]').length));
+  const rowOf = (i) => Math.floor(i / n);
+  const colOf = (i) => i % n;
   const ghosts = [];
   for (const m of moves) {
     const t = tileIn(boardEl, m.from);

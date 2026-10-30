@@ -6,13 +6,12 @@
 //   tap the first and last letter -> lock the word between them
 // Modes: levels (a bot sets a goal score per board; pass to advance) and free play (no goal).
 
-import { SIZE, idx, rowOf, colOf } from './engine.js';
 import { randomSeed } from './rng.js';
 import { ANIM_MS, wait, buildBoardSkeleton, tileIn, tileStep, animateAction, animateMoves, beginMoves, removeGhosts, clearTileEffects } from './board.js';
 import {
   dealLetters, createWordState, applyWordAction, findWords, findWordAt, lockWord, parseDictionary, bagTotal, letterValue,
-  describeWordCells, wordShareLine, slideMoves, coverageBonus, finalScore, shortfallPenalty, nudgeLetter, lineCellsFree,
-  WILD, WORD_TURNS, LETTERS, COVERAGE_TARGET, WILD_COST, fullCoverTurnBonus, isBoardFull,
+  describeWordCells, wordShareLine, slideMoves, coverageBonusFor, finalScore, shortfallPenalty, nudgeLetter, lineCellsFree,
+  turnLimit, gridOfState, WILD, LETTERS, COVERAGE_TARGET, WILD_COST, SIZES, fullCoverTurnBonus, isBoardFull,
 } from './words.js';
 import { botPlay, goalFor } from './wordbot.js';
 import { play } from './sound.js';
@@ -55,7 +54,18 @@ export function initWordMode(ctx) {
     face.innerHTML = '<span class="ch"></span><span class="val"></span>';
     return face;
   }
-  buildBoardSkeleton(boardEl, makeLetterFace, { arrows: false });
+  let boardSize = 0;
+  /** Build the tile grid for a board size (once per size change). */
+  function ensureBoard(size) {
+    if (boardSize === size) return;
+    boardSize = size;
+    buildBoardSkeleton(boardEl, makeLetterFace, { arrows: false, size });
+    boardEl.style.setProperty('--n', String(size));
+    boardEl.dataset.size = String(size);
+  }
+  ensureBoard(5);
+  const grid = () => gridOfState(w.game.state);
+  const limit = () => turnLimit(w.game.state);
 
   function setFace(tile, ch) {
     const face = tile.firstElementChild;
@@ -180,13 +190,16 @@ export function initWordMode(ctx) {
       if (w.game.goal === undefined) w.game.goal = null;
       if (w.game.prev === undefined) w.game.prev = null;
       if (w.game.undoUsed === undefined) w.game.undoUsed = false;
+      if (w.game.size === undefined) w.game.size = w.game.state.size || Math.round(Math.sqrt(w.game.state.board.length));
     } else {
       const seed = opts.seed ?? randomSeed();
       const drawSeed = opts.drawSeed ?? randomSeed();
-      const { board, bag } = dealLetters(seed);
+      const size = SIZES.includes(opts.size) ? opts.size : 5;
+      const { board, bag } = dealLetters(seed, size);
       w.game = {
         seed,
         drawSeed,
+        size,
         state: createWordState(board, bag, drawSeed),
         startedAt: new Date().toISOString(),
         mode: opts.mode || 'free',
@@ -210,6 +223,7 @@ export function initWordMode(ctx) {
     clearTransient();
     closeMenu();
     ctx.showScreen('screen-word');
+    ensureBoard(w.game.size);
     $('#w-result').hidden = true;
     $('#w-words-pop').hidden = true;
     $('#screen-word').classList.remove('over');
@@ -221,7 +235,7 @@ export function initWordMode(ctx) {
     computeGoal(w.game);
     // a board saved in its last moment (full, or a level run out of turns) is scored straight away
     const st = w.game.state;
-    if (!goalReached() && (isBoardFull(st) || (st.turns >= WORD_TURNS && isLevels()))) finish(true);
+    if (!goalReached() && (isBoardFull(st) || (st.turns >= turnLimit(st) && isLevels()))) finish(true);
   }
 
   // ---------------------------------------------------------------------------
@@ -238,14 +252,16 @@ export function initWordMode(ctx) {
 
   function renderHud() {
     const st = w.game.state;
-    $('#w-turn').textContent = `${Math.min(st.turns + 1, WORD_TURNS)} / ${WORD_TURNS}${w.game.replay ? ' ↻' : ''}`;
+    const lim = limit();
+    $('#w-turn').textContent = `${Math.min(st.turns + 1, lim)} / ${lim}${w.game.replay ? ' ↻' : ''}`;
     $('#w-score').textContent = String(finalScore(st));
     const track = $('#w-turntrack');
-    if (track.childElementCount !== WORD_TURNS) {
+    if (track.childElementCount !== lim) {
       track.innerHTML = '';
-      for (let i = 0; i < WORD_TURNS; i++) track.appendChild(document.createElement('span'));
+      for (let i = 0; i < lim; i++) track.appendChild(document.createElement('span'));
+      track.style.gridTemplateColumns = `repeat(${lim}, 1fr)`;
     }
-    const urgent = WORD_TURNS - st.turns <= 3 && !w.over;
+    const urgent = lim - st.turns <= 3 && !w.over;
     Array.from(track.children).forEach((seg, i) => {
       seg.classList.toggle('spent', i < st.turns);
       seg.classList.toggle('last', urgent && i >= st.turns);
@@ -261,6 +277,7 @@ export function initWordMode(ctx) {
 
   function renderBoard() {
     const st = w.game.state;
+    const { rowOf, colOf } = grid();
     const pendingCells = w.pending ? new Set(w.pending.cells) : null;
     const inert = !canInteract();
     removeGhosts(boardEl);
@@ -314,7 +331,7 @@ export function initWordMode(ctx) {
       const b = document.createElement('button');
       b.className = `chip${w.pending && w.pending.key === c.key && w.pending.word === c.word ? ' active' : ''}`;
       b.innerHTML = `<span class="chip-word">${c.word}</span><span class="chip-score">${c.score}</span>`;
-      b.setAttribute('aria-label', `${c.word} for ${c.score} points on ${describeWordCells(c.cells)}`);
+      b.setAttribute('aria-label', `${c.word} for ${c.score} points on ${describeWordCells(c.cells, grid().size)}`);
       b.addEventListener('click', () => {
         if (!canInteract()) return;
         setPending(w.pending && w.pending.key === c.key && w.pending.word === c.word ? null : c);
@@ -329,7 +346,7 @@ export function initWordMode(ctx) {
     const list = st.words.length
       ? `<span class="lw-list">${st.words.map((x) => `<span class="lw">${x.word}<b>${x.score}</b></span>`).join('')}</span>`
       : '<span class="lw-list"><span>No words locked yet</span></span>';
-    el.innerHTML = `${list}<span class="lw-count"><b>${st.locked.length}</b>/25 tiles</span>`;
+    el.innerHTML = `${list}<span class="lw-count"><b>${st.locked.length}</b>/${st.board.length} tiles</span>`;
     const scroller = el.querySelector('.lw-list');
     if (scroller) scroller.scrollLeft = scroller.scrollWidth;
     renderGoalBar();
@@ -405,7 +422,7 @@ export function initWordMode(ctx) {
     const g = w.game;
     const st = g.state;
     if (goalReached()) return message(`Level ${g.level} passed! Press Next level to carry on.`, 'good');
-    if (st.turns >= WORD_TURNS) {
+    if (st.turns >= limit()) {
       if (isLevels()) return message('Out of turns.', 'bad');
       return action('Out of turns.', { label: 'Score board', fn: () => finish(false) }, { label: 'Undo', fn: undo, disabled: !g.prev || g.undoUsed });
     }
@@ -448,7 +465,7 @@ export function initWordMode(ctx) {
   }
 
   function canInteract() {
-    return !!w.game && !w.over && !w.animating && !goalReached() && w.game.state.turns < WORD_TURNS;
+    return !!w.game && !w.over && !w.animating && !goalReached() && w.game.state.turns < turnLimit(w.game.state);
   }
 
   // ---------------------------------------------------------------------------
@@ -480,6 +497,7 @@ export function initWordMode(ctx) {
 
   /** Cells from a to b when they share a row, column or diagonal; otherwise null. */
   function spanCells(a, b) {
+    const { rowOf, colOf, idx } = grid();
     const dr = rowOf(b) - rowOf(a);
     const dc = colOf(b) - colOf(a);
     if (!(dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc))) return null;
@@ -546,9 +564,10 @@ export function initWordMode(ctx) {
   // Pointer gestures: drag to swap, flick or long drag to slide, hold for the menu
 
   function neighbourIn(cell, axis, dir) {
+    const { rowOf, colOf, idx, inRange } = grid();
     const r = rowOf(cell) + (axis === 'col' ? dir : 0);
     const c = colOf(cell) + (axis === 'row' ? dir : 0);
-    if (r < 0 || r >= SIZE || c < 0 || c >= SIZE) return null;
+    if (!inRange(r) || !inRange(c)) return null;
     return idx(r, c);
   }
 
@@ -606,6 +625,7 @@ export function initWordMode(ctx) {
     const axis = Math.abs(dx) >= Math.abs(dy) ? 'row' : 'col';
     const along = axis === 'row' ? dx : dy;
     const cross = axis === 'row' ? dy : dx;
+    const { rowOf, colOf } = grid();
     return { dx, dy, axis, dir: along >= 0 ? 1 : -1, travel: Math.abs(along) / g.step, cross: Math.abs(cross) / g.step, index: axis === 'row' ? rowOf(g.cell) : colOf(g.cell) };
   }
 
@@ -769,7 +789,7 @@ export function initWordMode(ctx) {
         doAction({ type: 'slide', axis, index, dir }, { previewed: g.mode === 'line' });
       } else {
         snapBack(g);
-        shakeCells(axis === 'row' ? Array.from({ length: SIZE }, (_, k) => idx(index, k)) : Array.from({ length: SIZE }, (_, k) => idx(k, index)));
+        shakeCells(grid().lineCells(axis, index));
         play('buzz');
         say('That line is locked in place', 'bad');
       }
@@ -781,6 +801,7 @@ export function initWordMode(ctx) {
     }
     const target = travel >= SWAP_TRAVEL && cross < SWAP_CROSS ? neighbourIn(g.cell, axis, dir) : null;
     if (target !== null && !g.lockedTile && swapLegal(g.cell, target)) {
+      const { rowOf, colOf } = grid();
       t.classList.remove('dragging');
       doAction({ type: 'swap', r: rowOf(g.cell), c: colOf(g.cell), r2: rowOf(target), c2: colOf(target) });
       return;
@@ -829,7 +850,7 @@ export function initWordMode(ctx) {
     }
     $('#tm-draw-sub').textContent = `draw · ${bagTotal(st.bag)}`;
     menu.querySelector('[data-act="draw"]').disabled = bagTotal(st.bag) === 0;
-    menu.querySelector('[data-act="wild"]').hidden = !(locked && !isWild && st.turns + WILD_COST <= WORD_TURNS);
+    menu.querySelector('[data-act="wild"]').hidden = !(locked && !isWild && st.turns + WILD_COST <= limit());
     menu.hidden = false;
     $('#w-menu-backdrop').hidden = false;
     tileEl(cell).classList.add('selected');
@@ -875,6 +896,7 @@ export function initWordMode(ctx) {
     const cell = w.menuCell;
     closeMenu();
     if (cell === null) return;
+    const { rowOf, colOf } = grid();
     const r = rowOf(cell);
     const c = colOf(cell);
     if (act === 'nudge-down') doAction({ type: 'nudge', r, c, delta: -1 });
@@ -914,7 +936,7 @@ export function initWordMode(ctx) {
     play(action.type === 'nudge' ? (action.delta === -1 ? 'nudgeDown' : 'nudge') : action.type);
     if (action.type === 'slide') await (previewed ? wait(ANIM_MS / 2) : animateMoves(boardEl, slideMoves(before, action)));
     else if (action.type === 'wild') {
-      const t = tileEl(idx(action.r, action.c));
+      const t = tileEl(grid().idx(action.r, action.c));
       t.classList.add('wild-pop');
       setTimeout(() => setFace(t, WILD), 240);
       await new Promise((r) => setTimeout(r, 520));
@@ -977,11 +999,11 @@ export function initWordMode(ctx) {
     if (goalReached()) return; // the level bar shows Next level
     if (isBoardFull(next)) {
       const bonus = fullCoverTurnBonus(next);
-      say(bonus ? `Board complete with ${WORD_TURNS - next.turns} turns to spare: +${bonus}!` : 'Board complete!', 'good', 4000);
+      say(bonus ? `Board complete with ${turnLimit(next) - next.turns} turns to spare: +${bonus}!` : 'Board complete!', 'good', 4000);
       finishSoon(1600 + delay);
       return;
     }
-    if (next.turns >= WORD_TURNS && isLevels()) finishSoon(500 + delay); // run over: below the goal with no turns left
+    if (next.turns >= turnLimit(next) && isLevels()) finishSoon(500 + delay); // run over: below the goal with no turns left
     // free play: the strip offers Score board / Undo
   }
 
@@ -1011,27 +1033,28 @@ export function initWordMode(ctx) {
     const level = g.level;
     const score = finalScore(g.state);
     finish(true, true);
-    start(false, { mode: 'levels', level: level + 1, note: `Level ${level} passed with ${score} · now level ${level + 1}` });
+    start(false, { mode: 'levels', level: level + 1, size: g.size, note: `Level ${level} passed with ${score} · now level ${level + 1}` });
   }
 
   function finish(auto = false, silent = false) {
     if (w.over) return;
     const g = w.game;
     const st = g.state;
-    if (!auto && st.turns < WORD_TURNS && !isBoardFull(st)) return; // no ending early
+    if (!auto && st.turns < turnLimit(st) && !isBoardFull(st)) return; // no ending early
     ensureGoalNow(g);
     cancelGesture();
     w.over = true;
-    w.lastBoard = { seed: g.seed, drawSeed: g.drawSeed };
+    w.lastBoard = { seed: g.seed, drawSeed: g.drawSeed, size: g.size };
     w.pending = null;
     w.first = null;
     closeMenu();
     clearTransient();
-    const bonus = coverageBonus(st.locked.length);
+    const bonus = coverageBonusFor(st);
     const turnBonus = fullCoverTurnBonus(st);
     const penalty = shortfallPenalty(st.locked.length);
     const total = finalScore(st);
     const store = ctx.store;
+    const bestKey = g.size === 6 ? 'best6' : 'best'; // a personal best per board size
     store.word ||= { gamesPlayed: 0, best: null, history: [] };
     store.word.boards ||= {};
     const boardKey = `${g.seed}:${g.drawSeed}`;
@@ -1041,12 +1064,12 @@ export function initWordMode(ctx) {
     const passed = g.mode === 'levels' && total >= g.goal;
     let isBest = false;
     if (!g.replay) {
-      isBest = store.word.best === null || total > store.word.best;
-      if (isBest) store.word.best = total;
+      isBest = store.word[bestKey] == null || total > store.word[bestKey];
+      if (isBest) store.word[bestKey] = total;
       store.word.gamesPlayed++;
       if (passed) store.word.bestLevel = Math.max(store.word.bestLevel || 0, g.level);
       store.word.history.unshift({
-        at: new Date().toISOString(), seed: g.seed, drawSeed: g.drawSeed, score: total, bonus, mode: g.mode, level: g.level, goal: g.goal, passed,
+        at: new Date().toISOString(), seed: g.seed, drawSeed: g.drawSeed, size: g.size, score: total, bonus, mode: g.mode, level: g.level, goal: g.goal, passed,
         words: st.words.map((x) => ({ word: x.word, score: x.score })),
       });
       store.word.history = store.word.history.slice(0, 50);
@@ -1081,7 +1104,7 @@ export function initWordMode(ctx) {
     }
     if (turnBonus) {
       tally.appendChild(op('+'));
-      tally.appendChild(item(`${WORD_TURNS - st.turns} turns left`, `+${turnBonus}`, 'pos'));
+      tally.appendChild(item(`${turnLimit(st) - st.turns} turns left`, `+${turnBonus}`, 'pos'));
     }
     if (penalty) {
       tally.appendChild(op('−'));
@@ -1099,16 +1122,16 @@ export function initWordMode(ctx) {
     } else if (g.replay) {
       line = beatBoard ? `Beat your previous best on this board (${previousOnBoard})! Not counted in stats.` : `Best on this board stays ${previousOnBoard}. Not counted in stats.`;
     } else {
-      line = isBest ? 'New personal best!' : `Personal best: ${store.word.best}.`;
+      line = isBest ? 'New personal best!' : `Personal best: ${store.word[bestKey]}.`;
     }
     if (g.mode === 'levels' && g.replay) line += ' Replay: not counted.';
     const levelsRun = g.mode === 'levels';
     $('#w-tally').hidden = levelsRun; // no end-of-board summary in a level run
     $('#w-share').hidden = levelsRun;
-    play(levelsRun ? (passed ? 'fanfare' : 'fail') : st.locked.length === 25 ? 'fanfare' : 'lock');
+    play(levelsRun ? (passed ? 'fanfare' : 'fail') : isBoardFull(st) ? 'fanfare' : 'lock');
     $('#w-result-title').textContent = title;
     $('#w-result-best').textContent = line;
-    w.shareText = (levelsRun ? `Level ${g.level} ${passed ? 'passed' : 'failed'} · ` : '') + wordShareLine(total, st.words);
+    w.shareText = (levelsRun ? `Level ${g.level} ${passed ? 'passed' : 'failed'} · ` : '') + wordShareLine(total, st.words, g.size === 6 ? 'GridLock 6×6' : 'GridLock');
     const showNext = levelsRun && passed && !g.replay;
     $('#w-next').hidden = !showNext;
     $('#w-again').hidden = showNext; // Next level takes its slot
@@ -1126,13 +1149,13 @@ export function initWordMode(ctx) {
   function showScorePop() {
     if (!w.game) return;
     const st = w.game.state;
-    const bonus = coverageBonus(st.locked.length);
+    const bonus = coverageBonusFor(st);
     const turnBonus = fullCoverTurnBonus(st);
     const penalty = shortfallPenalty(st.locked.length);
     const total = finalScore(st);
     const parts = [`<b>${st.words.length} word${st.words.length === 1 ? '' : 's'}</b> ${st.score}`];
     if (bonus) parts.push(`${st.locked.length} tiles <b>+${bonus}</b>`);
-    if (turnBonus) parts.push(`${WORD_TURNS - st.turns} turns left <b>+${turnBonus}</b>`);
+    if (turnBonus) parts.push(`${turnLimit(st) - st.turns} turns left <b>+${turnBonus}</b>`);
     if (penalty) parts.push(`${COVERAGE_TARGET - st.locked.length} tile${COVERAGE_TARGET - st.locked.length === 1 ? '' : 's'} short of ${COVERAGE_TARGET} <b>−${penalty}</b>`);
     let html = parts.join(' · ') + ` = <b>${total}</b>`;
     if (w.game.mode === 'levels' && w.game.goal !== null) html += `<br><span style="opacity:.75">Goal ${w.game.goal}: ${total >= w.game.goal ? 'reached' : `${w.game.goal - total} to go`}</span>`;
@@ -1152,7 +1175,7 @@ export function initWordMode(ctx) {
   function showWordsPop() {
     const st = w.game.state;
     showPop(st.words.length
-      ? st.words.map((x) => `<b>${x.word}</b> ${x.score}`).join(' · ') + ` <span style="opacity:.7">· ${st.locked.length}/25 tiles</span>`
+      ? st.words.map((x) => `<b>${x.word}</b> ${x.score}`).join(' · ') + ` <span style="opacity:.7">· ${st.locked.length}/${st.board.length} tiles</span>`
       : 'No words were locked.');
   }
 
@@ -1222,15 +1245,16 @@ export function initWordMode(ctx) {
   });
   $('#w-undo').addEventListener('click', undo);
   $('#w-share').addEventListener('click', copyShare);
-  $('#w-next').addEventListener('click', () => start(false, { mode: 'levels', level: w.nextLevel || 1 }));
+  $('#w-next').addEventListener('click', () => start(false, { mode: 'levels', level: w.nextLevel || 1, size: w.game ? w.game.size : 5 }));
   $('#w-again').addEventListener('click', () => {
     const g = w.game;
-    if (g && g.mode === 'levels' && !$('#w-next').hidden) start(false, { mode: 'free' });
-    else if (g && g.mode === 'levels') start(false, { mode: 'levels', level: 1 });
-    else start(false, { mode: 'free' });
+    const size = g ? g.size : 5;
+    if (g && g.mode === 'levels' && !$('#w-next').hidden) start(false, { mode: 'free', size });
+    else if (g && g.mode === 'levels') start(false, { mode: 'levels', level: 1, size });
+    else start(false, { mode: 'free', size });
   });
   $('#w-replay').addEventListener('click', () => {
-    if (w.lastBoard) start(false, { mode: 'free', seed: w.lastBoard.seed, drawSeed: w.lastBoard.drawSeed, replay: true });
+    if (w.lastBoard) start(false, { mode: 'free', seed: w.lastBoard.seed, drawSeed: w.lastBoard.drawSeed, size: w.lastBoard.size, replay: true });
   });
   $('#w-home').addEventListener('click', () => {
     cancelGesture();

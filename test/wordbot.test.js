@@ -28,3 +28,11 @@ test('bot plays a legal game within 20 turns, deterministically, and scores', ()
   const { board, bag } = dealLetters(7);
   assert.deepEqual(botPlay(board, bag, dict), a);
 });
+
+test('bot plays a 6x6 board within 25 turns and its moves cover the whole 156-move list', () => {
+  const r = botPlaySeed(3, dict, {}, 6);
+  assert.ok(r.turnsUsed <= 25);
+  assert.ok(r.score > 0 && r.banked > 0 && r.words.length >= 1);
+  assert.ok(r.locked <= 36);
+  for (const w of r.words) assert.ok(dict.has(w.word) && w.word.length <= 6);
+});

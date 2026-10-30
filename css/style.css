@@ -186,6 +186,13 @@ svg { display: block; }
 .switch:checked::after { transform: translateX(18px); }
 .switch:focus-visible { outline: 3px solid var(--select); outline-offset: 2px; }
 .footnote { color: var(--muted); font-size: 13px; margin: 0; }
+.seg { display: flex; gap: 4px; padding: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+.seg label { flex: 1; position: relative; }
+.seg input { position: absolute; opacity: 0; width: 0; height: 0; }
+.seg span { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 48px; border-radius: 9px; font-weight: 700; cursor: pointer; line-height: 1.15; }
+.seg span small { font-size: 11px; font-weight: 500; opacity: 0.75; }
+.seg input:checked + span { background: var(--accent); color: var(--accent-ink); }
+.seg input:focus-visible + span { outline: 3px solid var(--select); outline-offset: 2px; }
 
 /* ---------------------------------------------------------------------------
    HUD (shared) */
@@ -581,8 +588,8 @@ svg { display: block; }
 /* The 5x5 board sits on a tray; gestures happen here */
 .word-board-wrap { display: block; }
 .board.plain {
-  grid-template-columns: repeat(5, 1fr);
-  grid-template-rows: repeat(5, 1fr);
+  grid-template-columns: repeat(var(--n, 5), 1fr);
+  grid-template-rows: repeat(var(--n, 5), 1fr);
   margin: 0 auto;
   --gap: 7px;
   gap: var(--gap);
@@ -597,6 +604,10 @@ svg { display: block; }
   max-width: min(100%, calc(100dvh - 300px));
 }
 .board.plain .tile { -webkit-touch-callout: none; }
+.board.plain[data-size="6"] { --gap: 6px; padding: 7px; }
+.board.plain[data-size="6"] .face.letter .ch { font-size: clamp(18px, 6.6vw, 27px); }
+.board.plain[data-size="6"] .face.letter .val { font-size: 10px; right: 4px; bottom: 2px; }
+.board.plain[data-size="6"] .tile.locked::after { left: 4px; top: 4px; width: 6px; height: 6px; }
 .board.plain .tile:focus-visible { outline: 3px solid var(--select); outline-offset: 1px; }
 .face.letter { position: absolute; inset: 0; width: auto; height: auto; display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr; place-items: center; }
 .face.letter .ch { font-size: clamp(22px, 8.5vw, 34px); font-weight: 800; color: var(--tile-ink); line-height: 1; }

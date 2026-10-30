@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 // Word-mode bot statistics: plays N boards with the goal-setting bot and prints the score
 // distribution, locked-tile histogram, bonus share and the goal per level.
-//   node tools/wordbot-stats.js [--seeds 200] [--from 1]
+//   node tools/wordbot-stats.js [--seeds 200] [--from 1] [--size 5|6]
 import { readFileSync } from 'node:fs';
-import { parseDictionary, dealLetters, WORD_TURNS } from '../js/words.js';
+import { parseDictionary, dealLetters, TURNS_BY_SIZE } from '../js/words.js';
 import { botPlay, goalFor } from '../js/wordbot.js';
-import { CELLS } from '../js/engine.js';
 
 const args = process.argv.slice(2);
 const opt = (name, def) => {
@@ -14,12 +13,15 @@ const opt = (name, def) => {
 };
 const count = opt('seeds', 200);
 const from = opt('from', 1);
+const size = opt('size', 5);
+const CELLS = size * size;
+const WORD_TURNS = TURNS_BY_SIZE[size];
 const dict = parseDictionary(readFileSync(new URL('../data/words.txt', import.meta.url), 'utf8'));
 
 const rows = [];
 const t0 = Date.now();
 for (let seed = from; seed < from + count; seed++) {
-  const { board, bag } = dealLetters(seed);
+  const { board, bag } = dealLetters(seed, size);
   const r = botPlay(board, bag, dict);
   rows.push({ seed, score: r.score, banked: r.banked, locked: r.locked, turns: r.turnsUsed, words: r.words.length });
 }
@@ -30,7 +32,7 @@ const pct = (arr, p) => arr[Math.min(arr.length - 1, Math.floor(p * arr.length))
 const mean = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
 const line = (label, arr) => console.log(`${label.padEnd(14)} mean ${mean(arr).toFixed(1).padStart(6)}  p10 ${String(pct(arr, 0.1)).padStart(4)}  median ${String(pct(arr, 0.5)).padStart(4)}  p90 ${String(pct(arr, 0.9)).padStart(4)}  min ${String(arr[0]).padStart(4)}  max ${String(arr[arr.length - 1]).padStart(4)}`);
 
-console.log(`${count} boards (seeds ${from}..${from + count - 1}), ${(ms / count).toFixed(0)} ms per board\n`);
+console.log(`${size}x${size}, ${WORD_TURNS} turns: ${count} boards (seeds ${from}..${from + count - 1}), ${(ms / count).toFixed(0)} ms per board\n`);
 line('final score', sorted('score'));
 line('banked words', sorted('banked'));
 line('turns used', sorted('turns'));

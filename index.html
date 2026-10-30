@@ -23,7 +23,11 @@
             <span class="logo-tile locked">L<small>1</small></span><span class="logo-tile locked">O<small>1</small></span><span class="logo-tile locked">C<small>3</small></span><span class="logo-tile locked">K<small>5</small></span>
           </span>
         </h1>
-        <p class="tagline" id="tagline">Slide, swap and nudge 25 letters into words. Lock them in before your 20 turns run out.</p>
+        <p class="tagline" id="tagline">Slide, swap and nudge a grid of letters into words. Lock them in before your turns run out.</p>
+        <div class="seg" role="radiogroup" aria-label="Board size">
+          <label><input type="radio" name="opt-size" id="opt-size-5" value="5" checked><span>5×5<small>20 turns</small></span></label>
+          <label><input type="radio" name="opt-size" id="opt-size-6" value="6"><span>6×6<small>25 turns · 6-letter words</small></span></label>
+        </div>
         <div class="home-buttons">
           <button id="btn-word-continue" class="btn btn-primary btn-big" hidden><span class="btn-main">Continue</span><span class="btn-sub" id="continue-sub"></span></button>
           <button id="btn-word" class="btn btn-primary btn-big"><span class="btn-main">New game</span><span class="btn-sub">Levels with a goal to beat</span></button>
@@ -239,14 +243,14 @@
     <div id="help" class="sheet" hidden>
       <div class="sheet-body">
         <div class="sheet-head"><h2>How to play</h2><button id="btn-help-close" class="btn btn-icon" aria-label="Close">✕</button></div>
-        <p>You get a 5x5 grid of letter tiles and <strong>20 turns</strong>. Rearrange the grid into words, lock the words in to bank their points, and lock as many tiles as you can before the turns run out.</p>
+        <p>You get a grid of letter tiles and a fixed number of turns: a <strong>5×5</strong> board with <strong>20 turns</strong>, or a <strong>6×6</strong> board with <strong>25 turns</strong> (pick on the home screen). Rearrange the grid into words, lock the words in to bank their points, and lock as many tiles as you can before the turns run out.</p>
 
         <h3>Controls</h3>
         <p>Everything happens on the board. Each of these costs <strong>one turn</strong>:</p>
         <ul class="controls">
           <li><strong>Swap</strong>: drag a tile onto one of its four neighbours and let go. Locked tiles cannot move.</li>
           <li><strong>Slide</strong>: flick any tile of a row or column, or drag it a long way along the line (past the edge of the board works too). The whole line moves one step and the tile pushed off the edge wraps round to the other end. Locked tiles stay put and the rest slide around them.</li>
-          <li><strong>Nudge</strong>: press and hold a tile, then pick the letter before or after it in the alphabet (A and Z wrap round, so any letter is at most 13 nudges away). Locked tiles can be nudged too.</li>
+          <li><strong>Nudge</strong>: press and hold a tile, then pick the letter before or after it in the alphabet (A and Z wrap round, so any letter is at most 13 nudges away, and the wrap can turn an A into a Z). Locked tiles can be nudged too.</li>
           <li><strong>Draw</strong>: press and hold a tile, then choose <em>draw</em> to replace it with a random letter from the bag. The old letter goes into the bag afterwards, so it cannot come straight back. Draw is the only random action and cannot be undone. The bag button in the header shows what is left.</li>
           <li><strong>Lock</strong>: tap the first letter of a word, then its last letter. The word locks at once and its points are banked.</li>
           <li><strong>Wild</strong> (two turns, so it needs two turns left): press and hold a <em>locked</em> tile and choose ★. A wild tile reads as any letter in any word but scores no points itself.</li>
@@ -258,11 +262,11 @@
         <p>The score in the header, and the level bar, always show the score as it stands <em>right now</em>, bonuses included. Tap either for the current breakdown.</p>
 
         <h3>The grid and the bag</h3>
-        <p>The 25 tiles are dealt from a bag of 98 Scrabble-style letters (no blanks). The other 73 stay in the bag. Every tile shows its point value in the corner.</p>
+        <p>The tiles are dealt from a bag of 98 Scrabble-style letters (no blanks): 25 on a 5×5 board (73 stay in the bag), 36 on a 6×6 board (62 stay). Every tile shows its point value in the corner.</p>
 
         <h3>Words and locking</h3>
         <ul>
-          <li>A word is 3 to 5 letters in a straight line: a row, a column, or a diagonal. It may be read in either direction, so tap the letters in the order you read them (last-to-first works for a word spelled backwards). A word may sit inside a longer run of letters.</li>
+          <li>A word is 3 to 5 letters (3 to 6 on a 6×6 board) in a straight line: a row, a column, or a diagonal. It may be read in either direction, so tap the letters in the order you read them (last-to-first works for a word spelled backwards). A word may sit inside a longer run of letters.</li>
           <li>Words are checked against a list of about 13,500 English words. No proper nouns or abbreviations.</li>
           <li>Locking banks the word's points and marks its tiles green. Locked tiles never move again: a line still slides, but its locked tiles stay put and the other tiles slide around them, and they cannot be swapped. They can still be changed in place: nudged, drawn over, or made wild.</li>
           <li>You may lock a new word that reuses locked tiles, as long as it adds at least one tile that was not locked yet. Crossing words is the main way to lock the whole board.</li>
@@ -271,7 +275,7 @@
         </ul>
 
         <h3>Scoring</h3>
-        <p class="formula">Word = sum of its letter values, +5 for a 4-letter word, +15 for a 5-letter word.<br>Letter values: A E I O U L N S T R = 1 · D G = 2 · B C M P = 3 · F H V W Y = 4 · K = 5 · J X = 8 · Q Z = 10 · ★ = 0.</p>
+        <p class="formula">Word = sum of its letter values, +5 for a 4-letter word, +15 for a 5-letter word, +30 for a 6-letter word (6×6 boards).<br>Letter values: A E I O U L N S T R = 1 · D G = 2 · B C M P = 3 · F H V W Y = 4 · K = 5 · J X = 8 · Q Z = 10 · ★ = 0.</p>
         <p class="formula">Final score = banked words + a coverage bonus that grows with every tile locked from the 20th. There are no penalties.</p>
         <table class="examples">
           <thead><tr><th>Locked tiles</th><th>Bonus</th></tr></thead>
@@ -279,6 +283,7 @@
             <tr><td>All 25</td><td>+30, and +10 for every unused turn</td></tr>
             <tr><td>20 to 24</td><td>+5 per tile: +5 at 20, +10 at 21 … +25 at 24</td></tr>
             <tr><td>19 or fewer</td><td>0</td></tr>
+            <tr><td>6×6: 29 to 36</td><td>+5 per tile from the 29th: +5 at 29 up to +40 for all 36, and +10 for every unused turn on a full board</td></tr>
           </tbody>
         </table>
         <p>Since every lock costs a turn, 4 to 6 words that cross each other usually beat many short ones, every tile from the 20th is worth an extra 5, and clearing the whole board early is worth a lot.</p>
