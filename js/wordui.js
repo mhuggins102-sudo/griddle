@@ -1211,6 +1211,13 @@ export function initWordMode(ctx) {
   boardEl.addEventListener('pointerup', onPointerUp);
   boardEl.addEventListener('pointercancel', onPointerCancel);
   boardEl.addEventListener('contextmenu', (e) => e.preventDefault());
+  // iOS Safari and Android Chrome start a text selection or callout on a long press unless the touch
+  // itself is cancelled; pointer events still arrive, and taps are handled in pointerup, so nothing is lost
+  boardEl.addEventListener('touchstart', (e) => {
+    if (e.cancelable) e.preventDefault();
+  }, { passive: false });
+  boardEl.addEventListener('selectstart', (e) => e.preventDefault());
+  $('#screen-word').addEventListener('contextmenu', (e) => e.preventDefault());
   // a release that lands outside the board (the menu backdrop, the edge of the screen) still ends the gesture
   window.addEventListener('pointerup', (e) => {
     if (w.gesture && e.pointerId === w.gesture.id) onPointerUp(e);

@@ -600,6 +600,12 @@ function wireEvents() {
   $('#btn-help-round').addEventListener('click', openHelp);
   $('#btn-help-close').addEventListener('click', closeHelp);
   $('#btn-help-done').addEventListener('click', closeHelp);
+  $('#btn-settings').addEventListener('click', () => ($('#settings').hidden = false));
+  $('#btn-settings-close').addEventListener('click', () => ($('#settings').hidden = true));
+  $('#btn-settings-done').addEventListener('click', () => ($('#settings').hidden = true));
+  $('#settings').addEventListener('click', (e) => {
+    if (e.target === $('#settings')) $('#settings').hidden = true;
+  });
   $('#help').addEventListener('click', (e) => {
     if (e.target === $('#help')) closeHelp();
   });

@@ -32,21 +32,16 @@
           <button id="btn-word-continue" class="btn btn-primary btn-big" hidden><span class="btn-main">Continue</span><span class="btn-sub" id="continue-sub"></span></button>
           <button id="btn-word" class="btn btn-primary btn-big"><span class="btn-main">New game</span><span class="btn-sub">Levels with a goal to beat</span></button>
           <button id="btn-free" class="btn btn-big"><span class="btn-main">Free play</span><span class="btn-sub">One board, no goal, one undo</span></button>
-          <div class="btn-row">
+          <div class="btn-row three">
             <button id="btn-help-home" class="btn">How to play</button>
             <button id="btn-stats" class="btn">Stats</button>
+            <button id="btn-settings" class="btn btn-gear" aria-label="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
           </div>
           <div id="number-game-buttons" class="home-buttons" hidden>
             <button id="btn-continue" class="btn btn-primary" hidden>Continue number game</button>
             <button id="btn-new-game" class="btn">Number game</button>
           </div>
         </div>
-        <div class="settings card">
-          <label class="toggle"><span>Sound effects</span><input type="checkbox" class="switch" role="switch" id="opt-sound" checked></label>
-          <label class="toggle"><span>Show the words on the board <small>easier</small></span><input type="checkbox" class="switch" role="switch" id="opt-show-words"></label>
-          <label class="toggle" id="opt-numerals-row" hidden><span>Number game: numerals instead of dice pips</span><input type="checkbox" class="switch" role="switch" id="opt-numerals"></label>
-        </div>
-        <p class="footnote">No account, no tracking. Progress stays on this device.</p>
       </div>
     </section>
 
@@ -237,6 +232,20 @@
         </div>
       </div>
     </section>
+
+    <!-- Settings sheet -->
+    <div id="settings" class="sheet" hidden>
+      <div class="sheet-body">
+        <div class="sheet-head"><h2>Settings</h2><button id="btn-settings-close" class="btn btn-icon" aria-label="Close">✕</button></div>
+        <div class="settings">
+          <label class="toggle"><span>Sound effects</span><input type="checkbox" class="switch" role="switch" id="opt-sound" checked></label>
+          <label class="toggle"><span>Show the words on the board <small>easier</small></span><input type="checkbox" class="switch" role="switch" id="opt-show-words"></label>
+          <label class="toggle" id="opt-numerals-row" hidden><span>Number game: numerals instead of dice pips</span><input type="checkbox" class="switch" role="switch" id="opt-numerals"></label>
+        </div>
+        <p class="footnote">Progress and settings stay on this device.</p>
+        <button id="btn-settings-done" class="btn btn-primary btn-wide">Done</button>
+      </div>
+    </div>
 
     <!-- Help sheet -->
     <div id="help" class="sheet" hidden>
