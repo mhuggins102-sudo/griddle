@@ -1,11 +1,11 @@
 // Web Worker: plays a board with the word bot off the main thread and posts the result.
-import { parseDictionary } from './words.js';
+import { parseDictionary, DICT_VERSION } from './words.js';
 import { botPlay } from './wordbot.js';
 
 let dictPromise = null;
 function dict() {
   if (!dictPromise) {
-    dictPromise = fetch(new URL('../data/words.txt', import.meta.url), { cache: 'force-cache' })
+    dictPromise = fetch(new URL(`../data/words.txt?v=${DICT_VERSION}`, import.meta.url))
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.text();

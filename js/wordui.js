@@ -9,7 +9,7 @@
 import { randomSeed } from './rng.js';
 import { ANIM_MS, wait, buildBoardSkeleton, tileIn, tileStep, animateAction, animateMoves, beginMoves, removeGhosts, clearTileEffects } from './board.js';
 import {
-  dealLetters, createWordState, applyWordAction, findWords, findWordAt, lockWord, parseDictionary, bagTotal, letterValue,
+  DICT_VERSION, dealLetters, createWordState, applyWordAction, findWords, findWordAt, lockWord, parseDictionary, bagTotal, letterValue,
   describeWordCells, wordShareLine, slideMoves, coverageBonusFor, finalScore, shortfallPenalty, nudgeLetter, lineCellsFree,
   turnLimit, gridOfState, WILD, LETTERS, COVERAGE_TARGET, WILD_COST, SIZES, fullCoverTurnBonus, isBoardFull,
 } from './words.js';
@@ -81,7 +81,7 @@ export function initWordMode(ctx) {
   async function ensureDict() {
     if (w.dict) return true;
     try {
-      const res = await fetch('data/words.txt', { cache: 'force-cache' });
+      const res = await fetch(`data/words.txt?v=${DICT_VERSION}`); // versioned: a changed list is never served stale
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       w.dict = parseDictionary(await res.text());
       return true;
