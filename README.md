@@ -50,6 +50,7 @@ node tools/tune.js                         # rewrite tools/config.json weights f
 node tools/report.js --phase 1             # bank report
 node tools/report.js --phase 2 --games 20  # bot report (add --lookahead 2 to tools/bot.js runs for the two-ply bot)
 node tools/bot.js --games 10 --lookahead 2
+node tools/wordbot-stats.js --seeds 200      # word-mode bot: score distribution, fill rate, goal per level
 ```
 
 Every puzzle in the bank is `{ id, seed, board, bag, goals, par, solution, confidence }`. `deal(seed)` reproduces the board and bag; `solution` is the solver's draw-free reference line encoded as short strings (`R2L` slide row 3 left, `C0D` slide column 1 down, `W7-8` swap cells 7 and 8, `N12+` nudge cell 12 up, `D4` draw at cell 4; cells are row-major 0 to 24).
