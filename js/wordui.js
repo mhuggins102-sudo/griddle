@@ -96,9 +96,10 @@ export function initWordMode(ctx) {
     const apply = (result) => {
       // ignore a late reply: the board may have finished (and computed its goal itself) meanwhile
       if (w.game !== game || job !== w.workerJob || w.over || game.botScore !== null) return;
-      game.botScore = result.score;
+      game.botScore = result.banked; // the yardstick is the bot's word points, not its fill bonuses
+      game.botFinal = result.score;
       game.botWords = result.words.map((x) => x.word);
-      game.goal = goalFor(game.level, result.score);
+      game.goal = goalFor(game.level, result.banked);
       persist();
       cancelGesture();
       renderAll(); // the goal may already be met: the bar lights up and the board greys out
@@ -150,9 +151,10 @@ export function initWordMode(ctx) {
     try {
       const { board, bag } = dealLetters(game.seed);
       const result = botPlay(board, bag, w.dict);
-      game.botScore = result.score;
+      game.botScore = result.banked;
+      game.botFinal = result.score;
       game.botWords = result.words.map((x) => x.word);
-      game.goal = goalFor(game.level, result.score);
+      game.goal = goalFor(game.level, result.banked);
     } catch (e) {
       // the bot failed (it should never: it is pure): do not strand the run on an unscorable board
       game.botScore = 0;
@@ -1075,7 +1077,7 @@ export function initWordMode(ctx) {
     tally.appendChild(wordsBtn);
     if (bonus) {
       tally.appendChild(op('+'));
-      tally.appendChild(item('full board', `+${bonus}`, 'pos'));
+      tally.appendChild(item(`${st.locked.length} tiles`, `+${bonus}`, 'pos'));
     }
     if (turnBonus) {
       tally.appendChild(op('+'));
@@ -1129,7 +1131,7 @@ export function initWordMode(ctx) {
     const penalty = shortfallPenalty(st.locked.length);
     const total = finalScore(st);
     const parts = [`<b>${st.words.length} word${st.words.length === 1 ? '' : 's'}</b> ${st.score}`];
-    if (bonus) parts.push(`full board <b>+${bonus}</b>`);
+    if (bonus) parts.push(`${st.locked.length} tiles <b>+${bonus}</b>`);
     if (turnBonus) parts.push(`${WORD_TURNS - st.turns} turns left <b>+${turnBonus}</b>`);
     if (penalty) parts.push(`${COVERAGE_TARGET - st.locked.length} tile${COVERAGE_TARGET - st.locked.length === 1 ? '' : 's'} short of ${COVERAGE_TARGET} <b>−${penalty}</b>`);
     let html = parts.join(' · ') + ` = <b>${total}</b>`;

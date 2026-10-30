@@ -8,8 +8,8 @@ export const WILD = '*';
 export const WORD_TURNS = 20;
 export const MIN_WORD = 3;
 export const LENGTH_BONUS = { 3: 0, 4: 5, 5: 15 };
-/** End-of-game bonus by number of locked tiles (25 = the whole board). */
-export const COVERAGE_BONUS = { 25: 25, 24: 10 };
+/** End-of-game bonus by number of locked tiles: a ladder of +5 per tile from the 20th (25 = the whole board). */
+export const COVERAGE_BONUS = { 20: 5, 21: 10, 22: 15, 23: 20, 24: 25, 25: 30 };
 /** Penalties were removed: the score is word points plus bonuses only. Kept at 0 so the hooks stay. */
 export const COVERAGE_TARGET = 22;
 export const SHORTFALL_PENALTY = 0;
@@ -391,8 +391,8 @@ export function parseDictionary(text) {
   return dict;
 }
 
-/** "Grid Bid 87 (QUIZ 25, TONE 9, ...)" */
-export function wordShareLine(score, words, title = 'Grid Bid') {
+/** "Griddle 87 (QUIZ 25, TONE 9, ...)" */
+export function wordShareLine(score, words, title = 'Griddle') {
   const parts = words.map((w) => `${w.word} ${w.score}`);
   return `${title} ${score} (${parts.length ? parts.join(', ') : 'no words'})`;
 }

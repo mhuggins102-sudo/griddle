@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f4efe6" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#171a21" media="(prefers-color-scheme: dark)">
-  <meta name="description" content="Grid Bid: a 5x5 word puzzle. Slide, swap and nudge 25 letters into words, lock them in, and beat the goal in 20 turns.">
-  <title>Grid Bid</title>
+  <meta name="description" content="Griddle: a 5x5 word puzzle. Slide, swap and nudge 25 letters into words, lock them in, and beat the goal in 20 turns.">
+  <title>Griddle</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fbf6ea'/%3E%3Crect x='8' y='8' width='22' height='22' rx='5' fill='%23cfe6d9' stroke='%236fae8e' stroke-width='2'/%3E%3Crect x='34' y='8' width='22' height='22' rx='5' fill='%23fff' stroke='%23d8ccb4' stroke-width='2'/%3E%3Crect x='8' y='34' width='22' height='22' rx='5' fill='%23fff' stroke='%23d8ccb4' stroke-width='2'/%3E%3Crect x='34' y='34' width='22' height='22' rx='5' fill='%23cfe6d9' stroke='%236fae8e' stroke-width='2'/%3E%3Ctext x='19' y='25' font-family='Helvetica,Arial,sans-serif' font-weight='800' font-size='17' text-anchor='middle' fill='%231f2430'%3EG%3C/text%3E%3Ctext x='45' y='25' font-family='Helvetica,Arial,sans-serif' font-weight='800' font-size='17' text-anchor='middle' fill='%231f2430'%3ER%3C/text%3E%3Ctext x='19' y='51' font-family='Helvetica,Arial,sans-serif' font-weight='800' font-size='17' text-anchor='middle' fill='%231f2430'%3EI%3C/text%3E%3Ctext x='45' y='51' font-family='Helvetica,Arial,sans-serif' font-weight='800' font-size='17' text-anchor='middle' fill='%231f2430'%3ED%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -15,12 +15,9 @@
     <!-- Home -->
     <section id="screen-home" class="screen home-screen" hidden>
       <div class="home">
-        <h1 class="logo" aria-label="Grid Bid">
+        <h1 class="logo" aria-label="Griddle">
           <span class="logo-row" aria-hidden="true">
-            <span class="logo-tile">G<small>2</small></span><span class="logo-tile">R<small>1</small></span><span class="logo-tile">I<small>1</small></span><span class="logo-tile">D<small>2</small></span>
-          </span>
-          <span class="logo-row" aria-hidden="true">
-            <span class="logo-tile locked">B<small>3</small></span><span class="logo-tile locked">I<small>1</small></span><span class="logo-tile locked">D<small>2</small></span>
+            <span class="logo-tile locked">G<small>2</small></span><span class="logo-tile locked">R<small>1</small></span><span class="logo-tile locked">I<small>1</small></span><span class="logo-tile locked">D<small>2</small></span><span class="logo-tile locked">D<small>2</small></span><span class="logo-tile locked">L<small>1</small></span><span class="logo-tile locked">E<small>1</small></span>
           </span>
         </h1>
         <p class="tagline" id="tagline">Slide, swap and nudge 25 letters into words. Lock them in before your 20 turns run out.</p>
@@ -254,7 +251,7 @@
         <p>In free play, the <strong>Undo</strong> button in the header takes back your last move or lock, once per board. It cannot follow a Draw, since the draw was random. A board cannot be ended early. When the 20th turn is spent, press <strong>Score board</strong> to finish, or undo the last move first. Locking the 25th tile scores the board at once. At the end, tap the word total on the result panel to see the words you locked.</p>
 
         <h3>Levels and free play</h3>
-        <p><strong>New game</strong> starts at level 1. Before you play each board, a bot plays the same board behind the scenes and its score sets the <strong>goal</strong>, shown under the header once it is ready. The moment your score reaches the goal the level is passed: the bar lights up, play on that board stops, and <strong>Next level</strong> takes you to a fresh board. Use up the 20 turns (or lock the whole board) below the goal and the run ends. Level runs have no undo, no board replay and no end-of-board summary. The goal is a share of the bot's score that grows with the level: 35% at level 1, then 5 percentage points more per level, up to 100% at level 14, rounded up to the nearest 10. Harder boards therefore get lower goals. <strong>Free play</strong> is a single board with no goal.</p>
+        <p><strong>New game</strong> starts at level 1. Before you play each board, a bot plays the same board behind the scenes and its word points (its coverage and spare-turn bonuses do not count) set the <strong>goal</strong>, shown under the header once it is ready. The moment your score reaches the goal the level is passed: the bar lights up, play on that board stops, and <strong>Next level</strong> takes you to a fresh board. Use up the 20 turns (or lock the whole board) below the goal and the run ends. Level runs have no undo, no board replay and no end-of-board summary. The goal is a share of the bot's word points that grows with the level: 35% at level 1, then 5 percentage points more per level, up to 100% at level 14, rounded up to the nearest 10. Harder boards therefore get lower goals. <strong>Free play</strong> is a single board with no goal.</p>
         <p>The score in the header, and the level bar, always show the score as it stands <em>right now</em>, bonuses included. Tap either for the current breakdown.</p>
 
         <h3>The grid and the bag</h3>
@@ -272,16 +269,16 @@
 
         <h3>Scoring</h3>
         <p class="formula">Word = sum of its letter values, +5 for a 4-letter word, +15 for a 5-letter word.<br>Letter values: A E I O U L N S T R = 1 · D G = 2 · B C M P = 3 · F H V W Y = 4 · K = 5 · J X = 8 · Q Z = 10 · ★ = 0.</p>
-        <p class="formula">Final score = banked words + a completion bonus for locking the whole board. There are no penalties.</p>
+        <p class="formula">Final score = banked words + a coverage bonus that grows with every tile locked from the 20th. There are no penalties.</p>
         <table class="examples">
           <thead><tr><th>Locked tiles</th><th>Bonus</th></tr></thead>
           <tbody>
-            <tr><td>All 25</td><td>+25, and +10 for every unused turn</td></tr>
-            <tr><td>24</td><td>+10</td></tr>
-            <tr><td>23 or fewer</td><td>0</td></tr>
+            <tr><td>All 25</td><td>+30, and +10 for every unused turn</td></tr>
+            <tr><td>20 to 24</td><td>+5 per tile: +5 at 20, +10 at 21 … +25 at 24</td></tr>
+            <tr><td>19 or fewer</td><td>0</td></tr>
           </tbody>
         </table>
-        <p>Since every lock costs a turn, 4 to 6 words that cross each other usually beat many short ones, and clearing the whole board early is worth a lot.</p>
+        <p>Since every lock costs a turn, 4 to 6 words that cross each other usually beat many short ones, every tile from the 20th is worth an extra 5, and clearing the whole board early is worth a lot.</p>
         <p>After a free-play board you can <strong>replay the same board</strong> (same letters, same draws). Replays do not count towards your stats or personal best, but the game remembers your best score on that board and tells you when you beat it.</p>
 
         <h3>Options</h3>

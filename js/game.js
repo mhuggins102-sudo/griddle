@@ -3,7 +3,7 @@
 import { createState, applyAction, encodeAction, allGoalsHold, scoreBreakdown, gameScore, BID_MIN, BID_MAX, ROUNDS_PER_GAME } from './engine.js';
 import { mulberry32, randomSeed, shuffle } from './rng.js';
 
-export const STORAGE_KEY = 'gridbid.v1';
+export const STORAGE_KEY = 'gridbid.v1'; // kept through the rename so saved progress survives
 export const HISTORY_LIMIT = 50;
 
 export function defaultStore() {
@@ -128,8 +128,8 @@ export function summarizeGame(game, bank) {
   return { at: new Date().toISOString(), total: gameScore(rounds.map((r) => r.score)), rounds };
 }
 
-/** "Grid Bid 437 (8/8, 9/8, 7/7, bust, 10/10)" with bid/par per round. */
-export function shareLine(summary, title = 'Grid Bid') {
+/** "Griddle 437 (8/8, 9/8, 7/7, bust, 10/10)" with bid/par per round. */
+export function shareLine(summary, title = 'Griddle') {
   const parts = summary.rounds.map((r) => (r.bust ? 'bust' : `${r.bid}/${r.par}`));
   return `${title} ${summary.total} (${parts.join(', ')})`;
 }

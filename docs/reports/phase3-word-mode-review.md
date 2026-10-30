@@ -1,5 +1,7 @@
 # Phase 3: Word mode review (UI, scoring, goal bot, 6x6)
 
+Decisions taken on 30 October (all implemented on the branch except 6x6): the game is now called **Griddle** (the storage key `gridbid.v1` is unchanged so saved progress survives); locking stays immediate on the second tap; the coverage ladder is adopted (`COVERAGE_BONUS = { 20: 5, 21: 10, 22: 15, 23: 20, 24: 25, 25: 30 }`, +10 per unused turn on a full board, wild still two turns, no penalty); level goals are now a share of the bot's banked word points instead of its full score (goal at level 1 about 50, level 14 about 134; `node tools/wordbot-stats.js` prints them); 6x6 will get 25 turns with the ladder proposed at the end of the 6x6 section.
+
 Status: the gesture UI described below is implemented on branch `claude/gesture-ui` (three commits), with the number game untouched behind its flag. The scoring, bot and 6x6 sections are assessments with recommendations; no rule or constant was changed. Simulations were run by analysis agents against the shipped engine; their headline numbers for the shipped bot agree with each other (four independent runs: mean 187 to 191, 89% to 93% full boards, 28% to 29% of the score from bonuses) and can be reproduced with `node tools/wordbot-stats.js --seeds 200`. The variant and 6x6 runs lived in session scratch space and are quoted with their seed counts; treat them as single-run estimates with roughly plus or minus 3 points on a mean of 200 boards.
 
 ## UI: gesture controls and visual polish
@@ -173,10 +175,13 @@ Other facts: 98 tiles minus 36 leaves 62 in the bag, so draws never run dry; the
 3. Dictionary: regenerate `data/words.txt` from ENABLE with 3 to 6 letters (28,743 words, about 182 KB instead of 75 KB); the 5x5 parser already drops 6-letter words, so one file can serve both sizes. The shipped list is exactly ENABLE 3 to 5, so nothing else changes.
 4. Code: `SIZE` in `js/engine.js` is a shared constant (the number game and its puzzle bank assume 5), so the word engine needs a per-game size passed through `wordLines`, `lineCells`, `allActions`, `dealLetters` and the UI (the locked-tiles counter, the 20-segment turn track, the CSS grid, `COVERAGE_BONUS` keys, the tests). The bot needs `maxFirst` set to the move count and a time budget; computing the next board's goal while the current one is played would hide the longer run time. Rough effort: two to three days including the dictionary and a goal re-check.
 
+### Coverage ladder for 6x6 at 25 turns (decided: 25 turns)
+
+Same rule shape as 5x5, over the last eight tiles instead of the last six: **+5 per locked tile from the 29th**, so `{ 29: 5, 30: 10, 31: 15, 32: 20, 33: 25, 34: 30, 35: 35, 36: 40 }`, plus +10 per unused turn on a full board. Why 29: on 5x5 the ladder starts at 80% of the board (20 of 25); 80% of 36 is 28.8. Why the top is 40: the 5x5 top (30) scaled by 36/25 is 43, and a round 40 keeps the +5 step. Interpolating the 24- and 26-turn runs, at 25 turns the bot would finish with 36 tiles on about 60% of boards, 35 or more on 83%, 34 or more on 93% and 29 or more on virtually all, so almost every competent board earns something and the last tile is still worth +5 plus the spare-turn bonus. 25 turns itself was not simulated; the two neighbouring turn counts bracket it.
+
 ### Questions for you
 
-- 5x5 but bigger (28 turns) or hard mode (24 turns)? The bot cannot decide that; it only shows the trade-off. A short playtest at 20 versus 28 turns would settle it.
-- Should both sizes share one goal schedule? Goals are a share of the bot's score, so they self-calibrate, but the level curve will feel different if 6x6 boards are longer.
+- Should both sizes share one goal schedule? Goals are a share of the bot's banked points, so they self-calibrate, but the level curve will feel different if 6x6 boards are longer.
 
 ## Verification note
 
@@ -184,8 +189,8 @@ An independent numeric re-check of the simulation findings was planned but did n
 
 ## Open questions, collected
 
-1. The name: the word game has no bidding, yet the title, package and share line still say Grid Bid. Keep it, or rename?
-2. Lock without confirmation: keep the immediate lock on the second tap, or restore a one-tap confirm?
-3. Scoring: adopt the coverage ladder? Keep the +10 per unused turn?
-4. Bot yardstick: banked points at 100%, or full score capped at about 80%?
-5. 6x6: 28 turns or 24?
+1. ~~The name~~ decided: Griddle.
+2. ~~Lock without confirmation~~ decided: immediate.
+3. ~~Coverage ladder~~ adopted; +10 per unused turn kept.
+4. ~~Bot yardstick~~ decided: banked points.
+5. ~~6x6 turns~~ decided: 25, with the ladder from the 29th tile. Still open: build 6x6 now (two to three days: per-game size, 3-to-6-letter dictionary, bot move cap and time budget, UI counters and tests)?

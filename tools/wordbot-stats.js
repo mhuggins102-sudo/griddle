@@ -41,4 +41,4 @@ const hist = {};
 for (const r of rows) hist[r.locked] = (hist[r.locked] || 0) + 1;
 console.log('locked tiles   ' + Object.keys(hist).sort((a, b) => b - a).map((k) => `${k}: ${(100 * hist[k] / rows.length).toFixed(1)}%`).join('  '));
 console.log(`full boards    ${(100 * rows.filter((r) => r.locked === CELLS).length / rows.length).toFixed(1)}%; boards using all ${WORD_TURNS} turns ${(100 * rows.filter((r) => r.turns >= WORD_TURNS).length / rows.length).toFixed(1)}%\n`);
-console.log('goal by level  ' + [1, 3, 5, 8, 10, 12, 14].map((L) => `L${L} ${mean(rows.map((r) => goalFor(L, r.score))).toFixed(0)}`).join('  '));
+console.log('goal by level  ' + [1, 3, 5, 8, 10, 12, 14].map((L) => `L${L} ${mean(rows.map((r) => goalFor(L, r.banked))).toFixed(0)}`).join('  ') + '   (from banked word points, as the game does)');

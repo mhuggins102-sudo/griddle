@@ -1,4 +1,4 @@
-// Grid Bid engine: deal, actions, goals, goal cost, scoring.
+// Griddle engine: deal, actions, goals, goal cost, scoring.
 // Pure functions, no DOM. Shared by the browser UI, the generator, the bot and the tests.
 
 import { mulberry32, rngNext, shuffle } from './rng.js';
