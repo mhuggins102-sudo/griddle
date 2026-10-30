@@ -581,6 +581,7 @@ export function initWordMode(ctx) {
   }
 
   function onPointerDown(e) {
+    if (w.gesture && performance.now() - w.gesture.t0 > 4000) cancelGesture(); // a release the board never heard
     if (!e.isPrimary || e.button !== 0 || w.gesture) return;
     const tile = e.target.closest('.tile');
     if (!tile || !canInteract()) return;
@@ -593,6 +594,7 @@ export function initWordMode(ctx) {
     w.gesture = {
       id: e.pointerId,
       cell,
+      t0: t,
       x0: e.clientX,
       y0: e.clientY,
       x: e.clientX,
@@ -826,7 +828,14 @@ export function initWordMode(ctx) {
   function openMenuFromGesture(cell) {
     const g = w.gesture;
     if (!g || g.cell !== cell || g.mode !== 'press') return;
-    g.mode = 'menu';
+    // the gesture is over: the finger may lift over the menu backdrop, where the board never hears it
+    w.gesture = null;
+    try {
+      boardEl.releasePointerCapture(g.id);
+    } catch {
+      // nothing captured
+    }
+    w.pointerTs = performance.now();
     openMenu(cell);
   }
 
@@ -886,6 +895,7 @@ export function initWordMode(ctx) {
   function closeMenu() {
     const menu = $('#w-tilemenu');
     if (menu.hidden) return;
+    w.pointerTs = performance.now(); // the release that follows is not a tap
     menu.hidden = true;
     $('#w-menu-backdrop').hidden = true;
     if (w.menuCell !== null) tileEl(w.menuCell).classList.remove('selected');
@@ -1201,9 +1211,17 @@ export function initWordMode(ctx) {
   boardEl.addEventListener('pointerup', onPointerUp);
   boardEl.addEventListener('pointercancel', onPointerCancel);
   boardEl.addEventListener('contextmenu', (e) => e.preventDefault());
+  // a release that lands outside the board (the menu backdrop, the edge of the screen) still ends the gesture
+  window.addEventListener('pointerup', (e) => {
+    if (w.gesture && e.pointerId === w.gesture.id) onPointerUp(e);
+  });
+  window.addEventListener('pointercancel', (e) => {
+    if (w.gesture && e.pointerId === w.gesture.id) onPointerCancel(e);
+  });
   boardEl.addEventListener('click', (e) => {
     // keyboard activation only: pointer taps are handled in pointerup
     if (performance.now() - w.pointerTs < 600) return;
+    if (!$('#w-tilemenu').hidden) return;
     const tile = e.target.closest('.tile');
     if (tile) onTileTap(Number(tile.dataset.cell));
   });
