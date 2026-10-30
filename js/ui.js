@@ -99,17 +99,7 @@ function showHome() {
     const turn = Math.min((g.state.turns || 0) + 1, lim);
     $('#continue-sub').textContent = `${size === 6 ? '6×6 · ' : ''}${g.mode === 'levels' ? `Level ${g.level || 1}` : 'Free play'} · turn ${turn} of ${lim} · ${g.state.score || 0} points`;
   }
-  const w = s.word || { gamesPlayed: 0, best: null };
-  const stats = $('#home-stats');
-  const numberStats = SHOW_NUMBER_GAME && s.gamesPlayed;
-  stats.hidden = !w.gamesPlayed && !numberStats;
-  if (!stats.hidden) {
-    const stat = (label, value) => `<div class="stat"><span class="hud-label">${label}</span><span class="hud-value">${value}</span></div>`;
-    stats.innerHTML = w.gamesPlayed ? stat('Boards', w.gamesPlayed) + stat(w.best6 != null ? 'Best 5×5' : 'Best score', w.best ?? '–') + stat('Top level', w.bestLevel || '–') : '';
-    if (w.best6 != null) stats.innerHTML += stat('Best 6×6', w.best6);
-    if (numberStats) stats.innerHTML += stat('Number game', `${s.gamesPlayed} · best ${s.bestTotal}`);
-  }
-  showScreen('screen-home');
+  showScreen('screen-home'); // the figures live on the Stats screen
 }
 
 function startNewGame() {
@@ -522,7 +512,7 @@ function showStats() {
   const w = s.word || { gamesPlayed: 0, best: null, history: [] };
   const body = $('#stats-body');
   if (!w.gamesPlayed) {
-    body.innerHTML = '<p class="hint">No games finished yet.</p>';
+    body.innerHTML = `<p class="hint">No games finished yet.</p>${SHOW_NUMBER_GAME && s.gamesPlayed ? `<p class="hint">Number game: ${s.gamesPlayed} played, best ${s.bestTotal}.</p>` : ''}`;
   } else {
     const hist = w.history || [];
     const avg = hist.length ? Math.round(hist.reduce((a, g) => a + g.score, 0) / hist.length) : 0;
@@ -531,7 +521,8 @@ function showStats() {
     body.innerHTML = `
       <div class="stat-summary">
         <div><span class="hud-label">Games</span><span class="hud-value">${w.gamesPlayed}</span></div>
-        <div><span class="hud-label">Best</span><span class="hud-value">${w.best}</span></div>
+        <div><span class="hud-label">${w.best6 != null ? 'Best 5×5' : 'Best'}</span><span class="hud-value">${w.best ?? '–'}</span></div>
+        ${w.best6 != null ? `<div><span class="hud-label">Best 6×6</span><span class="hud-value">${w.best6}</span></div>` : ''}
         <div><span class="hud-label">Average</span><span class="hud-value">${avg}</span></div>
         <div><span class="hud-label">Words locked</span><span class="hud-value">${wordsPlayed}</span></div>
         <div><span class="hud-label">Per game</span><span class="hud-value">${hist.length ? (wordsPlayed / hist.length).toFixed(1) : 0}</span></div>
