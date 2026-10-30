@@ -169,6 +169,10 @@
         <div id="w-locked" class="locked-line" aria-label="Locked words"></div>
       </div>
 
+      <div id="w-found-wrap" class="panel words-panel" hidden>
+        <div id="w-found" class="chips"></div>
+      </div>
+
       <div class="board-wrap word-board-wrap">
         <div id="wboard" class="board plain" role="grid" aria-label="Letter board"></div>
         <div id="w-float" class="float-layer" aria-hidden="true"></div>
@@ -197,10 +201,6 @@
       </div>
 
       <div id="w-bag" class="panel bag letters" aria-label="Letters left in the bag" hidden></div>
-
-      <div id="w-found-wrap" class="panel words-panel" hidden>
-        <div id="w-found" class="chips"></div>
-      </div>
 
       <div id="w-result" class="panel result compact" hidden>
         <div class="result-head">
@@ -249,12 +249,12 @@
           <li><strong>Nudge</strong>: press and hold a tile, then pick the letter before or after it in the alphabet (A and Z wrap round, so any letter is at most 13 nudges away). Locked tiles can be nudged too.</li>
           <li><strong>Draw</strong>: press and hold a tile, then choose <em>draw</em> to replace it with a random letter from the bag. The old letter goes into the bag afterwards, so it cannot come straight back. Draw is the only random action and cannot be undone. The bag button in the header shows what is left.</li>
           <li><strong>Lock</strong>: tap the first letter of a word, then its last letter. The word locks at once and its points are banked.</li>
-          <li><strong>Wild</strong> (two turns): press and hold a <em>locked</em> tile and choose ★. A wild tile reads as any letter in any word but scores no points itself.</li>
+          <li><strong>Wild</strong> (two turns, so it needs two turns left): press and hold a <em>locked</em> tile and choose ★. A wild tile reads as any letter in any word but scores no points itself.</li>
         </ul>
-        <p>In free play, <strong>Undo</strong> (↶) takes back your last move or lock, once per board. It cannot follow a Draw, since the draw was random. A board cannot be ended early. When the 20th turn is spent, press <strong>Score board</strong> to finish, or undo the last move first. Locking the 25th tile scores the board at once.</p>
+        <p>In free play, the <strong>Undo</strong> button in the header takes back your last move or lock, once per board. It cannot follow a Draw, since the draw was random. A board cannot be ended early. When the 20th turn is spent, press <strong>Score board</strong> to finish, or undo the last move first. Locking the 25th tile scores the board at once. At the end, tap the word total on the result panel to see the words you locked.</p>
 
         <h3>Levels and free play</h3>
-        <p><strong>New game</strong> starts at level 1. Before you play each board, a bot plays the same board behind the scenes and its score sets the <strong>goal</strong>, shown under the header once it is ready. The moment your score reaches the goal the level is passed: the bar lights up, play on that board stops, and <strong>Next level</strong> takes you to a fresh board. Use up the 20 turns (or lock the whole board) below the goal and the run ends. Level runs have no undo and no board replay. The goal is a share of the bot's score that grows with the level: 35% at level 1, then 5 percentage points more per level, up to 100% at level 14, rounded up to the nearest 10. Harder boards therefore get lower goals. <strong>Free play</strong> is a single board with no goal.</p>
+        <p><strong>New game</strong> starts at level 1. Before you play each board, a bot plays the same board behind the scenes and its score sets the <strong>goal</strong>, shown under the header once it is ready. The moment your score reaches the goal the level is passed: the bar lights up, play on that board stops, and <strong>Next level</strong> takes you to a fresh board. Use up the 20 turns (or lock the whole board) below the goal and the run ends. Level runs have no undo, no board replay and no end-of-board summary. The goal is a share of the bot's score that grows with the level: 35% at level 1, then 5 percentage points more per level, up to 100% at level 14, rounded up to the nearest 10. Harder boards therefore get lower goals. <strong>Free play</strong> is a single board with no goal.</p>
         <p>The score in the header, and the level bar, always show the score as it stands <em>right now</em>, bonuses included. Tap either for the current breakdown.</p>
 
         <h3>The grid and the bag</h3>
@@ -285,7 +285,7 @@
         <p>After a free-play board you can <strong>replay the same board</strong> (same letters, same draws). Replays do not count towards your stats or personal best, but the game remembers your best score on that board and tells you when you beat it.</p>
 
         <h3>Options</h3>
-        <p>The home screen can list the words currently on the board, with their points, as a hint; tap a listed word to lock it. It is off by default. Your best score and recent games are kept on this device.</p>
+        <p>The home screen can list the words currently on the board, with their points, as a hint; tap a listed word, then Lock. It is off by default. Your best score and recent games are kept on this device.</p>
         <button id="btn-help-done" class="btn btn-primary btn-wide">Close</button>
       </div>
     </div>
