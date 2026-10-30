@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f4efe6" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#171a21" media="(prefers-color-scheme: dark)">
-  <meta name="description" content="Griddle: a 5x5 word puzzle. Slide, swap and nudge 25 letters into words, lock them in, and beat the goal in 20 turns.">
-  <title>Griddle</title>
+  <meta name="description" content="GridLock: a 5x5 word puzzle. Slide, swap and nudge 25 letters into words, lock them in, and beat the goal in 20 turns.">
+  <title>GridLock</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fbf6ea'/%3E%3Crect x='8' y='8' width='22' height='22' rx='5' fill='%23cfe6d9' stroke='%236fae8e' stroke-width='2'/%3E%3Crect x='34' y='8' width='22' height='22' rx='5' fill='%23fff' stroke='%23d8ccb4' stroke-width='2'/%3E%3Crect x='8' y='34' width='22' height='22' rx='5' fill='%23fff' stroke='%23d8ccb4' stroke-width='2'/%3E%3Crect x='34' y='34' width='22' height='22' rx='5' fill='%23cfe6d9' stroke='%236fae8e' stroke-width='2'/%3E%3Ctext x='19' y='25' font-family='Helvetica,Arial,sans-serif' font-weight='800' font-size='17' text-anchor='middle' fill='%231f2430'%3EG%3C/text%3E%3Ctext x='45' y='25' font-family='Helvetica,Arial,sans-serif' font-weight='800' font-size='17' text-anchor='middle' fill='%231f2430'%3ER%3C/text%3E%3Ctext x='19' y='51' font-family='Helvetica,Arial,sans-serif' font-weight='800' font-size='17' text-anchor='middle' fill='%231f2430'%3EI%3C/text%3E%3Ctext x='45' y='51' font-family='Helvetica,Arial,sans-serif' font-weight='800' font-size='17' text-anchor='middle' fill='%231f2430'%3ED%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -15,9 +15,12 @@
     <!-- Home -->
     <section id="screen-home" class="screen home-screen" hidden>
       <div class="home">
-        <h1 class="logo" aria-label="Griddle">
+        <h1 class="logo" aria-label="GridLock">
           <span class="logo-row" aria-hidden="true">
-            <span class="logo-tile locked">G<small>2</small></span><span class="logo-tile locked">R<small>1</small></span><span class="logo-tile locked">I<small>1</small></span><span class="logo-tile locked">D<small>2</small></span><span class="logo-tile locked">D<small>2</small></span><span class="logo-tile locked">L<small>1</small></span><span class="logo-tile locked">E<small>1</small></span>
+            <span class="logo-tile">G<small>2</small></span><span class="logo-tile">R<small>1</small></span><span class="logo-tile">I<small>1</small></span><span class="logo-tile">D<small>2</small></span>
+          </span>
+          <span class="logo-row" aria-hidden="true">
+            <span class="logo-tile locked">L<small>1</small></span><span class="logo-tile locked">O<small>1</small></span><span class="logo-tile locked">C<small>3</small></span><span class="logo-tile locked">K<small>5</small></span>
           </span>
         </h1>
         <p class="tagline" id="tagline">Slide, swap and nudge 25 letters into words. Lock them in before your 20 turns run out.</p>

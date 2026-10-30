@@ -1,6 +1,6 @@
 # Phase 3: Word mode review (UI, scoring, goal bot, 6x6)
 
-Decisions taken on 30 October (all implemented on the branch except 6x6): the game is now called **Griddle** (the storage key `gridbid.v1` is unchanged so saved progress survives); locking stays immediate on the second tap; the coverage ladder is adopted (`COVERAGE_BONUS = { 20: 5, 21: 10, 22: 15, 23: 20, 24: 25, 25: 30 }`, +10 per unused turn on a full board, wild still two turns, no penalty); level goals are now a share of the bot's banked word points instead of its full score (goal at level 1 about 50, level 14 about 134; `node tools/wordbot-stats.js` prints them); 6x6 will get 25 turns with the ladder proposed at the end of the 6x6 section.
+Decisions taken on 30 October (all implemented on the branch except 6x6): the game is now called **GridLock** (the storage key `gridbid.v1` is unchanged so saved progress survives); locking stays immediate on the second tap; the coverage ladder is adopted (`COVERAGE_BONUS = { 20: 5, 21: 10, 22: 15, 23: 20, 24: 25, 25: 30 }`, +10 per unused turn on a full board, wild still two turns, no penalty); level goals are now a share of the bot's banked word points instead of its full score (goal at level 1 about 50, level 14 about 134; `node tools/wordbot-stats.js` prints them); 6x6 will get 25 turns with the ladder proposed at the end of the 6x6 section.
 
 Status: the gesture UI described below is implemented on branch `claude/gesture-ui` (three commits), with the number game untouched behind its flag. The scoring, bot and 6x6 sections are assessments with recommendations; no rule or constant was changed. Simulations were run by analysis agents against the shipped engine; their headline numbers for the shipped bot agree with each other (four independent runs: mean 187 to 191, 89% to 93% full boards, 28% to 29% of the score from bonuses) and can be reproduced with `node tools/wordbot-stats.js --seeds 200`. The variant and 6x6 runs lived in session scratch space and are quoted with their seed counts; treat them as single-run estimates with roughly plus or minus 3 points on a mean of 200 boards.
 
@@ -189,7 +189,7 @@ An independent numeric re-check of the simulation findings was planned but did n
 
 ## Open questions, collected
 
-1. ~~The name~~ decided: Griddle.
+1. ~~The name~~ decided: GridLock.
 2. ~~Lock without confirmation~~ decided: immediate.
 3. ~~Coverage ladder~~ adopted; +10 per unused turn kept.
 4. ~~Bot yardstick~~ decided: banked points.

@@ -141,8 +141,8 @@ test('nudge wraps Z to A and A to Z; draw keeps the bag size and never returns t
 
 test('scoreWord and share line', () => {
   assert.equal(scoreWord(['Q', 'U', 'I', 'Z', WILD], [0, 1, 2, 3]), 10 + 1 + 1 + 10 + 5);
-  assert.equal(wordShareLine(14, [{ word: 'CAT', score: 5 }, { word: 'TONE', score: 9 }]), 'Griddle 14 (CAT 5, TONE 9)');
-  assert.equal(wordShareLine(0, []), 'Griddle 0 (no words)');
+  assert.equal(wordShareLine(14, [{ word: 'CAT', score: 5 }, { word: 'TONE', score: 9 }]), 'GridLock 14 (CAT 5, TONE 9)');
+  assert.equal(wordShareLine(0, []), 'GridLock 0 (no words)');
 });
 
 test('a dealt board usually has a few words available', () => {

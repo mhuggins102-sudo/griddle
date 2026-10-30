@@ -128,8 +128,8 @@ export function summarizeGame(game, bank) {
   return { at: new Date().toISOString(), total: gameScore(rounds.map((r) => r.score)), rounds };
 }
 
-/** "Griddle 437 (8/8, 9/8, 7/7, bust, 10/10)" with bid/par per round. */
-export function shareLine(summary, title = 'Griddle') {
+/** "GridLock 437 (8/8, 9/8, 7/7, bust, 10/10)" with bid/par per round. */
+export function shareLine(summary, title = 'GridLock') {
   const parts = summary.rounds.map((r) => (r.bust ? 'bust' : `${r.bid}/${r.par}`));
   return `${title} ${summary.total} (${parts.join(', ')})`;
 }

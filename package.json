@@ -1,7 +1,7 @@
 {
-  "name": "griddle",
+  "name": "gridlock",
   "version": "0.1.0",
-  "description": "Griddle: a 5x5 word puzzle. Slide, swap and nudge letters into words and lock them in before the turns run out.",
+  "description": "GridLock: a 5x5 word puzzle. Slide, swap and nudge letters into words and lock them in before the turns run out.",
   "type": "module",
   "private": true,
   "scripts": {

@@ -1,4 +1,4 @@
-# Griddle
+# GridLock
 
 A single-player, portrait-phone word puzzle: a 5x5 grid of letter tiles, 20 turns to slide, swap, nudge and draw them into words, and lock the words in to score. Everything is played with gestures straight on the board. Static HTML/CSS/JS, no framework, no bundler, no server.
 

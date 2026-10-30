@@ -391,8 +391,8 @@ export function parseDictionary(text) {
   return dict;
 }
 
-/** "Griddle 87 (QUIZ 25, TONE 9, ...)" */
-export function wordShareLine(score, words, title = 'Griddle') {
+/** "GridLock 87 (QUIZ 25, TONE 9, ...)" */
+export function wordShareLine(score, words, title = 'GridLock') {
   const parts = words.map((w) => `${w.word} ${w.score}`);
   return `${title} ${score} (${parts.length ? parts.join(', ') : 'no words'})`;
 }
