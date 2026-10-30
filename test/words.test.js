@@ -5,7 +5,7 @@ import { CELLS, idx } from '../js/engine.js';
 import {
   dealLetters, createWordState, applyWordAction, findWords, lockWord, scoreWord, nudgeLetter, wordLines, parseDictionary,
   bagTotal, LETTER_COUNTS, WILD, wordShareLine, slideMoves, isPluralPair, findWordAt, coverageBonus, finalScore, shortfallPenalty, WORD_TURNS,
-  fullCoverTurnBonus, isBoardFull, projectedScore,
+  fullCoverTurnBonus, isBoardFull, projectedScore, turnLimit, TURNS_BY_SIZE,
 } from '../js/words.js';
 
 const dict = parseDictionary(readFileSync(new URL('../data/words.txt', import.meta.url), 'utf8'));
@@ -14,14 +14,14 @@ function boardFrom(rows) {
   return rows.join('').split('');
 }
 
-test('dictionary loads with 3 to 5 letter words only', () => {
-  assert.ok(dict.size > 10000);
-  for (const w of dict) assert.ok(w.length >= 3 && w.length <= 5 && /^[A-Z]+$/.test(w));
-  assert.ok(dict.has('CAT') && dict.has('QUIZ') && dict.has('TONE'));
-  assert.ok(!dict.has('AA'));
+test('dictionary loads with 3 to 6 letter words only', () => {
+  assert.ok(dict.size > 25000);
+  for (const w of dict) assert.ok(w.length >= 3 && w.length <= 6 && /^[A-Z]+$/.test(w));
+  assert.ok(dict.has('CAT') && dict.has('QUIZ') && dict.has('TONE') && dict.has('LETTER'));
+  assert.ok(!dict.has('AA') && !dict.has('LETTERS'));
 });
 
-test('deal: 25 letters plus a 73-tile bag, Scrabble distribution, deterministic', () => {
+test('deal: 25 letters plus a 73-tile bag, Scrabble distribution, deterministic; 6x6 deals 36 and leaves 62', () => {
   const { board, bag } = dealLetters(1);
   assert.equal(board.length, CELLS);
   assert.equal(bagTotal(bag), 98 - CELLS);
@@ -29,6 +29,10 @@ test('deal: 25 letters plus a 73-tile bag, Scrabble distribution, deterministic'
   for (const ch of board) counts[ch] = (counts[ch] || 0) + 1;
   for (const [ch, n] of Object.entries(LETTER_COUNTS)) assert.equal((counts[ch] || 0) + bag[ch], n, ch);
   assert.deepEqual(dealLetters(1), { board, bag });
+  const six = dealLetters(1, 6);
+  assert.equal(six.board.length, 36);
+  assert.equal(bagTotal(six.bag), 62);
+  assert.deepEqual(six.board.slice(0, 25), board, 'the first 25 letters of a 6x6 deal are the 5x5 deal of the same seed');
 });
 
 test('word lines: 5 rows, 5 columns, 10 diagonals of length 3 to 5', () => {
@@ -240,4 +244,45 @@ test('turn limit: no action or lock once 20 turns are used; wild needs two turns
   t.turns = WORD_TURNS - 1;
   assert.throws(() => applyWordAction(t, { type: 'wild', r: 0, c: 0 }), /2 turns/);
   assert.equal(applyWordAction(t, { type: 'nudge', r: 0, c: 0, delta: 1 }).turns, WORD_TURNS);
+});
+
+test('6x6: geometry, 25 turns, 6-letter words score +30, the coverage ladder runs from the 29th tile', () => {
+  assert.equal(wordLines(6).length, 26, '6 rows, 6 columns, 7 diagonals each way');
+  assert.deepEqual(wordLines(6)[15], [0, 7, 14, 21, 28, 35], 'the main diagonal');
+  assert.equal(wordLines(6).filter((l) => l.length === 6).length, 14);
+  const rows6 = (rs) => rs.join('').split('');
+  const s = createWordState(rows6(['LETTER', 'XXXXXX', 'XXXXXX', 'XXXXXX', 'XXXXXX', 'XXXXXX']), {});
+  assert.equal(s.size, 6);
+  assert.equal(turnLimit(s), 25);
+  assert.equal(TURNS_BY_SIZE[5], WORD_TURNS);
+  const letter = findWords(s, dict).find((w) => w.word === 'LETTER');
+  assert.ok(letter, 'a 6-letter word is found on a 6x6 row');
+  assert.deepEqual(letter.cells, [0, 1, 2, 3, 4, 5]);
+  assert.equal(letter.score, 6 + 30);
+  assert.equal(findWordAt(s, dict, 0, 5).word, 'LETTER');
+  // the ladder: +5 per tile from the 29th, +40 for all 36; nothing on 5x5-sized counts
+  assert.equal(coverageBonus(36, 6), 40);
+  assert.equal(coverageBonus(29, 6), 5);
+  assert.equal(coverageBonus(28, 6), 0);
+  assert.equal(coverageBonus(25, 6), 0);
+  const t = lockWord(s, letter);
+  assert.equal(t.turns, 1);
+  assert.equal(t.size, 6);
+  // a 6x6 row slides with six cells, the locked tiles staying put
+  const slid = applyWordAction(t, { type: 'slide', axis: 'row', index: 1, dir: 1 });
+  assert.equal(slid.board.length, 36);
+  assert.throws(() => applyWordAction(t, { type: 'slide', axis: 'row', index: 0, dir: 1 }), /Nothing/);
+  assert.throws(() => applyWordAction(t, { type: 'swap', r: 0, c: 5, r2: 0, c2: 6 }), /out of range/);
+  // the full board bonus and turn limit follow the size
+  const full = createWordState(new Array(36).fill('A'), {});
+  full.score = 10;
+  full.locked = Array.from({ length: 36 }, (_, i) => i);
+  full.turns = 20;
+  assert.ok(isBoardFull(full));
+  assert.equal(fullCoverTurnBonus(full), 50, '5 unused turns of 25');
+  assert.equal(finalScore(full), 10 + 40 + 50);
+  // a 5x5 state never sees 6-letter words even though the dictionary has them
+  const five = createWordState(rows6(['LETTE', 'RXXXX', 'XXXXX', 'XXXXX', 'XXXXX']).slice(0, 25), {});
+  assert.equal(five.size, 5);
+  assert.ok(!findWords(five, dict).some((w) => w.word.length > 5));
 });

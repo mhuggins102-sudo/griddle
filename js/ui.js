@@ -7,6 +7,7 @@ import {
 import { ANIM_MS, wait, neighbours, buildBoardSkeleton, tileIn, animateAction, clearTileEffects } from './board.js';
 import { initWordMode } from './wordui.js';
 import { setSoundEnabled } from './sound.js';
+import { TURNS_BY_SIZE } from './words.js';
 import {
   loadStore, saveStore, newGame, currentRound, lockBid, playAction, giveUp, runningTotal, isGameOver, advanceRound,
   summarizeGame, shareLine, recordGame, findPuzzle, defaultStore,
@@ -40,6 +41,14 @@ async function boot() {
   $('#opt-show-words').checked = !!ui.store.settings.showWords;
   $('#opt-sound').checked = ui.store.settings.sound !== false;
   setSoundEnabled(ui.store.settings.sound !== false);
+  $('#opt-size-6').checked = ui.store.settings.boardSize === 6;
+  $('#opt-size-5').checked = ui.store.settings.boardSize !== 6;
+  for (const r of document.querySelectorAll('input[name="opt-size"]')) {
+    r.addEventListener('change', () => {
+      ui.store.settings.boardSize = Number(document.querySelector('input[name="opt-size"]:checked').value);
+      saveStore(ui.store);
+    });
+  }
   $('#opt-sound').addEventListener('change', (e) => {
     ui.store.settings.sound = e.target.checked;
     setSoundEnabled(e.target.checked);
@@ -85,8 +94,10 @@ function showHome() {
   $('#btn-word-continue').hidden = !g;
   $('#btn-word').classList.toggle('btn-primary', !g);
   if (g && g.state) {
-    const turn = Math.min((g.state.turns || 0) + 1, 20);
-    $('#continue-sub').textContent = `${g.mode === 'levels' ? `Level ${g.level || 1}` : 'Free play'} · turn ${turn} of 20 · ${g.state.score || 0} points`;
+    const size = g.size || Math.round(Math.sqrt(g.state.board.length));
+    const lim = TURNS_BY_SIZE[size] || 20;
+    const turn = Math.min((g.state.turns || 0) + 1, lim);
+    $('#continue-sub').textContent = `${size === 6 ? '6×6 · ' : ''}${g.mode === 'levels' ? `Level ${g.level || 1}` : 'Free play'} · turn ${turn} of ${lim} · ${g.state.score || 0} points`;
   }
   const w = s.word || { gamesPlayed: 0, best: null };
   const stats = $('#home-stats');
@@ -94,7 +105,8 @@ function showHome() {
   stats.hidden = !w.gamesPlayed && !numberStats;
   if (!stats.hidden) {
     const stat = (label, value) => `<div class="stat"><span class="hud-label">${label}</span><span class="hud-value">${value}</span></div>`;
-    stats.innerHTML = w.gamesPlayed ? stat('Boards', w.gamesPlayed) + stat('Best score', w.best) + stat('Top level', w.bestLevel || '–') : '';
+    stats.innerHTML = w.gamesPlayed ? stat('Boards', w.gamesPlayed) + stat(w.best6 != null ? 'Best 5×5' : 'Best score', w.best ?? '–') + stat('Top level', w.bestLevel || '–') : '';
+    if (w.best6 != null) stats.innerHTML += stat('Best 6×6', w.best6);
     if (numberStats) stats.innerHTML += stat('Number game', `${s.gamesPlayed} · best ${s.bestTotal}`);
   }
   showScreen('screen-home');
@@ -115,6 +127,11 @@ function continueGame() {
 function persist() {
   ui.store.currentGame = ui.game;
   saveStore(ui.store);
+}
+
+/** The board size chosen on the home screen (5 unless 6x6 is selected). */
+function boardSize() {
+  return ui.store.settings.boardSize === 6 ? 6 : 5;
 }
 
 function puzzleOf(round) {
@@ -523,7 +540,7 @@ function showStats() {
       </div>
       <h3>Recent games</h3>
       <ul class="stat-list">${hist
-        .map((g) => `<li><span>${g.mode === 'levels' ? `L${g.level} ${g.passed ? '✓' : '✗'} ` : ''}${g.score}${g.goal ? ` / ${g.goal}` : ''} · ${g.words.length ? g.words.map((x) => escapeHtml(x.word)).join(', ') : 'no words'}</span><span>${new Date(g.at).toLocaleDateString()}</span></li>`)
+        .map((g) => `<li><span>${g.size === 6 ? '6×6 · ' : ''}${g.mode === 'levels' ? `L${g.level} ${g.passed ? '✓' : '✗'} ` : ''}${g.score}${g.goal ? ` / ${g.goal}` : ''} · ${g.words.length ? g.words.map((x) => escapeHtml(x.word)).join(', ') : 'no words'}</span><span>${new Date(g.at).toLocaleDateString()}</span></li>`)
         .join('')}</ul>
     `;
   }
@@ -539,6 +556,7 @@ function resetData() {
   $('#opt-numerals').checked = false;
   $('#opt-show-words').checked = false;
   $('#opt-sound').checked = true;
+  $('#opt-size-5').checked = true;
   setSoundEnabled(true);
   showHome();
 }
@@ -579,12 +597,12 @@ function wireEvents() {
   $('#btn-word').addEventListener('click', () => {
     if (ui.store.wordGame && !confirm('Abandon the word game in progress and start a new one?')) return;
     ui.store.wordGame = null;
-    ui.word.start(false, { mode: 'levels', level: 1 });
+    ui.word.start(false, { mode: 'levels', level: 1, size: boardSize() });
   });
   $('#btn-free').addEventListener('click', () => {
     if (ui.store.wordGame && !confirm('Abandon the game in progress and start free play?')) return;
     ui.store.wordGame = null;
-    ui.word.start(false, { mode: 'free' });
+    ui.word.start(false, { mode: 'free', size: boardSize() });
   });
   $('#btn-word-continue').addEventListener('click', () => ui.word.start(true));
   $('#btn-help-home').addEventListener('click', openHelp);
