@@ -5,7 +5,7 @@
 import { ANIM_MS, wait, buildBoardSkeleton, tileIn, animateAction, beginMoves, removeGhosts, clearTileEffects } from './board.js';
 import { createWordState, slideMoves, applyWordAction, letterValue, scoreWord, LENGTH_BONUS, COVERAGE_LADDER, TURNS_BY_SIZE, FULL_COVER_TURN_BONUS, WILD_COST } from './words.js';
 import { GOAL_START_PERCENT, GOAL_STEP_PERCENT } from './wordbot.js';
-import { play } from './sound.js';
+import { play, unlockAudio } from './sound.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -93,15 +93,25 @@ export function initTutorial() {
     setTimeout(() => el.remove(), 1300);
   }
 
-  /** Play a page's move on the board; aborts quietly if the page changes or the sheet closes. */
+  /** Play a page's move on the board, hold the result, and play it again until the page changes or the sheet closes. */
   async function runDemo(page) {
     const run = ++runId;
     const alive = () => run === runId && !sheet.hidden;
     render(rowsToBoard(page.rows), { locked: page.locked || [], outline: page.outline || [] });
+    if (!page.ex) return;
+    for (let loop = 0; alive(); loop++) {
+      if (loop > 0) render(rowsToBoard(page.rows)); // back to the starting board
+      await wait(loop === 0 ? 900 : 1100);
+      if (!alive()) return;
+      await playMove(page, alive);
+      if (!alive()) return;
+      await wait(2400); // hold the result long enough to read the word
+    }
+  }
+
+  /** One pass of a page's move; the board is left showing the result with the word outlined. */
+  async function playMove(page, alive) {
     const ex = page.ex;
-    if (!ex) return;
-    await wait(900);
-    if (!alive()) return;
     const before = rowsToBoard(ex.rows);
     const state = createWordState(before, {});
     let after = before;
@@ -124,6 +134,7 @@ export function initTutorial() {
       render(before, { locked: ex.cells, outline: ex.cells });
       return;
     }
+    // (the other moves fall through to the animation below)
     if (page.demo === 'slide') {
       play('slide');
       beginMoves(boardEl, slideMoves(state, ex.action));
@@ -199,7 +210,6 @@ export function initTutorial() {
     $('#tut-text').innerHTML = page.html;
     $('#tut-back').disabled = index === 0;
     $('#tut-next').textContent = index === pages.length - 1 ? 'Done' : 'Next';
-    $('#tut-replay').hidden = !page.demo;
     const dots = $('#tut-dots');
     dots.innerHTML = '';
     pages.forEach((_, k) => {
@@ -210,12 +220,26 @@ export function initTutorial() {
     runDemo(page);
   }
 
+  /** Every page gets the height of the tallest page's text, so the sheet does not jump between pages. */
+  function fixTextHeight() {
+    const text = $('#tut-text');
+    text.style.height = '';
+    let max = 0;
+    for (const p of pages) {
+      text.innerHTML = p.html;
+      max = Math.max(max, text.offsetHeight);
+    }
+    text.style.height = `${max}px`;
+  }
+
   /** Open the tutorial for a board size; opts: { mode: 'levels'|'free', goal } from the game in play. */
   function open(n, opts = {}) {
+    unlockAudio();
     size = TURNS_BY_SIZE[n] ? n : 5;
     ensureBoard(size);
     pages = buildPages(size, opts);
     sheet.hidden = false;
+    fixTextHeight();
     show(0);
     $('#tut-next').focus();
   }
@@ -228,7 +252,9 @@ export function initTutorial() {
   $('#tut-close').addEventListener('click', close);
   $('#tut-back').addEventListener('click', () => show(index - 1));
   $('#tut-next').addEventListener('click', () => (index === pages.length - 1 ? close() : show(index + 1)));
-  $('#tut-replay').addEventListener('click', () => runDemo(pages[index]));
+  window.addEventListener('resize', () => {
+    if (!sheet.hidden) fixTextHeight();
+  });
   sheet.addEventListener('click', (e) => {
     if (e.target === sheet) close();
   });

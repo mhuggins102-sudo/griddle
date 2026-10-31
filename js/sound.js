@@ -12,6 +12,11 @@ export function soundEnabled() {
   return enabled;
 }
 
+/** The audio context's state ('running' once a tap has unlocked it), for diagnostics. */
+export function audioState() {
+  return ctx ? ctx.state : 'none';
+}
+
 function audio() {
   if (typeof window === 'undefined') return null;
   const AC = window.AudioContext || window.webkitAudioContext;
@@ -125,6 +130,21 @@ const CUES = {
     tone(ac, { freq: 160, to: 120, type: 'square', dur: 0.12, gain: 0.06 });
   },
 };
+
+/**
+ * Browsers only let a page start audio inside a tap or click. Cues that play later (the tutorial's
+ * demos run on timers) need the context created and resumed during an earlier gesture, so every
+ * pointerdown on the page warms it up; a running context costs nothing to touch again.
+ */
+export function unlockAudio() {
+  if (!enabled) return;
+  try {
+    audio();
+  } catch {
+    // audio is best-effort
+  }
+}
+if (typeof document !== 'undefined') document.addEventListener('pointerdown', unlockAudio, { passive: true, capture: true });
 
 /** Play a named cue; silently does nothing when sound is off or unavailable. */
 export function play(name) {

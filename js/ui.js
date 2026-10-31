@@ -7,7 +7,7 @@ import {
 import { ANIM_MS, wait, neighbours, buildBoardSkeleton, tileIn, animateAction, clearTileEffects } from './board.js';
 import { initWordMode } from './wordui.js';
 import { initTutorial } from './tutorial.js';
-import { setSoundEnabled } from './sound.js';
+import { setSoundEnabled, audioState } from './sound.js';
 import { TURNS_BY_SIZE } from './words.js';
 import {
   loadStore, saveStore, newGame, currentRound, lockBid, playAction, giveUp, runningTotal, isGameOver, advanceRound,
@@ -712,6 +712,6 @@ function wireEvents() {
 }
 
 // Expose a little for debugging and tests in the console.
-window.gridlock = { ui, deal };
+window.gridlock = { ui, deal, audioState };
 
 boot();

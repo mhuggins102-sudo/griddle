@@ -508,7 +508,7 @@ svg { display: block; }
   100% { transform: scale(1); }
 }
 .tut-boardwrap .float { font-size: 15px; padding: 3px 10px; }
-.tut-text { font-size: 15px; min-height: 5.2em; }
+.tut-text { font-size: 15px; min-height: 5.2em; overflow-y: auto; }
 .tut-text p { margin: 0 0 6px; }
 .tut-text p:last-child { margin-bottom: 0; }
 .tut-nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
@@ -517,7 +517,6 @@ svg { display: block; }
 .tut-dots { display: flex; gap: 6px; justify-content: center; }
 .tut-dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
 .tut-dots span.on { background: var(--accent); }
-.tut-replay { align-self: center; min-height: 36px; font-size: 14px; }
 @media (max-height: 700px) {
   .tut-boardwrap { width: min(100%, 210px); }
   .tut-text { font-size: 14px; min-height: 4.5em; }
