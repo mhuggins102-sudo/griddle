@@ -543,6 +543,7 @@ function showStats() {
 function resetData() {
   if (!confirm('Erase all GridLock data on this device (history, best score, any game in progress)?')) return;
   const fresh = defaultStore();
+  fresh.settings.tutorialSeen = true; // a player clearing their data already knows the game
   for (const k of Object.keys(ui.store)) delete ui.store[k];
   Object.assign(ui.store, fresh);
   saveStore(ui.store);

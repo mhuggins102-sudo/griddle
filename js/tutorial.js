@@ -16,14 +16,14 @@ const EXAMPLES = {
     swap: { rows: ['KPDRT', 'STAEK', 'MNLGO', 'HUCIY', 'DBAWS'], action: { type: 'swap', r: 1, c: 2, r2: 1, c2: 3 }, word: 'STEAK', cells: [5, 6, 7, 8, 9], note: 'STAEK is two letters out of order. Drag the A onto the E and they trade places: STEAK.' },
     nudge: { rows: ['MKTLP', 'PRIYE', 'SNDGO', 'CHWAT', 'LUIBR'], action: { type: 'nudge', r: 1, c: 3, delta: 1 }, word: 'PRIZE', cells: [5, 6, 7, 8, 9], note: 'PRIYE is one letter off. Hold the Y and nudge it up: Y becomes Z, worth 10 points, and the row reads PRIZE.' },
     draw: { rows: ['GNTSK', 'WOUSE', 'RLMDP', 'AICHY', 'TEONB'], action: { type: 'draw', r: 1, c: 0 }, drawn: 'H', word: 'HOUSE', cells: [5, 6, 7, 8, 9], note: 'WOUSE needs a different first letter. Hold the W and choose Draw: a random letter from the bag replaces it (the W goes back into the bag). This time the bag gave an H: HOUSE.' },
-    lock: { rows: ['TNGKP', 'BREAD', 'LMSDH', 'OCTRY', 'UEBAN'], taps: [5, 9], word: 'BREAD', cells: [5, 6, 7, 8, 9], note: 'Tap the B, then the D. BREAD locks at once: its points are banked and its tiles turn green and never move again.' },
+    lock: { rows: ['TNGKP', 'PLANT', 'LMSDH', 'OCTRY', 'UEBAN'], taps: [5, 9], word: 'PLANT', cells: [5, 6, 7, 8, 9], note: 'Tap the P, then the T. PLANT locks at once: its points are banked and its tiles turn green and never move again.' },
   },
   6: {
     slide: { rows: ['SKPTNL', 'ARROTC', 'DMUGEY', 'IBHWOA', 'NRTEKS', 'LDPMIU'], action: { type: 'slide', axis: 'row', index: 1, dir: 1 }, word: 'CARROT', cells: [6, 7, 8, 9, 10, 11], note: 'ARROTC is CARROT with its C at the wrong end. Flick the row right: the C wraps round to the front.' },
     swap: { rows: ['PLDSKM', 'HONIGN', 'TRWUAE', 'CYBOND', 'SIGEAK', 'MLTRUO'], action: { type: 'swap', r: 1, c: 4, r2: 1, c2: 5 }, word: 'HONING', cells: [6, 7, 8, 9, 10, 11], note: 'HONIGN has its last two letters swapped. Drag the G onto the N and they trade places: HONING.' },
     nudge: { rows: ['TKRMDS', 'PLAYES', 'NGOUIB', 'WHCDAT', 'EORLKY', 'ASNTMI'], action: { type: 'nudge', r: 1, c: 5, delta: -1 }, word: 'PLAYER', cells: [6, 7, 8, 9, 10, 11], note: 'PLAYES is one letter off. Hold the S and nudge it down: S becomes R and the row reads PLAYER.' },
     draw: { rows: ['MBTWKL', 'XARDEN', 'SOUIPC', 'TRYHNA', 'DEGLOS', 'KPAIRU'], action: { type: 'draw', r: 1, c: 0 }, drawn: 'G', word: 'GARDEN', cells: [6, 7, 8, 9, 10, 11], note: 'XARDEN needs a different first letter. Hold the X and choose Draw: a random letter from the bag replaces it (the X goes back into the bag). This time the bag gave a G: GARDEN.' },
-    lock: { rows: ['SKPTNL', 'CARROT', 'DMUGEY', 'IBHWOA', 'NRTEKS', 'LDPMIU'], taps: [6, 11], word: 'CARROT', cells: [6, 7, 8, 9, 10, 11], note: 'Tap the C, then the T. CARROT locks at once: its points are banked and its tiles turn green and never move again.' },
+    lock: { rows: ['SKPTNL', 'BASKET', 'DMUGEY', 'IBHWOA', 'NRTEKS', 'LDPMIU'], taps: [6, 11], word: 'BASKET', cells: [6, 7, 8, 9, 10, 11], note: 'Tap the B, then the T. BASKET locks at once: its points are banked and its tiles turn green and never move again.' },
   },
 };
 

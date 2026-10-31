@@ -236,6 +236,12 @@ export function initWordMode(ctx) {
     // a board saved in its last moment (full, or a level run out of turns) is scored straight away
     const st = w.game.state;
     if (!goalReached() && (isBoardFull(st) || (st.turns >= turnLimit(st) && isLevels()))) finish(true);
+    // the very first game on this device opens the tutorial once; the ? button brings it back any time
+    if (!resume && !ctx.store.settings.tutorialSeen) {
+      ctx.store.settings.tutorialSeen = true;
+      ctx.saveStore(ctx.store);
+      ctx.openTutorial(w.game.size, { mode: w.game.mode, goal: w.game.goal });
+    }
   }
 
   // ---------------------------------------------------------------------------
