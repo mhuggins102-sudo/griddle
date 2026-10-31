@@ -1292,7 +1292,11 @@ export function initWordMode(ctx) {
     flushFinish();
     ctx.showHome();
   });
-  $('#w-help').addEventListener('click', ctx.openHelp);
+  $('#w-help').addEventListener('click', () => {
+    closeMenu();
+    const g = w.game;
+    ctx.openTutorial(g ? g.size : 5, g ? { mode: g.mode, goal: g.goal } : {});
+  });
   window.addEventListener('resize', positionMenu);
 
   return { start, state: w, render: renderAll };

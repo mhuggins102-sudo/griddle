@@ -247,59 +247,114 @@
       </div>
     </div>
 
-    <!-- Help sheet -->
+    <!-- Help sheet: the rules in chapters -->
     <div id="help" class="sheet" hidden>
       <div class="sheet-body">
         <div class="sheet-head"><h2>How to play</h2><button id="btn-help-close" class="btn btn-icon" aria-label="Close">✕</button></div>
-        <p>You get a grid of letter tiles and a fixed number of turns: a <strong>5×5</strong> board with <strong>20 turns</strong>, or a <strong>6×6</strong> board with <strong>25 turns</strong> (pick on the home screen). Rearrange the grid into words, lock the words in to bank their points, and lock as many tiles as you can before the turns run out.</p>
+        <div class="chapters">
+          <details class="chapter" open>
+            <summary><span class="chapter-num">1</span><span class="chapter-title">The idea</span></summary>
+            <div class="chapter-body">
+              <p>You get a grid of letter tiles and a fixed number of turns: a <strong>5×5</strong> board with <strong>20 turns</strong>, or a <strong>6×6</strong> board with <strong>25 turns</strong> (pick on the home screen). Every move costs one turn.</p>
+              <p>Rearrange the grid into words, <strong>lock</strong> the words in to bank their points, and lock as many tiles as you can before the turns run out. The score counts at the end of the board; the header always shows it as it stands.</p>
+              <p><strong>New game</strong> is a run of levels, each with a goal score to reach. <strong>Free play</strong> is one board with no goal and one undo.</p>
+            </div>
+          </details>
+          <details class="chapter">
+            <summary><span class="chapter-num">2</span><span class="chapter-title">Controls</span></summary>
+            <div class="chapter-body">
+              <p>Everything happens on the board. Each move costs <strong>one turn</strong>:</p>
+              <ul class="controls">
+                <li><strong>Swap</strong>: drag a tile onto one of its four neighbours and let go. Locked tiles cannot move.</li>
+                <li><strong>Slide</strong>: flick any tile of a row or column, or drag it a long way along the line (past the edge of the board works too). The whole line moves one step and the tile pushed off the edge wraps round to the other end. Locked tiles stay put and the rest slide around them.</li>
+                <li><strong>Nudge</strong>: press and hold a tile, then pick the letter before or after it in the alphabet (A and Z wrap round, so any letter is at most 13 nudges away, and the wrap can turn an A into a Z). Locked tiles can be nudged too.</li>
+                <li><strong>Draw</strong>: press and hold a tile, then choose <em>draw</em> to replace it with a random letter from the bag. The old letter goes into the bag afterwards, so it cannot come straight back. Draw is the only random action and cannot be undone. The bag button in the header shows what is left.</li>
+                <li><strong>Lock</strong>: tap the first letter of a word, then its last letter. The word locks at once and its points are banked.</li>
+                <li><strong>Wild</strong> (two turns, so it needs two turns left): press and hold a <em>locked</em> tile and choose ★. A wild tile reads as any letter in any word but scores no points itself.</li>
+              </ul>
+              <p>In free play, the <strong>Undo</strong> button in the header takes back your last move or lock, once per board. It cannot follow a Draw. When the last turn is spent, press <strong>Score board</strong> to finish, or undo first. Locking the last tile scores the board at once.</p>
+              <p>The <strong>?</strong> button during a game opens a step-by-step tutorial that shows each move on a board.</p>
+            </div>
+          </details>
+          <details class="chapter">
+            <summary><span class="chapter-num">3</span><span class="chapter-title">Words and locking</span></summary>
+            <div class="chapter-body">
+              <ul>
+                <li>A word is 3 to 5 letters (3 to 6 on a 6×6 board) in a straight line: a row, a column, or a diagonal. It may be read in either direction, so tap the letters in the order you read them. A word may sit inside a longer run of letters.</li>
+                <li>Words are checked against a list of about 28,700 English words. No proper nouns or abbreviations.</li>
+                <li>Locking banks the word's points and marks its tiles green. Locked tiles never move again: a line still slides, but its locked tiles stay put and the other tiles slide around them, and they cannot be swapped. They can still be changed in place: nudged, drawn over, or made wild.</li>
+                <li>You may lock a new word that reuses locked tiles, as long as it adds at least one tile that was not locked yet. Crossing words is the main way to lock the whole board.</li>
+                <li>You cannot lock the same word twice, and you cannot lock both a word and its plural (DOOR and DOORS, BOX and BOXES, CITY and CITIES): pick one.</li>
+                <li>Nudging a locked tile may break the word it was locked for; the points already banked stay banked.</li>
+              </ul>
+            </div>
+          </details>
+          <details class="chapter">
+            <summary><span class="chapter-num">4</span><span class="chapter-title">Scoring</span></summary>
+            <div class="chapter-body">
+              <p class="formula">Word = sum of its letter values, +5 for a 4-letter word, +15 for a 5-letter word, +30 for a 6-letter word (6×6 boards).<br>Letter values: A E I O U L N S T R = 1 · D G = 2 · B C M P = 3 · F H V W Y = 4 · K = 5 · J X = 8 · Q Z = 10 · ★ = 0.</p>
+              <p class="formula">Final score = banked words + a coverage bonus that grows with every tile locked from the 20th (the 29th on 6×6). There are no penalties.</p>
+              <table class="examples">
+                <thead><tr><th>Locked tiles</th><th>Bonus</th></tr></thead>
+                <tbody>
+                  <tr><td>5×5: all 25</td><td>+30, and +10 for every unused turn</td></tr>
+                  <tr><td>5×5: 20 to 24</td><td>+5 per tile: +5 at 20, +10 at 21 … +25 at 24</td></tr>
+                  <tr><td>6×6: all 36</td><td>+40, and +10 for every unused turn</td></tr>
+                  <tr><td>6×6: 29 to 35</td><td>+5 per tile: +5 at 29, +10 at 30 … +35 at 35</td></tr>
+                  <tr><td>Fewer</td><td>0</td></tr>
+                </tbody>
+              </table>
+              <p>Since every lock costs a turn, a few words that cross each other usually beat many short ones, every tile on the ladder is worth an extra 5, and clearing the whole board early is worth a lot. Tap the score in the header at any time for the breakdown.</p>
+            </div>
+          </details>
+          <details class="chapter">
+            <summary><span class="chapter-num">5</span><span class="chapter-title">Levels and the goal</span></summary>
+            <div class="chapter-body">
+              <p><strong>New game</strong> starts at level 1. Before you play each board, a bot plays the same board behind the scenes and its word points (its coverage and spare-turn bonuses do not count) set the <strong>goal</strong>, shown under the header once it is ready. The moment your score reaches the goal the level is passed: the bar lights up, play on that board stops, and <strong>Next level</strong> takes you to a fresh board. Use up the turns (or lock the whole board) below the goal and the run ends.</p>
+              <p>The goal is a share of the bot's word points that grows with the level and never stops growing: 50% at level 1, then 5 percentage points more per level, so level 11 asks for everything the bot found and later levels ask for more. Your coverage and spare-turn bonuses count toward it, so filling the board is what carries a run past the bot. Goals are rounded up to the nearest 10. Harder boards therefore get lower goals.</p>
+              <p>Level runs have no undo, no board replay and no end-of-board summary; tap the level bar at any time for the breakdown.</p>
+            </div>
+          </details>
+          <details class="chapter">
+            <summary><span class="chapter-num">6</span><span class="chapter-title">The bag and the 6×6 board</span></summary>
+            <div class="chapter-body">
+              <p>The tiles are dealt from a bag of 98 Scrabble-style letters (no blanks): 25 on a 5×5 board (73 stay in the bag), 36 on a 6×6 board (62 stay). Every tile shows its point value in the corner.</p>
+              <p>The 6×6 board gives you 25 turns instead of 20, allows words of up to six letters (+30), and its coverage ladder runs from the 29th tile to +40 for all 36. Levels and free play work the same way on both sizes, and each size keeps its own personal best.</p>
+            </div>
+          </details>
+          <details class="chapter">
+            <summary><span class="chapter-num">7</span><span class="chapter-title">Options and stats</span></summary>
+            <div class="chapter-body">
+              <p>The settings (gear button) can list the words currently on the board, with their points, as a hint; tap a listed word, then Lock. It is off by default. Sounds can be switched off there too.</p>
+              <p>After a free-play board you can <strong>replay the same board</strong> (same letters, same draws). Replays do not count towards your stats or personal best, but the game remembers your best score on that board and tells you when you beat it. Your best scores and recent games are kept on this device; see Stats.</p>
+            </div>
+          </details>
+        </div>
+        <div class="btn-row">
+          <button id="btn-help-tutorial" class="btn">Watch the tutorial</button>
+          <button id="btn-help-done" class="btn btn-primary">Close</button>
+        </div>
+      </div>
+    </div>
 
-        <h3>Controls</h3>
-        <p>Everything happens on the board. Each of these costs <strong>one turn</strong>:</p>
-        <ul class="controls">
-          <li><strong>Swap</strong>: drag a tile onto one of its four neighbours and let go. Locked tiles cannot move.</li>
-          <li><strong>Slide</strong>: flick any tile of a row or column, or drag it a long way along the line (past the edge of the board works too). The whole line moves one step and the tile pushed off the edge wraps round to the other end. Locked tiles stay put and the rest slide around them.</li>
-          <li><strong>Nudge</strong>: press and hold a tile, then pick the letter before or after it in the alphabet (A and Z wrap round, so any letter is at most 13 nudges away, and the wrap can turn an A into a Z). Locked tiles can be nudged too.</li>
-          <li><strong>Draw</strong>: press and hold a tile, then choose <em>draw</em> to replace it with a random letter from the bag. The old letter goes into the bag afterwards, so it cannot come straight back. Draw is the only random action and cannot be undone. The bag button in the header shows what is left.</li>
-          <li><strong>Lock</strong>: tap the first letter of a word, then its last letter. The word locks at once and its points are banked.</li>
-          <li><strong>Wild</strong> (two turns, so it needs two turns left): press and hold a <em>locked</em> tile and choose ★. A wild tile reads as any letter in any word but scores no points itself.</li>
-        </ul>
-        <p>In free play, the <strong>Undo</strong> button in the header takes back your last move or lock, once per board. It cannot follow a Draw, since the draw was random. A board cannot be ended early. When the 20th turn is spent, press <strong>Score board</strong> to finish, or undo the last move first. Locking the 25th tile scores the board at once. At the end, tap the word total on the result panel to see the words you locked.</p>
-
-        <h3>Levels and free play</h3>
-        <p><strong>New game</strong> starts at level 1. Before you play each board, a bot plays the same board behind the scenes and its word points (its coverage and spare-turn bonuses do not count) set the <strong>goal</strong>, shown under the header once it is ready. The moment your score reaches the goal the level is passed: the bar lights up, play on that board stops, and <strong>Next level</strong> takes you to a fresh board. Use up the 20 turns (or lock the whole board) below the goal and the run ends. Level runs have no undo, no board replay and no end-of-board summary. The goal is a share of the bot's word points that grows with the level and never stops growing: 50% at level 1, then 5 percentage points more per level, so level 11 asks for everything the bot found and later levels ask for more; your coverage and spare-turn bonuses count toward it, so filling the board is what carries a run past the bot. Goals are rounded up to the nearest 10. Harder boards therefore get lower goals. <strong>Free play</strong> is a single board with no goal.</p>
-        <p>The score in the header, and the level bar, always show the score as it stands <em>right now</em>, bonuses included. Tap either for the current breakdown.</p>
-
-        <h3>The grid and the bag</h3>
-        <p>The tiles are dealt from a bag of 98 Scrabble-style letters (no blanks): 25 on a 5×5 board (73 stay in the bag), 36 on a 6×6 board (62 stay). Every tile shows its point value in the corner.</p>
-
-        <h3>Words and locking</h3>
-        <ul>
-          <li>A word is 3 to 5 letters (3 to 6 on a 6×6 board) in a straight line: a row, a column, or a diagonal. It may be read in either direction, so tap the letters in the order you read them (last-to-first works for a word spelled backwards). A word may sit inside a longer run of letters.</li>
-          <li>Words are checked against a list of about 13,500 English words. No proper nouns or abbreviations.</li>
-          <li>Locking banks the word's points and marks its tiles green. Locked tiles never move again: a line still slides, but its locked tiles stay put and the other tiles slide around them, and they cannot be swapped. They can still be changed in place: nudged, drawn over, or made wild.</li>
-          <li>You may lock a new word that reuses locked tiles, as long as it adds at least one tile that was not locked yet. Crossing words is the main way to lock the whole board.</li>
-          <li>You cannot lock the same word twice, and you cannot lock both a word and its plural (DOOR and DOORS, BOX and BOXES, CITY and CITIES): pick one.</li>
-          <li>Nudging a locked tile may break the word it was locked for; the points already banked stay banked.</li>
-        </ul>
-
-        <h3>Scoring</h3>
-        <p class="formula">Word = sum of its letter values, +5 for a 4-letter word, +15 for a 5-letter word, +30 for a 6-letter word (6×6 boards).<br>Letter values: A E I O U L N S T R = 1 · D G = 2 · B C M P = 3 · F H V W Y = 4 · K = 5 · J X = 8 · Q Z = 10 · ★ = 0.</p>
-        <p class="formula">Final score = banked words + a coverage bonus that grows with every tile locked from the 20th. There are no penalties.</p>
-        <table class="examples">
-          <thead><tr><th>Locked tiles</th><th>Bonus</th></tr></thead>
-          <tbody>
-            <tr><td>All 25</td><td>+30, and +10 for every unused turn</td></tr>
-            <tr><td>20 to 24</td><td>+5 per tile: +5 at 20, +10 at 21 … +25 at 24</td></tr>
-            <tr><td>19 or fewer</td><td>0</td></tr>
-            <tr><td>6×6: 29 to 36</td><td>+5 per tile from the 29th: +5 at 29 up to +40 for all 36, and +10 for every unused turn on a full board</td></tr>
-          </tbody>
-        </table>
-        <p>Since every lock costs a turn, 4 to 6 words that cross each other usually beat many short ones, every tile from the 20th is worth an extra 5, and clearing the whole board early is worth a lot.</p>
-        <p>After a free-play board you can <strong>replay the same board</strong> (same letters, same draws). Replays do not count towards your stats or personal best, but the game remembers your best score on that board and tells you when you beat it.</p>
-
-        <h3>Options</h3>
-        <p>The home screen can list the words currently on the board, with their points, as a hint; tap a listed word, then Lock. It is off by default. Your best score and recent games are kept on this device.</p>
-        <button id="btn-help-done" class="btn btn-primary btn-wide">Close</button>
+    <!-- Tutorial sheet: one page per move on a small board -->
+    <div id="tutorial" class="sheet" hidden>
+      <div class="sheet-body tutorial-body">
+        <div class="tut-head">
+          <div><span class="tut-step" id="tut-step">1 of 8</span><h2 id="tut-title">Turns and the goal</h2></div>
+          <button id="tut-close" class="btn btn-icon" aria-label="Close">✕</button>
+        </div>
+        <div class="tut-boardwrap">
+          <div id="tut-board" class="board plain mini" aria-hidden="true"></div>
+          <div id="tut-float" class="float-layer" aria-hidden="true"></div>
+        </div>
+        <div class="tut-text" id="tut-text" aria-live="polite"></div>
+        <div class="tut-nav">
+          <button id="tut-back" class="btn">Back</button>
+          <div class="tut-dots" id="tut-dots" aria-hidden="true"></div>
+          <button id="tut-next" class="btn btn-primary">Next</button>
+        </div>
+        <button id="tut-replay" class="btn btn-quiet tut-replay">Replay the move</button>
       </div>
     </div>
 
