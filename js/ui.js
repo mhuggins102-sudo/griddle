@@ -6,6 +6,7 @@ import {
 } from './engine.js';
 import { ANIM_MS, wait, neighbours, buildBoardSkeleton, tileIn, animateAction, clearTileEffects } from './board.js';
 import { initWordMode } from './wordui.js';
+import { initTutorial } from './tutorial.js';
 import { setSoundEnabled } from './sound.js';
 import { TURNS_BY_SIZE } from './words.js';
 import {
@@ -71,7 +72,8 @@ async function boot() {
     ui.store.currentGame = null;
     saveStore(ui.store);
   }
-  ui.word = initWordMode({ store: ui.store, saveStore, showScreen, showHome, showToast, openHelp });
+  ui.tutorial = initTutorial();
+  ui.word = initWordMode({ store: ui.store, saveStore, showScreen, showHome, showToast, openHelp, openTutorial: (size, opts) => ui.tutorial.open(size, opts) });
   showHome();
 }
 
@@ -541,6 +543,7 @@ function showStats() {
 function resetData() {
   if (!confirm('Erase all GridLock data on this device (history, best score, any game in progress)?')) return;
   const fresh = defaultStore();
+  fresh.settings.tutorialSeen = true; // a player clearing their data already knows the game
   for (const k of Object.keys(ui.store)) delete ui.store[k];
   Object.assign(ui.store, fresh);
   saveStore(ui.store);
@@ -600,6 +603,18 @@ function wireEvents() {
   $('#btn-help-round').addEventListener('click', openHelp);
   $('#btn-help-close').addEventListener('click', closeHelp);
   $('#btn-help-done').addEventListener('click', closeHelp);
+  $('#btn-help-tutorial').addEventListener('click', () => {
+    closeHelp();
+    ui.tutorial.open(boardSize(), {});
+  });
+  // the rules read as chapters: opening one closes the others
+  const chapters = document.querySelectorAll('#help .chapter');
+  for (const d of chapters) {
+    d.addEventListener('toggle', () => {
+      if (!d.open) return;
+      for (const o of chapters) if (o !== d) o.open = false;
+    });
+  }
   $('#btn-settings').addEventListener('click', () => ($('#settings').hidden = false));
   $('#btn-settings-close').addEventListener('click', () => ($('#settings').hidden = true));
   $('#btn-settings-done').addEventListener('click', () => ($('#settings').hidden = true));
