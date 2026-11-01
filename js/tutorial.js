@@ -6,6 +6,7 @@ import { ANIM_MS, wait, buildBoardSkeleton, tileIn, animateAction, beginMoves, r
 import { createWordState, slideMoves, applyWordAction, letterValue, scoreWord, LENGTH_BONUS, COVERAGE_LADDER, TURNS_BY_SIZE, FULL_COVER_TURN_BONUS, WILD_COST } from './words.js';
 import { GOAL_START_PERCENT, GOAL_STEP_PERCENT } from './wordbot.js';
 import { play, unlockAudio } from './sound.js';
+import { openSheet, closeSheet } from './sheet.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -238,7 +239,7 @@ export function initTutorial() {
     size = TURNS_BY_SIZE[n] ? n : 5;
     ensureBoard(size);
     pages = buildPages(size, opts);
-    sheet.hidden = false;
+    openSheet(sheet);
     fixTextHeight();
     show(0);
     $('#tut-next').focus();
@@ -246,7 +247,7 @@ export function initTutorial() {
 
   function close() {
     runId++;
-    sheet.hidden = true;
+    closeSheet(sheet);
   }
 
   $('#tut-close').addEventListener('click', close);
