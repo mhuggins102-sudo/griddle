@@ -29,7 +29,7 @@ const SWAP_CROSS = 0.7; // tiles: maximum sideways wobble for a drop
 export function initWordMode(ctx) {
   const w = {
     dict: null,
-    game: null, // { seed, drawSeed, state, mode: 'levels'|'free', level, goal, botScore, prev, undoUsed, replay }
+    game: null, // { seed, drawSeed, size, state, mode: 'levels'|'free', level, goal, botScore, history, replay }
     first: null, // first letter tapped for a lock
     pending: null, // candidate chosen from the found-words list, awaiting Lock
     found: [],
@@ -188,8 +188,7 @@ export function initWordMode(ctx) {
       if (w.game.mode === undefined) w.game.mode = 'free';
       if (w.game.botScore === undefined) w.game.botScore = null;
       if (w.game.goal === undefined) w.game.goal = null;
-      if (w.game.prev === undefined) w.game.prev = null;
-      if (w.game.undoUsed === undefined) w.game.undoUsed = false;
+      if (w.game.history === undefined) w.game.history = w.game.prev && !w.game.undoUsed ? [w.game.prev] : []; // saves from the one-undo days
       if (w.game.size === undefined) w.game.size = w.game.state.size || Math.round(Math.sqrt(w.game.state.board.length));
     } else {
       const seed = opts.seed ?? randomSeed();
@@ -207,8 +206,7 @@ export function initWordMode(ctx) {
         goal: null,
         botScore: null,
         botWords: null,
-        prev: null,
-        undoUsed: false,
+        history: [], // states to undo back to; emptied by a draw, since a draw cannot be undone
         replay: !!opts.replay,
       };
       persist();
@@ -274,8 +272,8 @@ export function initWordMode(ctx) {
     });
     const undo = $('#w-undo');
     undo.hidden = w.over || isLevels(); // no undo in a level run
-    undo.disabled = !w.game.prev || w.game.undoUsed;
-    undo.title = w.game.undoUsed ? 'Undo already used this game' : !w.game.prev ? 'Nothing to undo (draws cannot be undone)' : 'Undo the last move (once per game)';
+    undo.disabled = !w.game.history.length;
+    undo.title = w.game.history.length ? 'Undo the last move' : 'Nothing to undo (a draw cannot be undone)';
     const bagBtn = $('#w-bag-btn');
     bagBtn.hidden = w.over;
     bagBtn.setAttribute('aria-pressed', w.showBag ? 'true' : 'false');
@@ -430,7 +428,7 @@ export function initWordMode(ctx) {
     if (goalReached()) return message(`Level ${g.level} passed! Press Next level to carry on.`, 'good');
     if (st.turns >= limit()) {
       if (isLevels()) return message('Out of turns.', 'bad');
-      return action('Out of turns.', { label: 'Score board', fn: () => finish(false) }, { label: 'Undo', fn: undo, disabled: !g.prev || g.undoUsed });
+      return action('Out of turns.', { label: 'Score board', fn: () => finish(false) }, { label: 'Undo', fn: undo, disabled: !g.history.length });
     }
     if (w.pending) return action(`Lock ${w.pending.word} for ${w.pending.score}?`, { label: 'Lock', fn: () => commitLock(w.pending) }, { label: 'Cancel', fn: () => setPending(null) });
     if (w.first !== null) return message('Now tap the last letter of the word');
@@ -942,8 +940,9 @@ export function initWordMode(ctx) {
       say(e.message, 'bad');
       return;
     }
-    // A draw is random, so it cannot be undone; anything else can (once per game).
-    w.game.prev = action.type === 'draw' ? null : snapshotForUndo(before);
+    // A draw is random, so nothing up to and including it can be undone; anything after it can.
+    if (action.type === 'draw') w.game.history = [];
+    else w.game.history.push(snapshotForUndo(before));
     w.game.state = next;
     persist();
     w.first = null;
@@ -976,7 +975,7 @@ export function initWordMode(ctx) {
       say(e.message, 'bad');
       return;
     }
-    w.game.prev = snapshotForUndo(w.game.state);
+    w.game.history.push(snapshotForUndo(w.game.state));
     w.game.state = next;
     w.pending = null;
     w.first = null;
@@ -1025,18 +1024,16 @@ export function initWordMode(ctx) {
 
   function undo() {
     const g = w.game;
-    if (!g || w.over || w.animating || !g.prev || g.undoUsed || g.mode === 'levels') return;
+    if (!g || w.over || w.animating || !g.history.length || g.mode === 'levels') return;
     cancelGesture();
-    g.state = g.prev;
-    g.prev = null;
-    g.undoUsed = true;
+    g.state = g.history.pop();
     persist();
     play('undo');
     w.first = null;
     w.pending = null;
     closeMenu();
     renderAll();
-    say('Last move undone', '', 1800);
+    say(g.history.length ? 'Move undone' : 'Move undone · nothing further back', '', 1800);
   }
 
   // ---------------------------------------------------------------------------

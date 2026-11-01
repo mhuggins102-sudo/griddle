@@ -31,7 +31,7 @@
         <div class="home-buttons">
           <button id="btn-word-continue" class="btn btn-primary btn-big" hidden><span class="btn-main">Continue</span><span class="btn-sub" id="continue-sub"></span></button>
           <button id="btn-word" class="btn btn-primary btn-big"><span class="btn-main">New game</span><span class="btn-sub">Levels with a goal to beat</span></button>
-          <button id="btn-free" class="btn btn-big"><span class="btn-main">Free play</span><span class="btn-sub">One board, no goal, one undo</span></button>
+          <button id="btn-free" class="btn btn-big"><span class="btn-main">Free play</span><span class="btn-sub">One board, no goal, unlimited undo</span></button>
           <div class="btn-row three">
             <button id="btn-help-home" class="btn">How to play</button>
             <button id="btn-stats" class="btn">Stats</button>
@@ -257,7 +257,7 @@
             <div class="chapter-body">
               <p>You get a grid of letter tiles and a fixed number of turns: a <strong>5×5</strong> board with <strong>20 turns</strong>, or a <strong>6×6</strong> board with <strong>25 turns</strong> (pick on the home screen). Every move costs one turn.</p>
               <p>Rearrange the grid into words, <strong>lock</strong> the words in to bank their points, and lock as many tiles as you can before the turns run out. The score counts at the end of the board; the header always shows it as it stands.</p>
-              <p><strong>New game</strong> is a run of levels, each with a goal score to reach. <strong>Free play</strong> is one board with no goal and one undo.</p>
+              <p><strong>New game</strong> is a run of levels, each with a goal score to reach. <strong>Free play</strong> is one board with no goal and unlimited undo.</p>
             </div>
           </details>
           <details class="chapter">
@@ -272,7 +272,7 @@
                 <li><strong>Lock</strong>: tap the first letter of a word, then its last letter. The word locks at once and its points are banked.</li>
                 <li><strong>Wild</strong> (two turns, so it needs two turns left): press and hold a <em>locked</em> tile and choose ★. A wild tile reads as any letter in any word but scores no points itself.</li>
               </ul>
-              <p>In free play, the <strong>Undo</strong> button in the header takes back your last move or lock, once per board. It cannot follow a Draw. When the last turn is spent, press <strong>Score board</strong> to finish, or undo first. Locking the last tile scores the board at once.</p>
+              <p>In free play, the <strong>Undo</strong> button in the header takes back your moves and locks one at a time, as far back as you like. The one thing it cannot do is go back past a Draw, since the draw was random. When the last turn is spent, press <strong>Score board</strong> to finish, or undo first. Locking the last tile scores the board at once.</p>
               <p>The <strong>?</strong> button during a game opens a step-by-step tutorial that shows each move on a board.</p>
             </div>
           </details>
@@ -281,10 +281,10 @@
             <div class="chapter-body">
               <ul>
                 <li>A word is 3 to 5 letters (3 to 6 on a 6×6 board) in a straight line: a row, a column, or a diagonal. It may be read in either direction, so tap the letters in the order you read them. A word may sit inside a longer run of letters.</li>
-                <li>Words are checked against a list of about 28,700 English words. No proper nouns or abbreviations.</li>
+                <li>Words are checked against a list of about 20,000 everyday English words, ordered by how common they are. No proper nouns or abbreviations. When a wild tile could complete several words, the most common one is taken.</li>
                 <li>Locking banks the word's points and marks its tiles green. Locked tiles never move again: a line still slides, but its locked tiles stay put and the other tiles slide around them, and they cannot be swapped. They can still be changed in place: nudged, drawn over, or made wild.</li>
                 <li>You may lock a new word that reuses locked tiles, as long as it adds at least one tile that was not locked yet. Crossing words is the main way to lock the whole board.</li>
-                <li>You cannot lock the same word twice, and you cannot lock both a word and its plural (DOOR and DOORS, BOX and BOXES, CITY and CITIES): pick one.</li>
+                <li>Any listed word can be locked, whatever you have locked before; the only exception is an exact repeat of a word already locked.</li>
                 <li>Nudging a locked tile may break the word it was locked for; the points already banked stay banked.</li>
               </ul>
             </div>
