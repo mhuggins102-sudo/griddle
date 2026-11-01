@@ -1122,14 +1122,14 @@ export function initWordMode(ctx) {
     wordsCol.setAttribute('aria-label', 'Show the words you locked');
     tally.appendChild(wordsCol);
     tally.appendChild(op('+'));
-    tally.appendChild(col(`${st.locked.length} tile${st.locked.length === 1 ? '' : 's'}`, `+${bonus}`, bonus ? 'pos' : ''));
+    tally.appendChild(col(`${st.locked.length} tile${st.locked.length === 1 ? '' : 's'}`, String(bonus), bonus ? 'pos' : ''));
     if (turnBonus) {
       tally.appendChild(op('+'));
-      tally.appendChild(col(`${turnLimit(st) - st.turns} turns left`, `+${turnBonus}`, 'pos'));
+      tally.appendChild(col(`${turnLimit(st) - st.turns} turns left`, String(turnBonus), 'pos'));
     }
     if (penalty) {
       tally.appendChild(op('−'));
-      tally.appendChild(col(`${COVERAGE_TARGET - st.locked.length} tiles short`, `−${penalty}`, 'neg'));
+      tally.appendChild(col(`${COVERAGE_TARGET - st.locked.length} tiles short`, String(penalty), 'neg'));
     }
     tally.appendChild(op('='));
     tally.appendChild(Object.assign(document.createElement('span'), { className: 'tally-total', textContent: String(total) }));
