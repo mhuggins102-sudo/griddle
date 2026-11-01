@@ -825,6 +825,7 @@ svg { display: block; }
 .tally button.tally-item { cursor: pointer; font: inherit; color: inherit; box-shadow: none; }
 .result .tally[hidden] { display: none; }
 .result-buttons.three { display: flex; }
+.result-buttons.three.two .btn { flex: 1 1 0; }
 .result-buttons.three .btn { flex: 1 1 0; padding: 0 6px; font-size: 13.5px; white-space: nowrap; }
 .words-pop {
   position: fixed; left: 50%; top: 110px; transform: translateX(-50%);

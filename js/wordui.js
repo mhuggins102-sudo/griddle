@@ -243,7 +243,7 @@ export function initWordMode(ctx) {
     computeGoal(w.game);
     // a board saved in its last moment (full, or a level run out of turns) is scored straight away
     const st = w.game.state;
-    if (!goalReached() && (isBoardFull(st) || (st.turns >= turnLimit(st) && isLevels()))) finish(true);
+    if (!goalReached() && (isBoardFull(st) || (st.turns >= turnLimit(st) && isLevels()) || (w.game.retry && finalScore(st) >= w.game.goal))) finish(true);
     // the very first game on this device opens the tutorial once; the ? button brings it back any time
     if (!resume && !ctx.store.settings.tutorialSeen) {
       ctx.store.settings.tutorialSeen = true;
@@ -390,6 +390,7 @@ export function initWordMode(ctx) {
       setTimeout(() => bar.classList.remove('celebrate'), 800);
       play('win');
       renderBoard(); // the goal may have landed from the worker mid-board: grey the tiles out now
+      if (g.retry) finishSoon(1200); // a retry is won the moment the goal is reached: score it
     }
     bar.classList.toggle('reached', reached);
     $('#w-advance').hidden = !(reached && !w.over && g.mode === 'levels');
@@ -1142,7 +1143,9 @@ export function initWordMode(ctx) {
       title = passed ? `Level ${g.level} passed!` : 'Game over';
       line = passed ? `Goal ${g.goal} reached.` : `Reached level ${g.level} · best level ${bestReached}`;
     } else if (g.retry) {
-      line = `Level ${g.retry.level} retry: goal ${g.goal} ${total >= g.goal ? 'reached' : 'missed'} · ${beatBoard ? `beat your ${previousOnBoard} on this board` : previousOnBoard !== undefined ? `best on this board stays ${previousOnBoard}` : 'not counted in stats'}`;
+      const won = total >= g.goal;
+      title = won ? 'Goal reached!' : 'Game over';
+      line = `Level ${g.retry.level} retry: goal ${g.goal} ${won ? 'reached' : 'missed'} · ${beatBoard ? `beat your ${previousOnBoard} on this board` : previousOnBoard !== undefined ? `best on this board stays ${previousOnBoard}` : 'not counted in stats'}`;
     } else if (g.replay) {
       line = beatBoard ? `Beat your previous best on this board (${previousOnBoard})! Not counted in stats.` : `Best on this board stays ${previousOnBoard}. Not counted in stats.`;
     } else {
@@ -1157,7 +1160,8 @@ export function initWordMode(ctx) {
     const showNext = levelsRun && passed && !g.replay;
     $('#w-next').hidden = !showNext;
     $('#w-again').hidden = showNext; // Next level takes its slot
-    $('#w-replay').hidden = showNext; // the board that ended a run can be retried, with its goal on show
+    $('#w-replay').hidden = showNext || (g.retry && total >= g.goal); // a lost board can be retried; a beaten retry cannot
+    $('.result-buttons').classList.toggle('two', $('#w-replay').hidden && !showNext);
     $('#w-again').textContent = levelsRun || g.retry ? 'New game' : 'New board';
     $('#w-locked').hidden = true;
     w.nextLevel = passed ? g.level + 1 : 1;
