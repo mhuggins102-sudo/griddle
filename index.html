@@ -23,15 +23,15 @@
             <span class="logo-tile locked">L<small>1</small></span><span class="logo-tile locked">O<small>1</small></span><span class="logo-tile locked">C<small>3</small></span><span class="logo-tile locked">K<small>5</small></span>
           </span>
         </h1>
-        <p class="tagline" id="tagline">Slide, swap and nudge a grid of letters into words. Lock them in before your turns run out.</p>
+        <p class="tagline" id="tagline">Slide, swap, and nudge letters to create words. Lock them in before your turns run out.</p>
         <div class="seg" role="radiogroup" aria-label="Board size">
           <label><input type="radio" name="opt-size" id="opt-size-5" value="5" checked><span>5×5<small>20 turns</small></span></label>
-          <label><input type="radio" name="opt-size" id="opt-size-6" value="6"><span>6×6<small>25 turns · 6-letter words</small></span></label>
+          <label><input type="radio" name="opt-size" id="opt-size-6" value="6"><span>6×6<small>25 turns</small></span></label>
         </div>
         <div class="home-buttons">
           <button id="btn-word-continue" class="btn btn-primary btn-big" hidden><span class="btn-main">Continue</span><span class="btn-sub" id="continue-sub"></span></button>
           <button id="btn-word" class="btn btn-primary btn-big"><span class="btn-main">New game</span><span class="btn-sub">Levels with a goal to beat</span></button>
-          <button id="btn-free" class="btn btn-big"><span class="btn-main">Free play</span><span class="btn-sub">One board, no goal, unlimited undo</span></button>
+          <button id="btn-free" class="btn btn-big"><span class="btn-main">Free play</span><span class="btn-sub">One board, no goal, unlimited undos</span></button>
           <div class="btn-row three">
             <button id="btn-help-home" class="btn">How to play</button>
             <button id="btn-stats" class="btn">Stats</button>
@@ -221,29 +221,31 @@
       <div id="w-words-pop" class="words-pop" hidden></div>
     </section>
 
-    <!-- Stats -->
-    <section id="screen-stats" class="screen" hidden>
-      <div class="end">
-        <h1 class="title small">Stats</h1>
-        <div id="stats-body"></div>
-        <div class="home-buttons">
-          <button id="btn-stats-back" class="btn btn-primary">Back</button>
-          <button id="btn-stats-reset" class="btn btn-quiet">Reset device data</button>
-        </div>
-      </div>
-    </section>
-
     <!-- Settings sheet -->
     <div id="settings" class="sheet" hidden>
       <div class="sheet-body">
         <div class="sheet-head"><h2>Settings</h2><button id="btn-settings-close" class="btn btn-icon" aria-label="Close">✕</button></div>
-        <div class="settings">
-          <label class="toggle"><span>Sound effects</span><input type="checkbox" class="switch" role="switch" id="opt-sound" checked></label>
-          <label class="toggle"><span>Show the words on the board <small>easier</small></span><input type="checkbox" class="switch" role="switch" id="opt-show-words"></label>
-          <label class="toggle" id="opt-numerals-row" hidden><span>Number game: numerals instead of dice pips</span><input type="checkbox" class="switch" role="switch" id="opt-numerals"></label>
+        <div class="sheet-scroll">
+          <div class="settings">
+            <label class="toggle"><span>Sound effects</span><input type="checkbox" class="switch" role="switch" id="opt-sound" checked></label>
+            <label class="toggle"><span>Show the words on the board <small>easier</small></span><input type="checkbox" class="switch" role="switch" id="opt-show-words"></label>
+            <label class="toggle" id="opt-numerals-row" hidden><span>Number game: numerals instead of dice pips</span><input type="checkbox" class="switch" role="switch" id="opt-numerals"></label>
+          </div>
+          <p class="footnote">Progress and settings stay on this device.</p>
         </div>
-        <p class="footnote">Progress and settings stay on this device.</p>
-        <button id="btn-settings-done" class="btn btn-primary btn-wide">Done</button>
+        <div class="sheet-foot"><button id="btn-settings-done" class="btn btn-primary btn-wide">Done</button></div>
+      </div>
+    </div>
+
+    <!-- Stats sheet -->
+    <div id="stats" class="sheet" hidden>
+      <div class="sheet-body">
+        <div class="sheet-head"><h2>Stats</h2><button id="btn-stats-close" class="btn btn-icon" aria-label="Close">✕</button></div>
+        <div class="sheet-scroll"><div id="stats-body"></div></div>
+        <div class="sheet-foot btn-row">
+          <button id="btn-stats-reset" class="btn btn-quiet">Reset device data</button>
+          <button id="btn-stats-done" class="btn btn-primary">Close</button>
+        </div>
       </div>
     </div>
 
@@ -251,6 +253,7 @@
     <div id="help" class="sheet" hidden>
       <div class="sheet-body">
         <div class="sheet-head"><h2>How to play</h2><button id="btn-help-close" class="btn btn-icon" aria-label="Close">✕</button></div>
+        <div class="sheet-scroll">
         <div class="chapters">
           <details class="chapter" open>
             <summary><span class="chapter-num">1</span><span class="chapter-title">The idea</span></summary>
@@ -330,7 +333,8 @@
             </div>
           </details>
         </div>
-        <div class="btn-row">
+        </div>
+        <div class="sheet-foot btn-row">
           <button id="btn-help-tutorial" class="btn">Watch the tutorial</button>
           <button id="btn-help-done" class="btn btn-primary">Close</button>
         </div>

@@ -7,6 +7,7 @@ import {
 import { ANIM_MS, wait, neighbours, buildBoardSkeleton, tileIn, animateAction, clearTileEffects } from './board.js';
 import { initWordMode } from './wordui.js';
 import { initTutorial } from './tutorial.js';
+import { openSheet, closeSheet } from './sheet.js';
 import { setSoundEnabled, audioState } from './sound.js';
 import { TURNS_BY_SIZE } from './words.js';
 import {
@@ -537,7 +538,7 @@ function showStats() {
         .join('')}</ul>
     `;
   }
-  showScreen('screen-stats');
+  openSheet($('#stats'));
 }
 
 function resetData() {
@@ -552,6 +553,7 @@ function resetData() {
   $('#opt-sound').checked = true;
   $('#opt-size-5').checked = true;
   setSoundEnabled(true);
+  closeSheet($('#stats'));
   showHome();
 }
 
@@ -559,11 +561,11 @@ function resetData() {
 // Help and toast
 
 function openHelp() {
-  $('#help').hidden = false;
+  openSheet($('#help'));
 }
 
 function closeHelp() {
-  $('#help').hidden = true;
+  closeSheet($('#help'));
 }
 
 let toastTimer = null;
@@ -615,17 +617,21 @@ function wireEvents() {
       for (const o of chapters) if (o !== d) o.open = false;
     });
   }
-  $('#btn-settings').addEventListener('click', () => ($('#settings').hidden = false));
-  $('#btn-settings-close').addEventListener('click', () => ($('#settings').hidden = true));
-  $('#btn-settings-done').addEventListener('click', () => ($('#settings').hidden = true));
+  $('#btn-settings').addEventListener('click', () => openSheet($('#settings')));
+  $('#btn-settings-close').addEventListener('click', () => closeSheet($('#settings')));
+  $('#btn-settings-done').addEventListener('click', () => closeSheet($('#settings')));
   $('#settings').addEventListener('click', (e) => {
-    if (e.target === $('#settings')) $('#settings').hidden = true;
+    if (e.target === $('#settings')) closeSheet($('#settings'));
+  });
+  $('#btn-stats-close').addEventListener('click', () => closeSheet($('#stats')));
+  $('#btn-stats-done').addEventListener('click', () => closeSheet($('#stats')));
+  $('#stats').addEventListener('click', (e) => {
+    if (e.target === $('#stats')) closeSheet($('#stats'));
   });
   $('#help').addEventListener('click', (e) => {
     if (e.target === $('#help')) closeHelp();
   });
   $('#btn-stats').addEventListener('click', showStats);
-  $('#btn-stats-back').addEventListener('click', showHome);
   $('#btn-stats-reset').addEventListener('click', resetData);
   $('#opt-numerals').addEventListener('change', (e) => {
     ui.store.settings.numerals = e.target.checked;
