@@ -33,8 +33,9 @@
   color-scheme: light dark;
 }
 
+/* Dark theme tokens: by system preference unless the player chose light, or by an explicit choice */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #171a21;
     --panel: #1f2430;
     --tray: #121419;
@@ -62,6 +63,35 @@
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.25);
   }
 }
+:root[data-theme="dark"] {
+  --bg: #171a21;
+  --panel: #1f2430;
+  --tray: #121419;
+  --ink: #eef0f4;
+  --muted: #a3a8b4;
+  --line: #353b48;
+  --tile: #f3e9d2;
+  --tile-edge: #b9ab8c;
+  --tile-ink: #1f2430;
+  --tile-val: #4a5060;
+  --pip: #1f2430;
+  --accent: #6f94ff;
+  --accent-ink: #0d1117;
+  --select: #6f94ff;
+  --target: #ffc857;
+  --region: #b79cff;
+  --ok: #5fcf93;
+  --ok-bg: #1d3328;
+  --locked: #9fd1b5;
+  --locked-edge: #5a9f7c;
+  --wild: #cdbcf0;
+  --wild-edge: #a98de0;
+  --no-bg: #262c39;
+  --danger: #ff8a73;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
@@ -202,6 +232,8 @@ svg { display: block; }
 .seg span small { font-size: 11px; font-weight: 500; opacity: 0.75; }
 .seg input:checked + span { background: var(--accent); color: var(--accent-ink); }
 .seg input:focus-visible + span { outline: 3px solid var(--select); outline-offset: 2px; }
+.seg.seg-small { padding: 3px; gap: 3px; box-shadow: none; background: var(--bg); flex: 0 0 auto; }
+.seg.seg-small span { min-height: 34px; padding: 0 12px; font-size: 14px; border-radius: 8px; }
 
 /* ---------------------------------------------------------------------------
    HUD (shared) */
