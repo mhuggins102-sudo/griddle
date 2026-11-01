@@ -43,6 +43,15 @@ async function boot() {
   $('#opt-show-words').checked = !!ui.store.settings.showWords;
   $('#opt-sound').checked = ui.store.settings.sound !== false;
   setSoundEnabled(ui.store.settings.sound !== false);
+  applyTheme(ui.store.settings.theme);
+  for (const r of document.querySelectorAll('input[name="opt-theme"]')) {
+    r.checked = r.value === (ui.store.settings.theme || 'system');
+    r.addEventListener('change', () => {
+      ui.store.settings.theme = document.querySelector('input[name="opt-theme"]:checked').value;
+      applyTheme(ui.store.settings.theme);
+      saveStore(ui.store);
+    });
+  }
   $('#opt-size-6').checked = ui.store.settings.boardSize === 6;
   $('#opt-size-5').checked = ui.store.settings.boardSize !== 6;
   for (const r of document.querySelectorAll('input[name="opt-size"]')) {
@@ -120,6 +129,13 @@ function continueGame() {
 function persist() {
   ui.store.currentGame = ui.game;
   saveStore(ui.store);
+}
+
+/** Light, dark, or follow the system (the default). */
+function applyTheme(theme) {
+  const root = document.documentElement;
+  if (theme === 'light' || theme === 'dark') root.dataset.theme = theme;
+  else delete root.dataset.theme;
 }
 
 /** The board size chosen on the home screen (5 unless 6x6 is selected). */
@@ -552,6 +568,8 @@ function resetData() {
   $('#opt-show-words').checked = false;
   $('#opt-sound').checked = true;
   $('#opt-size-5').checked = true;
+  $('#opt-theme-system').checked = true;
+  applyTheme('system');
   setSoundEnabled(true);
   closeSheet($('#stats'));
   showHome();

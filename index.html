@@ -228,6 +228,13 @@
         <div class="sheet-scroll">
           <div class="settings">
             <label class="toggle"><span>Sound effects</span><input type="checkbox" class="switch" role="switch" id="opt-sound" checked></label>
+            <div class="toggle"><span>Appearance</span>
+              <div class="seg seg-small" role="radiogroup" aria-label="Appearance">
+                <label><input type="radio" name="opt-theme" id="opt-theme-system" value="system" checked><span>System</span></label>
+                <label><input type="radio" name="opt-theme" id="opt-theme-light" value="light"><span>Light</span></label>
+                <label><input type="radio" name="opt-theme" id="opt-theme-dark" value="dark"><span>Dark</span></label>
+              </div>
+            </div>
             <label class="toggle"><span>Show the words on the board <small>easier</small></span><input type="checkbox" class="switch" role="switch" id="opt-show-words"></label>
             <label class="toggle" id="opt-numerals-row" hidden><span>Number game: numerals instead of dice pips</span><input type="checkbox" class="switch" role="switch" id="opt-numerals"></label>
           </div>
