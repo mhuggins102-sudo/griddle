@@ -437,7 +437,6 @@ export function initWordMode(ctx) {
     const g = w.game;
     const st = g.state;
     if (goalReached()) return message(`Level ${g.level} passed! Press Next level to carry on.`, 'good');
-    if (st.turns >= limit()) return message('Out of turns.', 'bad');
     if (w.pending) return action(`Lock ${w.pending.word} for ${w.pending.score}?`, { label: 'Lock', fn: () => commitLock(w.pending) }, { label: 'Cancel', fn: () => setPending(null) });
     if (w.first !== null) return message('Now tap the last letter of the word');
     if (w.transient) return message(w.transient.text, w.transient.cls);
@@ -1107,29 +1106,30 @@ export function initWordMode(ctx) {
     // Score breakdown: words [+ bonus] [+ unused turns] [- penalty] = total
     const tally = $('#w-tally');
     tally.innerHTML = '';
-    const item = (label, value, cls = '', asButton = false) => {
-      const el = document.createElement(asButton ? 'button' : 'span');
-      el.className = `tally-item ${cls}`.trim();
-      el.innerHTML = `<span class="lbl">${label}</span><span class="num">${value}</span>`;
-      if (asButton) el.type = 'button';
+    // each figure is a labelled column: the label sits above a box with the number
+    const col = (label, value, cls = '', onClick = null) => {
+      const el = document.createElement(onClick ? 'button' : 'div');
+      el.className = 'tally-col';
+      if (onClick) {
+        el.type = 'button';
+        el.addEventListener('click', onClick);
+      }
+      el.innerHTML = `<span class="lbl">${label}</span><span class="tally-item ${cls}">${value}</span>`;
       return el;
     };
     const op = (text) => Object.assign(document.createElement('span'), { className: 'tally-op', textContent: text });
-    const wordsBtn = item(`${st.words.length} word${st.words.length === 1 ? '' : 's'}`, String(st.score), '', true);
-    wordsBtn.setAttribute('aria-label', 'Show the words you locked');
-    wordsBtn.addEventListener('click', showWordsPop);
-    tally.appendChild(wordsBtn);
-    if (bonus) {
-      tally.appendChild(op('+'));
-      tally.appendChild(item(`${st.locked.length} tiles`, `+${bonus}`, 'pos'));
-    }
+    const wordsCol = col(`${st.words.length} word${st.words.length === 1 ? '' : 's'}`, String(st.score), '', showWordsPop);
+    wordsCol.setAttribute('aria-label', 'Show the words you locked');
+    tally.appendChild(wordsCol);
+    tally.appendChild(op('+'));
+    tally.appendChild(col(`${st.locked.length} tile${st.locked.length === 1 ? '' : 's'}`, `+${bonus}`, bonus ? 'pos' : ''));
     if (turnBonus) {
       tally.appendChild(op('+'));
-      tally.appendChild(item(`${turnLimit(st) - st.turns} turns left`, `+${turnBonus}`, 'pos'));
+      tally.appendChild(col(`${turnLimit(st) - st.turns} turns left`, `+${turnBonus}`, 'pos'));
     }
     if (penalty) {
       tally.appendChild(op('−'));
-      tally.appendChild(item(`${COVERAGE_TARGET - st.locked.length} tiles short`, `−${penalty}`, 'neg'));
+      tally.appendChild(col(`${COVERAGE_TARGET - st.locked.length} tiles short`, `−${penalty}`, 'neg'));
     }
     tally.appendChild(op('='));
     tally.appendChild(Object.assign(document.createElement('span'), { className: 'tally-total', textContent: String(total) }));
@@ -1141,15 +1141,15 @@ export function initWordMode(ctx) {
     if (levelsRun) {
       const bestReached = Math.max(store.word.bestReached || 0, (store.word.bestLevel || 0) + 1, g.level);
       title = passed ? `Level ${g.level} passed!` : 'Game over';
-      line = passed ? `Goal ${g.goal} reached.` : `Reached level ${g.level} · best level ${bestReached}`;
+      line = passed ? `Goal ${g.goal} reached` : `Reached level ${g.level} · best level ${bestReached}`;
     } else if (g.retry) {
       const won = total >= g.goal;
       title = won ? 'Goal reached!' : 'Game over';
       line = `Level ${g.retry.level} retry: goal ${g.goal} ${won ? 'reached' : 'missed'} · ${beatBoard ? `beat your ${previousOnBoard} on this board` : previousOnBoard !== undefined ? `best on this board stays ${previousOnBoard}` : 'not counted in stats'}`;
     } else if (g.replay) {
-      line = beatBoard ? `Beat your previous best on this board (${previousOnBoard})! Not counted in stats.` : `Best on this board stays ${previousOnBoard}. Not counted in stats.`;
+      line = beatBoard ? `Beat your previous best on this board (${previousOnBoard}) · not counted in stats` : `Best on this board stays ${previousOnBoard} · not counted in stats`;
     } else {
-      line = isBest ? 'New personal best!' : `Personal best: ${store.word[bestKey]}.`;
+      line = isBest ? 'New personal best!' : `Personal best: ${store.word[bestKey]}`;
     }
     $('#w-tally').hidden = false;
     $('#w-share').hidden = false;
