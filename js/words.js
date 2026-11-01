@@ -1,5 +1,6 @@
 // Word mode engine: letter bag, deal, actions with locked tiles, word finding and scoring.
-// Pure functions, no DOM. The dictionary is a Set of upper-case words of 3 to 6 letters.
+// Pure functions, no DOM. The dictionary is a Map from upper-case word (3 to 6 letters) to its rank by
+// everyday frequency (0 = most common), so a wild tile resolves to the word a player most likely means.
 // Boards are 5x5 (20 turns, words of 3 to 5 letters) or 6x6 (25 turns, words of 3 to 6 letters);
 // a state carries its size and every function reads the geometry from it.
 
@@ -10,7 +11,7 @@ export { MIN_WORD, gridOf, gridOfState };
 
 export const WILD = '*';
 /** Bump when data/words.txt changes: it is part of the fetch URL, so browsers never keep a stale list. */
-export const DICT_VERSION = '2026-10-30-enable36';
+export const DICT_VERSION = '2026-11-01-freq';
 export const SIZES = [5, 6];
 export const MAX_WORD = 6;
 /** Turns per board size. WORD_TURNS is the 5x5 value, kept for callers that assume it. */
@@ -259,12 +260,11 @@ export function isPluralPair(a, b) {
   return false;
 }
 
-/** Why a word cannot be locked given the words already locked, or '' when it can. */
+/** Why a word cannot be locked given the words already locked, or '' when it can. Any listed word goes, except an exact repeat. */
 export function lockConflict(state, word, cells) {
   const key = cellKey(cells);
   for (const w of state.words) {
     if (w.word === word) return `${word} is already locked`;
-    if (isPluralPair(w.word, word)) return `${word} clashes with ${w.word} (singular and plural)`;
     if (w.key === key) return 'those tiles are already locked as a word';
   }
   if (cells.every((c) => state.locked.includes(c))) return 'a new word needs at least one unlocked tile';
@@ -314,7 +314,7 @@ export function scoreWord(board, cells) {
   return s + (LENGTH_BONUS[cells.length] || 0);
 }
 
-/** All dictionary words that can be read along a wildcard pattern (letters or WILD). */
+/** All dictionary words that can be read along a wildcard pattern (letters or WILD), most common first. */
 function matchesForPattern(pattern, dict) {
   const wilds = [];
   for (let i = 0; i < pattern.length; i++) if (pattern[i] === WILD) wilds.push(i);
@@ -334,6 +334,8 @@ function matchesForPattern(pattern, dict) {
     }
   };
   rec(0);
+  const rank = (w) => (dict instanceof Map ? dict.get(w) : 0);
+  out.sort((a, b) => rank(a) - rank(b) || (a < b ? -1 : a > b ? 1 : 0));
   return out;
 }
 
@@ -392,12 +394,15 @@ export function describeWordCells(cells, size = 5) {
   return `${where}, from row ${rowOf(a) + 1} col ${colOf(a) + 1}`;
 }
 
-/** Parse the shipped word list (one upper-case word per line) into a Set of 3 to 6 letter words. */
+/**
+ * Parse the shipped word list (one upper-case word per line, most common first) into a Map from word
+ * to its rank. Map.has and Map.size work like the old Set's; iterate dict.keys() for the words.
+ */
 export function parseDictionary(text) {
-  const dict = new Set();
+  const dict = new Map();
   for (const line of text.split(/\r?\n/)) {
     const w = line.trim().toUpperCase();
-    if (w.length >= MIN_WORD && w.length <= MAX_WORD && /^[A-Z]+$/.test(w)) dict.add(w);
+    if (w.length >= MIN_WORD && w.length <= MAX_WORD && /^[A-Z]+$/.test(w) && !dict.has(w)) dict.set(w, dict.size);
   }
   return dict;
 }

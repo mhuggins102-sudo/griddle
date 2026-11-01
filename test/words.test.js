@@ -14,11 +14,14 @@ function boardFrom(rows) {
   return rows.join('').split('');
 }
 
-test('dictionary loads with 3 to 6 letter words only', () => {
-  assert.ok(dict.size > 25000);
-  for (const w of dict) assert.ok(w.length >= 3 && w.length <= 6 && /^[A-Z]+$/.test(w));
+test('dictionary loads with 3 to 6 letter words only, most common first, modern words in, rarities out', () => {
+  assert.ok(dict.size > 19000 && dict.size < 23000, String(dict.size));
+  for (const w of dict.keys()) assert.ok(w.length >= 3 && w.length <= 6 && /^[A-Z]+$/.test(w));
   assert.ok(dict.has('CAT') && dict.has('QUIZ') && dict.has('TONE') && dict.has('LETTER'));
+  assert.ok(dict.has('VAPE') && dict.has('SELFIE') && dict.has('EMOJI'), 'modern words');
+  assert.ok(!dict.has('ANOPIA') && !dict.has('ABMHOS'), 'rarities pruned');
   assert.ok(!dict.has('AA') && !dict.has('LETTERS'));
+  assert.ok(dict.get('THE') < dict.get('CAT') && dict.get('CAT') < dict.get('QUIZ'), 'ranked by everyday frequency');
 });
 
 test('deal: 25 letters plus a 73-tile bag, Scrabble distribution, deterministic; 6x6 deals 36 and leaves 62', () => {
@@ -173,23 +176,29 @@ test('slide around locked tiles: the tile before a locked last tile wraps; a ful
   assert.throws(() => applyWordAction(s, { type: 'slide', axis: 'row', index: 0, dir: 1 }), /Nothing/);
 });
 
-test('plural rule: a plural or singular of a locked word cannot be locked', () => {
-  assert.ok(isPluralPair('DOOR', 'DOORS'));
-  assert.ok(isPluralPair('DOORS', 'DOOR'));
-  assert.ok(isPluralPair('BOX', 'BOXES'));
-  assert.ok(isPluralPair('CITY', 'CITIES'));
-  assert.ok(!isPluralPair('DOOR', 'DOOR'));
-  assert.ok(!isPluralPair('CAT', 'COTS'));
+test('any listed word can follow another, plurals included; only an exact repeat is refused', () => {
+  assert.ok(isPluralPair('DOOR', 'DOORS'), 'the helper still exists');
   const board = boardFrom(['DOORS', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']);
   let s = createWordState(board, {});
-  const doors = findWords(s, dict).find((w) => w.word === 'DOORS');
   const door = findWords(s, dict).find((w) => w.word === 'DOOR');
-  assert.ok(doors.lockable && door.lockable);
   s = lockWord(s, door);
-  const after = findWords(s, dict).find((w) => w.word === 'DOORS');
-  assert.equal(after.lockable, false);
-  assert.match(after.reason, /plural/);
-  assert.throws(() => lockWord(s, after));
+  const doors = findWords(s, dict).find((w) => w.word === 'DOORS');
+  assert.ok(doors.lockable, 'DOORS may follow DOOR');
+  s = lockWord(s, doors);
+  const again = findWords(s, dict).find((w) => w.word === 'DOOR');
+  assert.equal(again.lockable, false);
+  assert.match(again.reason, /already locked/);
+});
+
+test('a wild resolves to the most common word that fits', () => {
+  const small = parseDictionary('COT\nCAT\nCUT');
+  assert.deepEqual([...small.keys()], ['COT', 'CAT', 'CUT']);
+  const s = createWordState(boardFrom(['C*TXX', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']), {});
+  assert.equal(findWordAt(s, small, 0, 2).word, 'COT', 'first in the list wins');
+  const real = createWordState(boardFrom(['C*TXX', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']), {});
+  const picked = findWordAt(real, dict, 0, 2).word;
+  const best = ['CAT', 'COT', 'CUT'].sort((a, b) => dict.get(a) - dict.get(b))[0];
+  assert.equal(picked, best, 'the shipped list picks its most common C?T');
 });
 
 test('findWordAt: first and last tap define the word, in either direction', () => {
