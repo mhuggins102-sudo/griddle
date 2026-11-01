@@ -29,7 +29,7 @@ const SWAP_CROSS = 0.7; // tiles: maximum sideways wobble for a drop
 export function initWordMode(ctx) {
   const w = {
     dict: null,
-    game: null, // { seed, drawSeed, size, state, mode: 'levels'|'free', level, goal, botScore, history, replay }
+    game: null, // { seed, drawSeed, size, state, mode: 'levels'|'free', level, goal, botScore, history, replay, retry }
     first: null, // first letter tapped for a lock
     pending: null, // candidate chosen from the found-words list, awaiting Lock
     found: [],
@@ -189,6 +189,7 @@ export function initWordMode(ctx) {
       if (w.game.botScore === undefined) w.game.botScore = null;
       if (w.game.goal === undefined) w.game.goal = null;
       if (w.game.history === undefined) w.game.history = w.game.prev && !w.game.undoUsed ? [w.game.prev] : []; // saves from the one-undo days
+      if (w.game.retry === undefined) w.game.retry = null;
       if (w.game.size === undefined) w.game.size = w.game.state.size || Math.round(Math.sqrt(w.game.state.board.length));
     } else {
       const seed = opts.seed ?? randomSeed();
@@ -208,7 +209,15 @@ export function initWordMode(ctx) {
         botWords: null,
         history: [], // states to undo back to; emptied by a draw, since a draw cannot be undone
         replay: !!opts.replay,
+        retry: null, // a free-play replay of the board that ended a run: its goal stays on show
       };
+      if (opts.retry) {
+        // a retry plays like free play, with the lost level's goal shown for the challenge
+        w.game.retry = { level: opts.retry.level, goal: opts.retry.goal };
+        w.game.level = opts.retry.level;
+        w.game.goal = opts.retry.goal;
+        w.game.botScore = opts.retry.botScore ?? 0;
+      }
       persist();
     }
     w.over = false;
@@ -229,6 +238,7 @@ export function initWordMode(ctx) {
     $('#w-strip').hidden = false;
     renderAll();
     if (opts.note) say(opts.note, 'good', 2800);
+    else if (opts.retry) say(`Replaying the board that ended your run · goal ${opts.retry.goal} · not counted in stats`, '', 3500);
     else if (opts.replay) say('Replaying this board · not counted in your stats', '', 3000);
     computeGoal(w.game);
     // a board saved in its last moment (full, or a level run out of turns) is scored straight away
@@ -359,10 +369,10 @@ export function initWordMode(ctx) {
   function renderGoalBar() {
     const g = w.game;
     const bar = $('#w-goalbar');
-    bar.hidden = g.mode !== 'levels';
+    bar.hidden = !(g.mode === 'levels' || g.retry);
     if (bar.hidden) return;
     const score = finalScore(g.state);
-    $('#w-goalbar-level').textContent = `Level ${g.level}`;
+    $('#w-goalbar-level').textContent = g.retry ? `Level ${g.level} · retry` : `Level ${g.level}`;
     if (g.goal === null) {
       $('#w-goalbar-text').textContent = 'Goal: computing…';
       $('#w-goalbar-fill').style.width = '0%';
@@ -382,8 +392,8 @@ export function initWordMode(ctx) {
       renderBoard(); // the goal may have landed from the worker mid-board: grey the tiles out now
     }
     bar.classList.toggle('reached', reached);
-    $('#w-advance').hidden = !(reached && !w.over);
-    if (reached && !w.over) {
+    $('#w-advance').hidden = !(reached && !w.over && g.mode === 'levels');
+    if (reached && !w.over && g.mode === 'levels') {
       // play stops here: drop any selection and close the menu
       w.first = null;
       w.pending = null;
@@ -426,10 +436,7 @@ export function initWordMode(ctx) {
     const g = w.game;
     const st = g.state;
     if (goalReached()) return message(`Level ${g.level} passed! Press Next level to carry on.`, 'good');
-    if (st.turns >= limit()) {
-      if (isLevels()) return message('Out of turns.', 'bad');
-      return action('Out of turns.', { label: 'Score board', fn: () => finish(false) }, { label: 'Undo', fn: undo, disabled: !g.history.length });
-    }
+    if (st.turns >= limit()) return message('Out of turns.', 'bad');
     if (w.pending) return action(`Lock ${w.pending.word} for ${w.pending.score}?`, { label: 'Lock', fn: () => commitLock(w.pending) }, { label: 'Cancel', fn: () => setPending(null) });
     if (w.first !== null) return message('Now tap the last letter of the word');
     if (w.transient) return message(w.transient.text, w.transient.cls);
@@ -1018,8 +1025,7 @@ export function initWordMode(ctx) {
       finishSoon(1600 + delay);
       return;
     }
-    if (next.turns >= turnLimit(next) && isLevels()) finishSoon(500 + delay); // run over: below the goal with no turns left
-    // free play: the strip offers Score board / Undo
+    if (next.turns >= turnLimit(next)) finishSoon(500 + delay); // the last turn is spent: score the board
   }
 
   function undo() {
@@ -1057,7 +1063,7 @@ export function initWordMode(ctx) {
     ensureGoalNow(g);
     cancelGesture();
     w.over = true;
-    w.lastBoard = { seed: g.seed, drawSeed: g.drawSeed, size: g.size };
+    w.lastBoard = { seed: g.seed, drawSeed: g.drawSeed, size: g.size, retry: g.mode === 'levels' ? { level: g.level, goal: g.goal, botScore: g.botScore } : g.retry ? { ...g.retry, botScore: g.botScore } : null };
     w.pending = null;
     w.first = null;
     closeMenu();
@@ -1081,6 +1087,7 @@ export function initWordMode(ctx) {
       if (isBest) store.word[bestKey] = total;
       store.word.gamesPlayed++;
       if (passed) store.word.bestLevel = Math.max(store.word.bestLevel || 0, g.level);
+      if (g.mode === 'levels') store.word.bestReached = Math.max(store.word.bestReached || 0, g.level);
       store.word.history.unshift({
         at: new Date().toISOString(), seed: g.seed, drawSeed: g.drawSeed, size: g.size, score: total, bonus, mode: g.mode, level: g.level, goal: g.goal, passed,
         words: st.words.map((x) => ({ word: x.word, score: x.score })),
@@ -1127,29 +1134,31 @@ export function initWordMode(ctx) {
     tally.appendChild(Object.assign(document.createElement('span'), { className: 'tally-total', textContent: String(total) }));
     if (st.score + bonus + turnBonus - penalty < 0) tally.appendChild(op('(floored at 0)'));
 
-    let title = g.replay ? 'Replay over' : 'Board scored';
+    const levelsRun = g.mode === 'levels';
+    let title = 'Final score';
     let line;
-    if (g.mode === 'levels') {
-      title = passed ? `Level ${g.level} passed!` : `Run over at level ${g.level}`;
-      line = passed ? `Goal ${g.goal} reached.` : `${total} of the ${g.goal} needed. ${g.level > 1 ? `You passed ${g.level - 1} level${g.level - 1 === 1 ? '' : 's'}.` : ''}`;
+    if (levelsRun) {
+      const bestReached = Math.max(store.word.bestReached || 0, (store.word.bestLevel || 0) + 1, g.level);
+      title = passed ? `Level ${g.level} passed!` : 'Game over';
+      line = passed ? `Goal ${g.goal} reached.` : `Reached level ${g.level} · best level ${bestReached}`;
+    } else if (g.retry) {
+      line = `Level ${g.retry.level} retry: goal ${g.goal} ${total >= g.goal ? 'reached' : 'missed'} · ${beatBoard ? `beat your ${previousOnBoard} on this board` : previousOnBoard !== undefined ? `best on this board stays ${previousOnBoard}` : 'not counted in stats'}`;
     } else if (g.replay) {
       line = beatBoard ? `Beat your previous best on this board (${previousOnBoard})! Not counted in stats.` : `Best on this board stays ${previousOnBoard}. Not counted in stats.`;
     } else {
       line = isBest ? 'New personal best!' : `Personal best: ${store.word[bestKey]}.`;
     }
-    if (g.mode === 'levels' && g.replay) line += ' Replay: not counted.';
-    const levelsRun = g.mode === 'levels';
-    $('#w-tally').hidden = levelsRun; // no end-of-board summary in a level run
-    $('#w-share').hidden = levelsRun;
+    $('#w-tally').hidden = false;
+    $('#w-share').hidden = false;
     play(levelsRun ? (passed ? 'fanfare' : 'fail') : isBoardFull(st) ? 'fanfare' : 'lock');
     $('#w-result-title').textContent = title;
     $('#w-result-best').textContent = line;
-    w.shareText = (levelsRun ? `Level ${g.level} ${passed ? 'passed' : 'failed'} · ` : '') + wordShareLine(total, st.words, g.size === 6 ? 'GridLock 6×6' : 'GridLock');
+    w.shareText = (levelsRun ? `Level ${g.level} ${passed ? 'passed' : 'failed'} · ` : g.retry ? `Level ${g.retry.level} retry · ` : '') + wordShareLine(total, st.words, g.size === 6 ? 'GridLock 6×6' : 'GridLock');
     const showNext = levelsRun && passed && !g.replay;
     $('#w-next').hidden = !showNext;
     $('#w-again').hidden = showNext; // Next level takes its slot
-    $('#w-replay').hidden = levelsRun; // replays are a free-play feature
-    $('#w-again').textContent = levelsRun ? 'New game' : 'New board';
+    $('#w-replay').hidden = showNext; // the board that ended a run can be retried, with its goal on show
+    $('#w-again').textContent = levelsRun || g.retry ? 'New game' : 'New board';
     $('#w-locked').hidden = true;
     w.nextLevel = passed ? g.level + 1 : 1;
     renderHud();
@@ -1277,12 +1286,12 @@ export function initWordMode(ctx) {
   $('#w-again').addEventListener('click', () => {
     const g = w.game;
     const size = g ? g.size : 5;
-    if (g && g.mode === 'levels' && !$('#w-next').hidden) start(false, { mode: 'free', size });
-    else if (g && g.mode === 'levels') start(false, { mode: 'levels', level: 1, size });
+    if (g && (g.mode === 'levels' || g.retry)) start(false, { mode: 'levels', level: 1, size });
     else start(false, { mode: 'free', size });
   });
   $('#w-replay').addEventListener('click', () => {
-    if (w.lastBoard) start(false, { mode: 'free', seed: w.lastBoard.seed, drawSeed: w.lastBoard.drawSeed, size: w.lastBoard.size, replay: true });
+    const b = w.lastBoard;
+    if (b) start(false, { mode: 'free', seed: b.seed, drawSeed: b.drawSeed, size: b.size, replay: true, retry: b.retry });
   });
   $('#w-home').addEventListener('click', () => {
     cancelGesture();

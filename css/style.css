@@ -814,15 +814,15 @@ svg { display: block; }
 .result-head h2 { font-size: 22px; margin: 0; }
 .result-titles { display: flex; flex-direction: column; min-width: 0; }
 .result-titles .breakdown { font-size: 13px; }
-.tally { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; font-variant-numeric: tabular-nums; font-size: 16px; }
-.tally .tally-item { display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; min-height: 36px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); }
-.tally .tally-item .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
-.tally .tally-item .num { font-weight: 800; }
+.tally { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; font-variant-numeric: tabular-nums; font-size: 16px; }
+.tally .tally-item { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 6px 12px; min-height: 52px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); line-height: 1.1; }
+.tally .tally-item .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); white-space: nowrap; }
+.tally .tally-item .num { font-weight: 800; font-size: 18px; }
 .tally .tally-item.neg .num { color: var(--danger); }
 .tally .tally-item.pos .num { color: var(--ok); }
 .tally .tally-op { color: var(--muted); font-weight: 700; }
-.tally .tally-total { font-size: 24px; font-weight: 900; padding-left: 4px; }
-.tally button.tally-item { cursor: pointer; font: inherit; color: inherit; text-decoration: underline dotted var(--muted); text-underline-offset: 3px; min-height: 44px; }
+.tally .tally-total { font-size: 26px; font-weight: 900; padding-left: 4px; }
+.tally button.tally-item { cursor: pointer; font: inherit; color: inherit; box-shadow: none; }
 .result .tally[hidden] { display: none; }
 .result-buttons.three { display: flex; }
 .result-buttons.three .btn { flex: 1 1 0; padding: 0 6px; font-size: 13.5px; white-space: nowrap; }
@@ -841,8 +841,7 @@ svg { display: block; }
   .word-screen:has(#w-found-wrap:not([hidden])) .board.plain { max-width: min(100%, calc(100vh - 310px)); max-width: min(100%, calc(100dvh - 310px)); }
 }
 
-/* Board over: it shrinks to leave room for the result panel */
-.word-screen.over .board.plain { max-width: min(100%, calc(100vh - 430px)); max-width: min(100%, calc(100dvh - 430px)); --gap: 5px; padding: 6px; }
+/* Board over: the board stays full size; only the strip goes */
 .word-screen.over .strip { display: none; }
 
 /* Action animations */
@@ -896,12 +895,12 @@ svg { display: block; }
   .topcard .locked-line { padding: 4px 10px; font-size: 12px; }
   .strip { min-height: 40px; }
   .board.plain { max-width: min(100%, calc(100vh - 250px)); max-width: min(100%, calc(100dvh - 250px)); }
-  .word-screen.over .board.plain { max-width: min(100%, calc(100vh - 380px)); max-width: min(100%, calc(100dvh - 380px)); }
   .result.compact { gap: 6px; padding: 8px; }
   .result-head h2 { font-size: 19px; }
   .tally { font-size: 14px; }
-  .tally .tally-item { min-height: 32px; padding: 0 6px; }
-  .tally .tally-total { font-size: 20px; }
+  .tally .tally-item { min-height: 44px; padding: 4px 10px; }
+  .tally .tally-item .num { font-size: 16px; }
+  .tally .tally-total { font-size: 22px; }
   .result-titles { flex-direction: row; align-items: baseline; gap: 8px; flex-wrap: wrap; }
   .result-titles .breakdown { font-size: 12px; }
   .app:has(#screen-word:not([hidden])) { padding-top: 4px; padding-bottom: 6px; }
