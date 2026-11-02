@@ -182,7 +182,7 @@ export function initTutorial() {
         rows: ex.slide.rows,
         html: `<p>Every move costs <strong>one turn</strong>, and you get <strong>${turns} turns</strong> on this ${n}×${n} board. Words lock in to bank their points.</p>${goalLine}<p>Next: each of the five moves, with a board where it pays off.</p>`,
       },
-      { title: 'Slide', demo: 'slide', rows: ex.slide.rows, ex: ex.slide, html: `<p><strong>Flick</strong> a row or column (or drag any of its tiles a long way). The whole line moves one step and the tile pushed off the end wraps round to the start.</p><p>${ex.slide.note}</p>` },
+      { title: 'Slide', demo: 'slide', rows: ex.slide.rows, ex: ex.slide, html: `<p><strong>Flick</strong> a row or column: a quick swipe of any of its tiles. The whole line moves one step and the tile pushed off the end wraps round to the start. A slow drag swaps instead.</p><p>${ex.slide.note}</p>` },
       { title: 'Swap', demo: 'swap', rows: ex.swap.rows, ex: ex.swap, html: `<p><strong>Drag</strong> a tile onto one of its four neighbours and let go to swap them. Locked tiles cannot move.</p><p>${ex.swap.note}</p>` },
       { title: 'Nudge', demo: 'nudge', rows: ex.nudge.rows, ex: ex.nudge, html: `<p><strong>Hold</strong> a tile for a menu, then pick the letter before or after it in the alphabet. A and Z wrap round, so an A is one nudge from a Z.</p><p>${ex.nudge.note}</p>` },
       { title: 'Draw', demo: 'draw', rows: ex.draw.rows, ex: ex.draw, html: `<p><strong>Hold</strong> a tile and choose <em>Draw</em> to swap it for a random letter from the bag. The bag button in the header shows what is left. Draw cannot be undone.</p><p>${ex.draw.note}</p>` },
