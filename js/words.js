@@ -11,7 +11,7 @@ export { MIN_WORD, gridOf, gridOfState };
 
 export const WILD = '*';
 /** Bump when data/words.txt changes: it is part of the fetch URL, so browsers never keep a stale list. */
-export const DICT_VERSION = '2026-11-01-freq';
+export const DICT_VERSION = '2026-11-02-lemma2';
 export const SIZES = [5, 6];
 export const MAX_WORD = 6;
 /** Turns per board size. WORD_TURNS is the 5x5 value, kept for callers that assume it. */
@@ -260,19 +260,41 @@ export function isPluralPair(a, b) {
   return false;
 }
 
-/** Why a word cannot be locked given the words already locked, or '' when it can. Any listed word goes, except an exact repeat. */
-export function lockConflict(state, word, cells) {
+/** The lemmas the dictionary records for a word (DOORS -> [DOOR]); none for a base form or an unlisted word. */
+function lemmasOf(word, dict) {
+  return (dict && dict.lemma && dict.lemma.get(word)) || [];
+}
+
+/**
+ * Are two words the same word in different inflections (DOOR / DOORS, PLAY / PLAYED, FAST / FASTER)?
+ * Decided only from the lemmas the word list carries, never guessed from spelling, so derived or
+ * merely containing words (PLAY / PLAYER, CAR / CARROT, HER / HERRING) are different words.
+ */
+export function sameWordInflected(a, b, dict) {
+  if (a === b) return true;
+  const la = lemmasOf(a, dict);
+  const lb = lemmasOf(b, dict);
+  return la.includes(b) || lb.includes(a) || la.some((l) => lb.includes(l));
+}
+
+/**
+ * Why a word cannot be locked given the words already locked, or '' when it can. Any listed word goes,
+ * except an exact repeat, or an inflection of a word already locked on those same tiles (DOOR then DOORS
+ * over the same DOOR): a word has to be a different word to be locked again on the tiles it already used.
+ */
+export function lockConflict(state, word, cells, dict = null) {
   const key = cellKey(cells);
   for (const w of state.words) {
     if (w.word === word) return `${word} is already locked`;
     if (w.key === key) return 'those tiles are already locked as a word';
+    if (w.cells.every((c) => cells.includes(c)) && sameWordInflected(word, w.word, dict)) return `${word} is just ${w.word} with an ending`;
   }
   if (cells.every((c) => state.locked.includes(c))) return 'a new word needs at least one unlocked tile';
   return '';
 }
 
-function makeCandidate(state, word, orderedCells) {
-  const reason = lockConflict(state, word, orderedCells);
+function makeCandidate(state, word, orderedCells, dict) {
+  const reason = lockConflict(state, word, orderedCells, dict);
   return { word, cells: orderedCells, score: scoreWord(state.board, orderedCells), key: cellKey(orderedCells), lockable: !reason, reason };
 }
 
@@ -295,7 +317,7 @@ export function findWordAt(state, dict, first, last) {
   const pattern = cells.map((c) => state.board[c]).join('');
   const matches = matchesForPattern(pattern, dict);
   if (!matches.length) return { error: `${pattern.replace(/\*/g, '?')} is not in the word list.` };
-  return makeCandidate(state, matches[0], cells);
+  return makeCandidate(state, matches[0], cells, dict);
 }
 
 /** Every line a word can lie on for a board size, in reading order: rows, columns, diagonals of 3 or more cells. */
@@ -360,7 +382,7 @@ export function findWords(state, dict) {
             const id = `${word}@${cellKey(cells)}`;
             if (seen.has(id)) continue;
             seen.add(id);
-            out.push(makeCandidate(state, word, ordered));
+            out.push(makeCandidate(state, word, ordered, dict));
           }
         }
       }
@@ -395,14 +417,19 @@ export function describeWordCells(cells, size = 5) {
 }
 
 /**
- * Parse the shipped word list (one upper-case word per line, most common first) into a Map from word
- * to its rank. Map.has and Map.size work like the old Set's; iterate dict.keys() for the words.
+ * Parse the shipped word list (one upper-case word per line, most common first; an inflected word is
+ * written WORD>LEMMA) into a Map from word to its rank, with dict.lemma mapping a word to its lemmas.
+ * Map.has and Map.size work like the old Set's; iterate dict.keys() for the words.
  */
 export function parseDictionary(text) {
   const dict = new Map();
+  dict.lemma = new Map();
   for (const line of text.split(/\r?\n/)) {
-    const w = line.trim().toUpperCase();
-    if (w.length >= MIN_WORD && w.length <= MAX_WORD && /^[A-Z]+$/.test(w) && !dict.has(w)) dict.set(w, dict.size);
+    const [word, lemmaPart] = line.trim().toUpperCase().split('>');
+    const w = (word || '').trim();
+    if (w.length < MIN_WORD || w.length > MAX_WORD || !/^[A-Z]+$/.test(w) || dict.has(w)) continue;
+    dict.set(w, dict.size);
+    if (lemmaPart) dict.lemma.set(w, lemmaPart.split('/').map((l) => l.trim()).filter((l) => /^[A-Z]+$/.test(l)));
   }
   return dict;
 }

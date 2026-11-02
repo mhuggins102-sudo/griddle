@@ -9,6 +9,9 @@
 //   enable1.txt  https://raw.githubusercontent.com/dolph/dictionary/master/enable1.txt
 //   en_full.txt  https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/en/en_full.txt
 //                (word counts from the OpenSubtitles 2018 corpus)
+//   lemmatization-en.txt  https://raw.githubusercontent.com/michmech/lemmatization-lists/master/lemmatization-en.txt
+//                (inflected form -> lemma; a word that is an inflection of another listed word is written as
+//                WORD>LEMMA so that locking DOOR then DOORS on the same tiles can be refused)
 // Rule: keep an ENABLE word when it occurs at least --min times, or at least twice when it is a plain
 // inflection (-s, -es, -ed, -ing, -er, -ly, ...) of an ENABLE word occurring at least --base times.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
@@ -26,15 +29,21 @@ const BASE_COUNT = Number(opt('base', 100));
 const MIN_LEN = 3;
 const MAX_LEN = 6;
 
-/** Everyday words that ENABLE (2000) does not have. Brands and slurs are left out on purpose. */
-const SUPPLEMENT = `online email emails meds texted app apps blog blogs cyber mega ramen techno hottie selfie
-newbie bae bling droid droids cardio manga webcam emo meme memes wifi boba bestie twerk emoji emojis
-sudoku hijab panini onesie noob noobs burka yolo vlog vlogs wiki wikis queso vibing vape vaped vapes
-vaper vapers vaping paleo gif gifs tweens fomo hangry romcom matcha ebook ebooks unmute upvote noogie`.split(/\s+/);
+/**
+ * Everyday words that ENABLE (2000) does not have. Brands and slurs are left out on purpose. An inflected
+ * form names its lemma after ">" (the lemmatization table predates these words too), so that the same
+ * one-form-per-tiles rule applies to them.
+ */
+const SUPPLEMENT = `online email emails>email meds texted>text app apps>app blog blogs>blog cyber mega ramen techno
+hottie selfie newbie bae bling droid droids>droid cardio manga webcam emo meme memes>meme wifi boba bestie
+twerk emoji emojis>emoji sudoku hijab panini onesie noob noobs>noob burka yolo vlog vlogs>vlog wiki wikis>wiki
+queso vibing>vibe vape vaped>vape vapes>vape vaper vapers>vaper vaping>vape paleo gif gifs>gif tweens>tween
+fomo hangry romcom matcha ebook ebooks>ebook unmute upvote noogie`.split(/\s+/);
 
 const SOURCES = {
   'enable1.txt': 'https://raw.githubusercontent.com/dolph/dictionary/master/enable1.txt',
   'en_full.txt': 'https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/en/en_full.txt',
+  'lemmatization-en.txt': 'https://raw.githubusercontent.com/michmech/lemmatization-lists/master/lemmatization-en.txt',
 };
 mkdirSync(dir, { recursive: true });
 for (const [file, url] of Object.entries(SOURCES)) {
@@ -76,16 +85,30 @@ function keep(w) {
 }
 
 const words = new Set([...enable].filter(keep));
-for (const w of SUPPLEMENT) {
+const supplementLemmas = new Map();
+for (const entry of SUPPLEMENT) {
+  const [w, lemma] = entry.split('>');
   if (w.length < MIN_LEN || w.length > MAX_LEN || !/^[a-z]+$/.test(w)) throw new Error(`bad supplement word ${w}`);
   words.add(w);
+  if (lemma) supplementLemmas.set(w, lemma);
 }
 const sorted = [...words].sort((a, b) => count(b) - count(a) || (a < b ? -1 : a > b ? 1 : 0));
+const lemmas = new Map();
+for (const [w, lemma] of supplementLemmas) {
+  if (!words.has(lemma)) throw new Error(`supplement lemma ${lemma} of ${w} is not a listed word`);
+  lemmas.set(w, [lemma]);
+}
+for (const line of readFileSync(join(dir, 'lemmatization-en.txt'), 'utf8').split(/\r?\n/)) {
+  const [lemma, form] = line.replace(/^\ufeff/, '').split('\t').map((x) => (x || '').trim().toLowerCase());
+  if (!form || !lemma || form === lemma || !words.has(form) || !words.has(lemma)) continue;
+  if (!lemmas.has(form)) lemmas.set(form, []);
+  lemmas.get(form).push(lemma);
+}
 const out = join(process.cwd(), 'data', 'words.txt');
-writeFileSync(out, sorted.map((w) => w.toUpperCase()).join('\n') + '\n');
+writeFileSync(out, sorted.map((w) => (lemmas.has(w) ? `${w}>${lemmas.get(w).join('/')}` : w).toUpperCase()).join('\n') + '\n');
 
 const byLen = {};
 for (const w of sorted) byLen[w.length] = (byLen[w.length] || 0) + 1;
 console.error(`ENABLE ${MIN_LEN}-${MAX_LEN}: ${enable.size}; kept ${[...enable].filter(keep).length} (${(100 * [...enable].filter(keep).length / enable.size).toFixed(0)}%); supplement ${SUPPLEMENT.length}; written ${sorted.length} words to ${out}`);
-console.error('by length: ' + Object.entries(byLen).map(([n, k]) => `${n}: ${k}`).join('  '));
+console.error('by length: ' + Object.entries(byLen).map(([n, k]) => `${n}: ${k}`).join('  ') + `; ${lemmas.size} words carry a lemma`);
 console.error('first 12: ' + sorted.slice(0, 12).join(' ') + ' ... last: ' + sorted.slice(-4).join(' '));

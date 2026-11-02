@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { CELLS, idx } from '../js/engine.js';
 import {
   dealLetters, createWordState, applyWordAction, findWords, lockWord, scoreWord, nudgeLetter, wordLines, parseDictionary,
-  bagTotal, LETTER_COUNTS, WILD, wordShareLine, slideMoves, isPluralPair, findWordAt, coverageBonus, finalScore, shortfallPenalty, WORD_TURNS,
+  bagTotal, LETTER_COUNTS, WILD, wordShareLine, slideMoves, isPluralPair, findWordAt, coverageBonus, finalScore, shortfallPenalty, WORD_TURNS, sameWordInflected,
   fullCoverTurnBonus, isBoardFull, projectedScore, turnLimit, TURNS_BY_SIZE,
 } from '../js/words.js';
 
@@ -176,18 +176,33 @@ test('slide around locked tiles: the tile before a locked last tile wraps; a ful
   assert.throws(() => applyWordAction(s, { type: 'slide', axis: 'row', index: 0, dir: 1 }), /Nothing/);
 });
 
-test('any listed word can follow another, plurals included; only an exact repeat is refused', () => {
+test('a locked word cannot be extended with an ending on the same tiles, but a different word may contain it', () => {
   assert.ok(isPluralPair('DOOR', 'DOORS'), 'the helper still exists');
-  const board = boardFrom(['DOORS', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']);
+  assert.deepEqual(dict.lemma.get('DOORS'), ['DOOR']);
+  assert.ok(sameWordInflected('DOOR', 'DOORS', dict) && sameWordInflected('PLAYED', 'PLAY', dict) && sameWordInflected('FASTER', 'FAST', dict));
+  assert.deepEqual(dict.lemma.get('VAPES'), ['VAPE'], 'modern words carry their own lemmas');
+  assert.ok(sameWordInflected('VAPE', 'VAPES', dict) && sameWordInflected('VAPING', 'VAPE', dict) && sameWordInflected('EMOJIS', 'EMOJI', dict));
+  assert.ok(!sameWordInflected('CAR', 'CARS', parseDictionary('CAR\nCARS')), 'nothing is guessed from spelling without a lemma');
+  assert.ok(!sameWordInflected('PLAY', 'PLAYER', dict) && !sameWordInflected('CAR', 'CARROT', dict) && !sameWordInflected('HER', 'HERRING', dict), 'derived and containing words are different words');
+  const board = boardFrom(['DOORS', 'XXXXX', 'DOORS', 'XXXXX', 'XXXXX']);
   let s = createWordState(board, {});
-  const door = findWords(s, dict).find((w) => w.word === 'DOOR');
-  s = lockWord(s, door);
-  const doors = findWords(s, dict).find((w) => w.word === 'DOORS');
-  assert.ok(doors.lockable, 'DOORS may follow DOOR');
-  s = lockWord(s, doors);
-  const again = findWords(s, dict).find((w) => w.word === 'DOOR');
+  s = lockWord(s, findWords(s, dict).find((w) => w.word === 'DOOR' && w.cells[0] === 0));
+  const same = findWords(s, dict).find((w) => w.word === 'DOORS' && w.cells[0] === 0);
+  assert.equal(same.lockable, false, 'DOORS over the locked DOOR is refused');
+  assert.match(same.reason, /with an ending/);
+  const elsewhere = findWords(s, dict).find((w) => w.word === 'DOORS' && w.cells[0] === 10);
+  assert.ok(elsewhere.lockable, 'DOORS on other tiles is a fresh play');
+  s = lockWord(s, elsewhere);
+  const again = findWords(s, dict).find((w) => w.word === 'DOOR' && w.cells[0] === 0);
   assert.equal(again.lockable, false);
   assert.match(again.reason, /already locked/);
+  // CAR then CARROT on the same tiles is allowed on a 6x6 board: a different word
+  const six = createWordState('CARROTXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'.split(''), {});
+  let t = lockWord(six, findWords(six, dict).find((w) => w.word === 'CAR' && w.cells[0] === 0));
+  const carrot = findWords(t, dict).find((w) => w.word === 'CARROT');
+  assert.ok(carrot.lockable, 'CARROT may be built over CAR');
+  t = lockWord(t, carrot);
+  assert.equal(t.words.length, 2);
 });
 
 test('a wild resolves to the most common word that fits', () => {
