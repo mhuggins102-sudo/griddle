@@ -21,10 +21,20 @@ const $ = (sel) => document.querySelector(sel);
 /** Gesture tuning (CSS pixels, milliseconds, tile widths). */
 const LONG_PRESS_MS = 420; // hold this long without moving to open the tile menu
 const TAP_SLOP = 8; // movement below this is a tap
-const FLICK_VELOCITY = 0.45; // px per ms at release: faster than this along the line is a flick
-const SLIDE_TRAVEL = 1.45; // tiles: dragging this far along a line slides it even without a flick
+const SLIDE_TRAVEL = 1.45; // tiles: dragging this far along a line slides it, however slowly
 const SWAP_TRAVEL = 0.4; // tiles: minimum travel towards a neighbour to drop onto it
 const SWAP_CROSS = 0.7; // tiles: maximum sideways wobble for a drop
+/**
+ * Flick or drag? Intent is read from the whole movement, not its last instant: a flick is fast and
+ * usually longer than a tile, a drag onto a neighbour is slower and about a tile long. The boundary
+ * is a line in (distance, average speed): the speed needed to count as a flick falls with distance,
+ * FLICK_SPEED_AT_ZERO - FLICK_SPEED_PER_TILE * tiles, in tiles per second. With 24 and 16: half a tile
+ * needs 16 tiles/s, one tile 8 tiles/s, one and a half tiles nothing. A hurried drag that lands on
+ * the neighbour at 5 to 7 tiles/s is therefore a swap, which is what players meant in testing.
+ */
+const FLICK_SPEED_AT_ZERO = 24;
+const FLICK_SPEED_PER_TILE = 16;
+const FLICK_MIN_TRAVEL = 0.3; // tiles: anything shorter is a wobble, never a flick
 
 export function initWordMode(ctx) {
   const w = {
@@ -658,6 +668,7 @@ export function initWordMode(ctx) {
       if (Math.hypot(dx, dy) < TAP_SLOP) return;
       clearTimeout(g.timer);
       g.mode = 'drag';
+      g.tDrag = performance.now(); // the movement starts here; time spent holding still before it does not count
       g.lockedTile = w.game.state.locked.includes(g.cell);
       if (w.first !== null || w.pending) {
         w.first = null;
@@ -726,18 +737,12 @@ export function initWordMode(ctx) {
     g.preview = null;
   }
 
-  /** Signed velocity along the gesture's main axis over the last ~80 ms, in px per ms. */
-  function releaseVelocity(g, axis) {
-    const s = g.samples;
-    const last = s[s.length - 1];
-    let first = s.length > 1 ? s[s.length - 2] : last;
-    for (let i = s.length - 2; i >= 0; i--) {
-      if (last.t - s[i].t > 80) break; // a pause before the fling must not dilute the speed
-      first = s[i];
-    }
-    const dt = last.t - first.t;
-    if (dt < 1) return 0;
-    return (axis === 'row' ? last.x - first.x : last.y - first.y) / dt;
+  /** Was this movement a flick? Average speed over the drag in tiles per second against the distance line above. */
+  function isFlick(g, travel) {
+    if (travel < FLICK_MIN_TRAVEL) return false;
+    const ms = Math.max(1, performance.now() - (g.tDrag || g.t0));
+    const tilesPerSec = (travel * 1000) / ms;
+    return tilesPerSec >= FLICK_SPEED_AT_ZERO - FLICK_SPEED_PER_TILE * travel;
   }
 
   /** Abandon a gesture in flight (the board changed under it, or the screen is leaving). */
@@ -791,8 +796,7 @@ export function initWordMode(ctx) {
     g.y = e.clientY;
     pushSample(g, e);
     const { axis, dir, travel, cross, index } = geometry(g);
-    const v = releaseVelocity(g, axis);
-    const flick = Math.abs(v) >= FLICK_VELOCITY && Math.sign(v) === dir && travel >= 0.2;
+    const flick = isFlick(g, travel);
     const t = tileEl(g.cell);
     if (g.mode === 'line' || flick || travel >= SLIDE_TRAVEL) {
       if (canSlideLine(axis, index)) {
