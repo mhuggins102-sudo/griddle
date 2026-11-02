@@ -7,7 +7,7 @@
 // Modes: levels (a bot sets a goal score per board; pass to advance) and free play (no goal).
 
 import { randomSeed } from './rng.js';
-import { ANIM_MS, wait, buildBoardSkeleton, tileIn, tileStep, animateAction, animateMoves, beginMoves, removeGhosts, clearTileEffects } from './board.js';
+import { buildBoardSkeleton, tileIn, tileStep, animateAction, animateMoves, removeGhosts, clearTileEffects } from './board.js';
 import {
   DICT_VERSION, dealLetters, createWordState, applyWordAction, findWords, findWordAt, lockWord, parseDictionary, bagTotal, letterValue,
   describeWordCells, wordShareLine, slideMoves, coverageBonusFor, finalScore, shortfallPenalty, nudgeLetter, lineCellsFree,
@@ -21,19 +21,20 @@ const $ = (sel) => document.querySelector(sel);
 /** Gesture tuning (CSS pixels, milliseconds, tile widths). */
 const LONG_PRESS_MS = 420; // hold this long without moving to open the tile menu
 const TAP_SLOP = 8; // movement below this is a tap
-const SLIDE_TRAVEL = 1.45; // tiles: dragging this far along a line slides it, however slowly
 const SWAP_TRAVEL = 0.4; // tiles: minimum travel towards a neighbour to drop onto it
 const SWAP_CROSS = 0.7; // tiles: maximum sideways wobble for a drop
 /**
- * Flick or drag? Intent is read from the whole movement, not its last instant: a flick is fast and
- * usually longer than a tile, a drag onto a neighbour is slower and about a tile long. The boundary
- * is a line in (distance, average speed): the speed needed to count as a flick falls with distance,
- * FLICK_SPEED_AT_ZERO - FLICK_SPEED_PER_TILE * tiles, in tiles per second. With 24 and 16: half a tile
- * needs 16 tiles/s, one tile 8 tiles/s, one and a half tiles nothing. A hurried drag that lands on
- * the neighbour at 5 to 7 tiles/s is therefore a swap, which is what players meant in testing.
+ * Flick or drag? Speed decides, read over the whole movement rather than its last instant. A flick is
+ * quick and usually longer than a tile; a drag is slow, and a slow drag is always a swap with the
+ * neighbour in its direction, however far it goes. The boundary is a line in (distance, average
+ * speed): the speed needed to count as a flick falls with distance, FLICK_SPEED_AT_ZERO minus
+ * FLICK_SPEED_PER_TILE per tile, but never below FLICK_MIN_SPEED, all in tiles per second. With 24,
+ * 16 and 4: half a tile needs 16 tiles/s, one tile 8, and anything longer at least 4, so a slow
+ * crawl across two tiles is still a drag.
  */
 const FLICK_SPEED_AT_ZERO = 24;
 const FLICK_SPEED_PER_TILE = 16;
+const FLICK_MIN_SPEED = 4;
 const FLICK_MIN_TRAVEL = 0.3; // tiles: anything shorter is a wobble, never a flick
 
 export function initWordMode(ctx) {
@@ -663,7 +664,7 @@ export function initWordMode(ctx) {
       cancelGesture(); // the board changed under the finger (goal reached, board scored)
       return;
     }
-    const { dx, dy, axis, dir, travel, cross, index } = geometry(g);
+    const { dx, dy, axis, dir, travel, cross } = geometry(g);
     if (g.mode === 'press') {
       if (Math.hypot(dx, dy) < TAP_SLOP) return;
       clearTimeout(g.timer);
@@ -678,32 +679,10 @@ export function initWordMode(ctx) {
       }
       if (!g.lockedTile) tileEl(g.cell).classList.add('dragging');
     }
-    if (g.mode === 'line') {
-      if (travel >= SLIDE_TRAVEL - 0.35 && axis === g.axis && dir === g.dir) return;
-      clearLinePreview(g);
-      g.mode = 'drag';
-      if (!g.lockedTile) tileEl(g.cell).classList.add('dragging');
-    }
-    // drag mode: the tile follows the finger; far enough along a line (or past the board's edge) the whole line moves instead
-    const br = boardEl.getBoundingClientRect();
-    const beyond = axis === 'row' ? (dir === 1 ? g.x - br.right : br.left - g.x) : dir === 1 ? g.y - br.bottom : br.top - g.y;
-    if ((travel >= SLIDE_TRAVEL || beyond > 0.3 * g.step) && canSlideLine(axis, index)) {
-      const t = tileEl(g.cell);
-      t.classList.remove('dragging');
-      t.style.transform = '';
-      setDropTarget(g, null);
-      g.mode = 'line';
-      g.hadLine = true;
-      g.axis = axis;
-      g.dir = dir;
-      previewLine(g, axis, index, dir);
-      return;
-    }
-    if (g.lockedTile) return; // a locked tile cannot be dragged anywhere; only its line can slide
+    if (g.lockedTile) return; // a locked tile cannot be dragged anywhere; only a flick moves its line
+    // the tile follows the finger; the neighbour in the direction of travel is the drop target, however far the finger goes
     tileEl(g.cell).style.transform = `translate(${dx}px, ${dy}px) scale(1.08)`;
-    if (g.hadLine && travel < SWAP_TRAVEL) g.hadLine = false; // back at the start: a fresh drag may swap again
-    // after a line preview was shown, pulling back cancels rather than swapping
-    const target = !g.hadLine && travel >= SWAP_TRAVEL && cross < SWAP_CROSS ? neighbourIn(g.cell, axis, dir) : null;
+    const target = travel >= SWAP_TRAVEL && cross < SWAP_CROSS ? neighbourIn(g.cell, axis, dir) : null;
     setDropTarget(g, target, axis, dir);
   }
 
@@ -726,23 +705,12 @@ export function initWordMode(ctx) {
     }
   }
 
-  function previewLine(g, axis, index, dir) {
-    const moves = slideMoves(w.game.state, { type: 'slide', axis, index, dir });
-    g.preview = { axis, index, undo: beginMoves(boardEl, moves) };
-  }
-
-  function clearLinePreview(g) {
-    if (!g.preview) return;
-    g.preview.undo();
-    g.preview = null;
-  }
-
   /** Was this movement a flick? Average speed over the drag in tiles per second against the distance line above. */
   function isFlick(g, travel) {
     if (travel < FLICK_MIN_TRAVEL) return false;
     const ms = Math.max(1, performance.now() - (g.tDrag || g.t0));
     const tilesPerSec = (travel * 1000) / ms;
-    return tilesPerSec >= FLICK_SPEED_AT_ZERO - FLICK_SPEED_PER_TILE * travel;
+    return tilesPerSec >= Math.max(FLICK_MIN_SPEED, FLICK_SPEED_AT_ZERO - FLICK_SPEED_PER_TILE * travel);
   }
 
   /** Abandon a gesture in flight (the board changed under it, or the screen is leaving). */
@@ -756,7 +724,7 @@ export function initWordMode(ctx) {
     } catch {
       // nothing captured
     }
-    if (g.mode === 'drag' || g.mode === 'line') snapBack(g);
+    if (g.mode === 'drag') snapBack(g);
   }
 
   function endGesture(e) {
@@ -778,7 +746,6 @@ export function initWordMode(ctx) {
     t.classList.remove('dragging');
     t.style.transform = '';
     setDropTarget(g, null);
-    clearLinePreview(g);
   }
 
   function onPointerUp(e) {
@@ -796,24 +763,19 @@ export function initWordMode(ctx) {
     g.y = e.clientY;
     pushSample(g, e);
     const { axis, dir, travel, cross, index } = geometry(g);
-    const flick = isFlick(g, travel);
     const t = tileEl(g.cell);
-    if (g.mode === 'line' || flick || travel >= SLIDE_TRAVEL) {
+    if (isFlick(g, travel)) {
       if (canSlideLine(axis, index)) {
-        if (g.mode !== 'line') setDropTarget(g, null);
+        setDropTarget(g, null);
         t.classList.remove('dragging');
-        if (g.mode !== 'line') t.style.transform = '';
-        doAction({ type: 'slide', axis, index, dir }, { previewed: g.mode === 'line' });
+        t.style.transform = '';
+        doAction({ type: 'slide', axis, index, dir });
       } else {
         snapBack(g);
         shakeCells(grid().lineCells(axis, index));
         play('buzz');
         say('That line is locked in place', 'bad');
       }
-      return;
-    }
-    if (g.hadLine) {
-      snapBack(g); // pulled back after seeing the line move: nothing happens
       return;
     }
     const target = travel >= SWAP_TRAVEL && cross < SWAP_CROSS ? neighbourIn(g.cell, axis, dir) : null;
@@ -937,7 +899,7 @@ export function initWordMode(ctx) {
     return JSON.parse(JSON.stringify(state));
   }
 
-  async function doAction(action, { previewed = false } = {}) {
+  async function doAction(action) {
     if (!canInteract()) {
       renderBoard(); // drop any drag or preview visuals
       return;
@@ -960,7 +922,7 @@ export function initWordMode(ctx) {
     w.pending = null;
     w.animating = true;
     play(action.type === 'nudge' ? (action.delta === -1 ? 'nudgeDown' : 'nudge') : action.type);
-    if (action.type === 'slide') await (previewed ? wait(ANIM_MS / 2) : animateMoves(boardEl, slideMoves(before, action)));
+    if (action.type === 'slide') await animateMoves(boardEl, slideMoves(before, action));
     else if (action.type === 'wild') {
       const t = tileEl(grid().idx(action.r, action.c));
       t.classList.add('wild-pop');
