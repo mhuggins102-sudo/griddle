@@ -11,7 +11,7 @@ export { MIN_WORD, gridOf, gridOfState };
 
 export const WILD = '*';
 /** Bump when data/words.txt changes: it is part of the fetch URL, so browsers never keep a stale list. */
-export const DICT_VERSION = '2026-11-02-lemma';
+export const DICT_VERSION = '2026-11-02-lemma2';
 export const SIZES = [5, 6];
 export const MAX_WORD = 6;
 /** Turns per board size. WORD_TURNS is the 5x5 value, kept for callers that assume it. */
@@ -267,18 +267,14 @@ function lemmasOf(word, dict) {
 
 /**
  * Are two words the same word in different inflections (DOOR / DOORS, PLAY / PLAYED, FAST / FASTER)?
- * Decided from the lemma table; a plain plural (VAPE / VAPES) counts even when the table lacks it.
- * Derived or merely containing words (PLAY / PLAYER, CAR / CARROT, HER / HERRING) are different words.
+ * Decided only from the lemmas the word list carries, never guessed from spelling, so derived or
+ * merely containing words (PLAY / PLAYER, CAR / CARROT, HER / HERRING) are different words.
  */
 export function sameWordInflected(a, b, dict) {
   if (a === b) return true;
   const la = lemmasOf(a, dict);
   const lb = lemmasOf(b, dict);
-  if (la.includes(b) || lb.includes(a) || la.some((l) => lb.includes(l))) return true;
-  const [short, long] = a.length < b.length ? [a, b] : [b, a];
-  if (long === `${short}S` || long === `${short}ES`) return true;
-  if (short.endsWith('Y') && long === `${short.slice(0, -1)}IES`) return true;
-  return false;
+  return la.includes(b) || lb.includes(a) || la.some((l) => lb.includes(l));
 }
 
 /**

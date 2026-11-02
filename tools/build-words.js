@@ -29,11 +29,16 @@ const BASE_COUNT = Number(opt('base', 100));
 const MIN_LEN = 3;
 const MAX_LEN = 6;
 
-/** Everyday words that ENABLE (2000) does not have. Brands and slurs are left out on purpose. */
-const SUPPLEMENT = `online email emails meds texted app apps blog blogs cyber mega ramen techno hottie selfie
-newbie bae bling droid droids cardio manga webcam emo meme memes wifi boba bestie twerk emoji emojis
-sudoku hijab panini onesie noob noobs burka yolo vlog vlogs wiki wikis queso vibing vape vaped vapes
-vaper vapers vaping paleo gif gifs tweens fomo hangry romcom matcha ebook ebooks unmute upvote noogie`.split(/\s+/);
+/**
+ * Everyday words that ENABLE (2000) does not have. Brands and slurs are left out on purpose. An inflected
+ * form names its lemma after ">" (the lemmatization table predates these words too), so that the same
+ * one-form-per-tiles rule applies to them.
+ */
+const SUPPLEMENT = `online email emails>email meds texted>text app apps>app blog blogs>blog cyber mega ramen techno
+hottie selfie newbie bae bling droid droids>droid cardio manga webcam emo meme memes>meme wifi boba bestie
+twerk emoji emojis>emoji sudoku hijab panini onesie noob noobs>noob burka yolo vlog vlogs>vlog wiki wikis>wiki
+queso vibing>vibe vape vaped>vape vapes>vape vaper vapers>vaper vaping>vape paleo gif gifs>gif tweens>tween
+fomo hangry romcom matcha ebook ebooks>ebook unmute upvote noogie`.split(/\s+/);
 
 const SOURCES = {
   'enable1.txt': 'https://raw.githubusercontent.com/dolph/dictionary/master/enable1.txt',
@@ -80,12 +85,19 @@ function keep(w) {
 }
 
 const words = new Set([...enable].filter(keep));
-for (const w of SUPPLEMENT) {
+const supplementLemmas = new Map();
+for (const entry of SUPPLEMENT) {
+  const [w, lemma] = entry.split('>');
   if (w.length < MIN_LEN || w.length > MAX_LEN || !/^[a-z]+$/.test(w)) throw new Error(`bad supplement word ${w}`);
   words.add(w);
+  if (lemma) supplementLemmas.set(w, lemma);
 }
 const sorted = [...words].sort((a, b) => count(b) - count(a) || (a < b ? -1 : a > b ? 1 : 0));
 const lemmas = new Map();
+for (const [w, lemma] of supplementLemmas) {
+  if (!words.has(lemma)) throw new Error(`supplement lemma ${lemma} of ${w} is not a listed word`);
+  lemmas.set(w, [lemma]);
+}
 for (const line of readFileSync(join(dir, 'lemmatization-en.txt'), 'utf8').split(/\r?\n/)) {
   const [lemma, form] = line.replace(/^\ufeff/, '').split('\t').map((x) => (x || '').trim().toLowerCase());
   if (!form || !lemma || form === lemma || !words.has(form) || !words.has(lemma)) continue;

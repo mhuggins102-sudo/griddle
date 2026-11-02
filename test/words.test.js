@@ -180,7 +180,9 @@ test('a locked word cannot be extended with an ending on the same tiles, but a d
   assert.ok(isPluralPair('DOOR', 'DOORS'), 'the helper still exists');
   assert.deepEqual(dict.lemma.get('DOORS'), ['DOOR']);
   assert.ok(sameWordInflected('DOOR', 'DOORS', dict) && sameWordInflected('PLAYED', 'PLAY', dict) && sameWordInflected('FASTER', 'FAST', dict));
-  assert.ok(sameWordInflected('VAPE', 'VAPES', dict), 'a plain plural counts even without a table entry');
+  assert.deepEqual(dict.lemma.get('VAPES'), ['VAPE'], 'modern words carry their own lemmas');
+  assert.ok(sameWordInflected('VAPE', 'VAPES', dict) && sameWordInflected('VAPING', 'VAPE', dict) && sameWordInflected('EMOJIS', 'EMOJI', dict));
+  assert.ok(!sameWordInflected('CAR', 'CARS', parseDictionary('CAR\nCARS')), 'nothing is guessed from spelling without a lemma');
   assert.ok(!sameWordInflected('PLAY', 'PLAYER', dict) && !sameWordInflected('CAR', 'CARROT', dict) && !sameWordInflected('HER', 'HERRING', dict), 'derived and containing words are different words');
   const board = boardFrom(['DOORS', 'XXXXX', 'DOORS', 'XXXXX', 'XXXXX']);
   let s = createWordState(board, {});
