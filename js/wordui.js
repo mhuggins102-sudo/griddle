@@ -680,9 +680,11 @@ export function initWordMode(ctx) {
       if (!g.lockedTile) tileEl(g.cell).classList.add('dragging');
     }
     if (g.lockedTile) return; // a locked tile cannot be dragged anywhere; only a flick moves its line
-    // the tile follows the finger; the neighbour in the direction of travel is the drop target, however far the finger goes
+    // the tile follows the finger; the neighbour in the direction of travel is the drop target, however far
+    // the finger goes, but only while the movement so far reads as a drag by the same test the release
+    // uses, so a quick swipe never shows a swap it will not make
     tileEl(g.cell).style.transform = `translate(${dx}px, ${dy}px) scale(1.08)`;
-    const target = travel >= SWAP_TRAVEL && cross < SWAP_CROSS ? neighbourIn(g.cell, axis, dir) : null;
+    const target = !isFlick(g, travel) && travel >= SWAP_TRAVEL && cross < SWAP_CROSS ? neighbourIn(g.cell, axis, dir) : null;
     setDropTarget(g, target, axis, dir);
   }
 
