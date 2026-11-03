@@ -30,7 +30,9 @@ const SWAP_CROSS = 0.7; // tiles: maximum sideways wobble for a drop
  * speed): the speed needed to count as a flick falls with distance, FLICK_SPEED_AT_ZERO minus
  * FLICK_SPEED_PER_TILE per tile, but never below FLICK_MIN_SPEED, all in tiles per second. With 24,
  * 16 and 4: half a tile needs 16 tiles/s, one tile 8, and anything longer at least 4, so a slow
- * crawl across two tiles is still a drag.
+ * crawl across two tiles is still a drag. While the finger is down the same numbers decide when the
+ * drag is confirmed: once the movement averages under FLICK_MIN_SPEED it is slower than any flick could
+ * be, whatever distance it goes on to cover, so the neighbour lights up and that release will swap.
  */
 const FLICK_SPEED_AT_ZERO = 24;
 const FLICK_SPEED_PER_TILE = 16;
@@ -680,11 +682,15 @@ export function initWordMode(ctx) {
       if (!g.lockedTile) tileEl(g.cell).classList.add('dragging');
     }
     if (g.lockedTile) return; // a locked tile cannot be dragged anywhere; only a flick moves its line
-    // the tile follows the finger; the neighbour in the direction of travel is the drop target, however far
-    // the finger goes, but only while the movement so far reads as a drag by the same test the release
-    // uses, so a quick swipe never shows a swap it will not make
+    // The tile follows the finger. Once the movement is slower than any flick could be (its average
+    // speed is under the flick floor, which no further distance can change) the intent is committed: the
+    // neighbour in the direction of travel lights up and the release will swap however fast it ends.
+    // Pausing over the neighbour lowers the average, so a hover confirms too. Coming back near the start
+    // reopens the decision.
     tileEl(g.cell).style.transform = `translate(${dx}px, ${dy}px) scale(1.08)`;
-    const target = !isFlick(g, travel) && travel >= SWAP_TRAVEL && cross < SWAP_CROSS ? neighbourIn(g.cell, axis, dir) : null;
+    if (travel < SWAP_TRAVEL) g.intent = null;
+    else if (cross < SWAP_CROSS && tilesPerSecond(g, travel) < FLICK_MIN_SPEED) g.intent = 'drag';
+    const target = g.intent === 'drag' && cross < SWAP_CROSS ? neighbourIn(g.cell, axis, dir) : null;
     setDropTarget(g, target, axis, dir);
   }
 
@@ -707,12 +713,16 @@ export function initWordMode(ctx) {
     }
   }
 
-  /** Was this movement a flick? Average speed over the drag in tiles per second against the distance line above. */
+  /** Average speed of the movement so far, in tiles per second, counted from the moment the finger started moving. */
+  function tilesPerSecond(g, travel) {
+    const ms = Math.max(1, performance.now() - (g.tDrag || g.t0));
+    return (travel * 1000) / ms;
+  }
+
+  /** Was this movement a flick? Its average speed against the distance line above. */
   function isFlick(g, travel) {
     if (travel < FLICK_MIN_TRAVEL) return false;
-    const ms = Math.max(1, performance.now() - (g.tDrag || g.t0));
-    const tilesPerSec = (travel * 1000) / ms;
-    return tilesPerSec >= Math.max(FLICK_MIN_SPEED, FLICK_SPEED_AT_ZERO - FLICK_SPEED_PER_TILE * travel);
+    return tilesPerSecond(g, travel) >= Math.max(FLICK_MIN_SPEED, FLICK_SPEED_AT_ZERO - FLICK_SPEED_PER_TILE * travel);
   }
 
   /** Abandon a gesture in flight (the board changed under it, or the screen is leaving). */
@@ -766,7 +776,7 @@ export function initWordMode(ctx) {
     pushSample(g, e);
     const { axis, dir, travel, cross, index } = geometry(g);
     const t = tileEl(g.cell);
-    if (isFlick(g, travel)) {
+    if (g.intent !== 'drag' && isFlick(g, travel)) {
       if (canSlideLine(axis, index)) {
         setDropTarget(g, null);
         t.classList.remove('dragging');
