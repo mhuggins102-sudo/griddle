@@ -7,6 +7,7 @@ import {
 import { ANIM_MS, wait, neighbours, buildBoardSkeleton, tileIn, animateAction, clearTileEffects } from './board.js';
 import { initWordMode } from './wordui.js';
 import { initTutorial } from './tutorial.js';
+import { initLeaderboard, bestReachedBySize } from './leaderboard.js';
 import { openSheet, closeSheet } from './sheet.js';
 import { setSoundEnabled, audioState } from './sound.js';
 import { TURNS_BY_SIZE } from './words.js';
@@ -83,7 +84,8 @@ async function boot() {
     saveStore(ui.store);
   }
   ui.tutorial = initTutorial();
-  ui.word = initWordMode({ store: ui.store, saveStore, showScreen, showHome, showToast, openHelp, openTutorial: (size, opts) => ui.tutorial.open(size, opts) });
+  ui.leaderboard = initLeaderboard({ store: ui.store, saveStore, showToast, boardSize });
+  ui.word = initWordMode({ store: ui.store, saveStore, showScreen, showHome, showToast, openHelp, openTutorial: (size, opts) => ui.tutorial.open(size, opts), leaderboard: ui.leaderboard });
   showHome();
 }
 
@@ -537,6 +539,7 @@ function showStats() {
     const avg = hist.length ? Math.round(hist.reduce((a, g) => a + g.score, 0) / hist.length) : 0;
     const wordsPlayed = hist.reduce((a, g) => a + g.words.length, 0);
     const bestWord = hist.flatMap((g) => g.words).sort((a, b) => b.score - a.score)[0];
+    const reached = bestReachedBySize(w);
     body.innerHTML = `
       <div class="stat-summary">
         <div><span class="hud-label">Games</span><span class="hud-value">${w.gamesPlayed}</span></div>
@@ -546,7 +549,8 @@ function showStats() {
         <div><span class="hud-label">Words locked</span><span class="hud-value">${wordsPlayed}</span></div>
         <div><span class="hud-label">Per game</span><span class="hud-value">${hist.length ? (wordsPlayed / hist.length).toFixed(1) : 0}</span></div>
         <div><span class="hud-label">Best word</span><span class="hud-value">${bestWord ? `${escapeHtml(bestWord.word)} ${bestWord.score}` : '–'}</span></div>
-        <div><span class="hud-label">Top level</span><span class="hud-value">${w.bestLevel || '–'}</span></div>
+        <div><span class="hud-label">${w.best6 != null ? 'Top level 5×5' : 'Top level'}</span><span class="hud-value">${reached[5] || '–'}</span></div>
+        ${w.best6 != null ? `<div><span class="hud-label">Top level 6×6</span><span class="hud-value">${reached[6] || '–'}</span></div>` : ''}
       </div>
       <h3>Recent games</h3>
       <ul class="stat-list">${hist
@@ -557,10 +561,24 @@ function showStats() {
   openSheet($('#stats'));
 }
 
+/** The reset sheet: wipe the device, and choose whether the leaderboard name goes with it. */
+function openReset() {
+  const id = ui.leaderboard.identity();
+  $('#reset-forget-row').hidden = id.status === 'unasked';
+  $('#reset-forget').checked = false;
+  $('#reset-forget-label').textContent = id.status === 'named' ? `Also forget my leaderboard name (${id.name})` : 'Ask me about the leaderboard again';
+  $('#reset-forget-sub').textContent = id.status === 'named' ? 'Your entries come off the leaderboard and you’ll be asked for a name after your next game' : 'You chose to stay anonymous';
+  closeSheet($('#stats'));
+  openSheet($('#reset'));
+}
+
 function resetData() {
-  if (!confirm('Erase all GridLock data on this device (history, best score, any game in progress)?')) return;
+  const forget = $('#reset-forget').checked;
+  const kept = forget ? null : { ...ui.leaderboard.identity(), pending: [] };
+  if (forget) ui.leaderboard.forgetIdentity();
   const fresh = defaultStore();
   fresh.settings.tutorialSeen = true; // a player clearing their data already knows the game
+  if (kept) fresh.leaderboard = kept;
   for (const k of Object.keys(ui.store)) delete ui.store[k];
   Object.assign(ui.store, fresh);
   saveStore(ui.store);
@@ -571,7 +589,7 @@ function resetData() {
   $('#opt-theme-system').checked = true;
   applyTheme('system');
   setSoundEnabled(true);
-  closeSheet($('#stats'));
+  closeSheet($('#reset'));
   showHome();
 }
 
@@ -650,7 +668,13 @@ function wireEvents() {
     if (e.target === $('#help')) closeHelp();
   });
   $('#btn-stats').addEventListener('click', showStats);
-  $('#btn-stats-reset').addEventListener('click', resetData);
+  $('#btn-stats-reset').addEventListener('click', openReset);
+  $('#btn-reset-confirm').addEventListener('click', resetData);
+  $('#btn-reset-cancel').addEventListener('click', () => closeSheet($('#reset')));
+  $('#btn-reset-close').addEventListener('click', () => closeSheet($('#reset')));
+  $('#reset').addEventListener('click', (e) => {
+    if (e.target === $('#reset')) closeSheet($('#reset'));
+  });
   $('#opt-numerals').addEventListener('change', (e) => {
     ui.store.settings.numerals = e.target.checked;
     saveStore(ui.store);

@@ -188,6 +188,8 @@ svg { display: block; }
 .btn-big .btn-sub { font-size: 12.5px; font-weight: 500; opacity: 0.75; }
 .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .btn-row.three { grid-template-columns: 1fr 1fr 52px; }
+.btn-row.four { grid-template-columns: 1fr 1fr 52px 52px; gap: 8px; }
+.btn-row.four .btn { padding: 0 8px; white-space: nowrap; }
 .btn-gear { padding: 0; display: grid; place-items: center; }
 .btn-gear svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
@@ -995,3 +997,23 @@ svg { display: block; }
 @media (prefers-reduced-motion: reduce) {
   .tile.demo-tap { animation: none; }
 }
+
+/* Leaderboard sheet, name sheet, reset sheet */
+.text-input { width: 100%; box-sizing: border-box; min-height: 48px; margin: 10px 0 6px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; font-size: 17px; }
+.text-input:focus { outline: 3px solid var(--select); outline-offset: 1px; }
+.hint.bad { color: var(--danger); }
+.lb-controls { display: flex; gap: 8px; margin: 4px 0 10px; }
+.lb-controls .seg { flex: 1 1 0; min-width: 0; }
+.lb-controls .seg span { padding: 0 6px; white-space: nowrap; }
+.lb-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.lb-list li { display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 10px; min-height: 38px; padding: 3px 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); font-size: 15px; }
+.lb-list li.me { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.lb-list .lb-rank { font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lb-list li:nth-child(-n + 3) .lb-rank { color: var(--accent); }
+.lb-list .lb-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.lb-list .lb-value { font-weight: 800; font-variant-numeric: tabular-nums; }
+.lb-list li.lb-gap { grid-template-columns: 1fr; justify-items: center; min-height: 0; padding: 0; background: none; border: 0; color: var(--muted); font-weight: 800; letter-spacing: 0.2em; }
+.lb-status { margin-top: 10px; }
+.lb-status:empty { display: none; }
+#leaderboard .sheet-foot { grid-template-columns: minmax(0, 3fr) 2fr; }
+#btn-lb-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
