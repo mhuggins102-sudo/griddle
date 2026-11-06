@@ -5,5 +5,5 @@
 // Both values are meant to be public: the browser sends them with every request, and the database side
 // (supabase/schema.sql) lets that key do nothing but call the four leaderboard functions. Leave both
 // empty and the game runs without a leaderboard.
-export const SUPABASE_URL = '';
-export const SUPABASE_KEY = '';
+export const SUPABASE_URL = 'https://zfetpqaztihirfltjawy.supabase.co';
+export const SUPABASE_KEY = 'sb_publishable_Q8_mR-QXWRS8lvkf2A7K4A_SASCiKvG';
