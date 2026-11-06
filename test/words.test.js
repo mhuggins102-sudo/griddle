@@ -117,6 +117,9 @@ test('locking: tiles stop moving, same cells cannot be locked twice, nudge turns
   assert.equal(wild.words.length, 1);
   assert.throws(() => applyWordAction(s, { type: 'wild', r: 0, c: 3 }), /locked/);
   assert.throws(() => applyWordAction(wild, { type: 'wild', r: 0, c: 1 }), /already wild/);
+  assert.equal(wild.wilds, 1);
+  assert.throws(() => applyWordAction(wild, { type: 'wild', r: 0, c: 0 }), /one wild per board/); // one per board
+  assert.doesNotThrow(() => applyWordAction({ ...s, wilds: undefined }, { type: 'wild', r: 0, c: 1 })); // an old save without the counter
   const found = findWords(wild, dict);
   assert.ok(found.find((w) => w.word === 'COT'), 'wild reads as any letter');
   assert.equal(found.find((w) => w.word === 'COT').score, 3 + 0 + 1, 'wild scores 0');

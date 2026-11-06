@@ -31,6 +31,9 @@ export const COVERAGE_BONUS = COVERAGE_LADDER[5];
 /** Penalties were removed: the score is word points plus bonuses only. Kept at 0 so the hooks stay. */
 export const COVERAGE_TARGET = 22;
 export const SHORTFALL_PENALTY = 0;
+/** A board allows this many wilds. */
+export const MAX_WILDS = 1;
+
 /** Turning a locked tile wild costs this many turns. */
 export const WILD_COST = 2;
 /** Locking every tile with turns to spare earns this much per unused turn. */
@@ -119,7 +122,7 @@ export function bagTotal(bag) {
 export function createWordState(board, bag, drawSeed = 0) {
   const full = {};
   for (const ch of LETTERS) full[ch] = bag[ch] || 0;
-  return { size: sizeOfBoard(board), board: board.slice(), bag: full, rngState: drawSeed >>> 0, turns: 0, locked: [], words: [], score: 0 };
+  return { size: sizeOfBoard(board), board: board.slice(), bag: full, rngState: drawSeed >>> 0, turns: 0, locked: [], words: [], score: 0, wilds: 0 };
 }
 
 export function isLocked(state, cell) {
@@ -166,6 +169,7 @@ export function validateWordAction(state, action) {
       if (!inRange(action.r) || !inRange(action.c)) throw new Error('Wild cell out of range');
       if (!isLocked(state, idx(action.r, action.c))) throw new Error('Only a locked tile can be made wild');
       if (state.board[idx(action.r, action.c)] === WILD) throw new Error('That tile is already wild');
+      if ((state.wilds || 0) >= MAX_WILDS) throw new Error(MAX_WILDS === 1 ? 'Only one wild per board' : `Only ${MAX_WILDS} wilds per board`);
       return true;
     default:
       throw new Error(`Unknown action type: ${action.type}`);
@@ -204,6 +208,7 @@ export function applyWordAction(state, action) {
     }
     case 'wild': {
       next.board[idx(action.r, action.c)] = WILD;
+      next.wilds = (next.wilds || 0) + 1;
       break;
     }
     case 'draw': {

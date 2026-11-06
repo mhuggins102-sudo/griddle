@@ -13,6 +13,7 @@ import {
   DICT_VERSION, dealLetters, createWordState, applyWordAction, findWords, findWordAt, lockWord, parseDictionary, bagTotal, letterValue,
   describeWordCells, wordShareLine, slideMoves, coverageBonusFor, finalScore, shortfallPenalty, nudgeLetter, lineCellsFree,
   turnLimit, gridOfState, WILD, LETTERS, COVERAGE_TARGET, WILD_COST, SIZES, fullCoverTurnBonus, isBoardFull,
+  COVERAGE_LADDER, MAX_WILDS,
 } from './words.js';
 import { botPlay, goalFor } from './wordbot.js';
 import { play } from './sound.js';
@@ -251,6 +252,8 @@ export function initWordMode(ctx) {
     closeMenu();
     ctx.showScreen('screen-word');
     ensureBoard(w.game.size);
+    w.wordCount = w.game.state.words.length; // the bar animates only a word locked from here on
+    closeTilePop();
     closeSheet($('#w-result'));
     $('#w-pop').hidden = true;
     $('#screen-word').classList.remove('sheet-up');
@@ -380,12 +383,20 @@ export function initWordMode(ctx) {
   function renderLocked() {
     const st = w.game.state;
     const el = $('#w-locked');
+    // newest first: a fresh word appears at the left and the earlier ones slide right
     const list = st.words.length
-      ? `<span class="lw-list">${st.words.map((x) => `<span class="lw">${x.word}<b>${x.score}</b></span>`).join('')}</span>`
+      ? `<span class="lw-list">${st.words.slice().reverse().map((x) => `<span class="lw">${x.word}<b>${x.score}</b></span>`).join('')}</span>`
       : '<span class="lw-list"><span>No words locked yet</span></span>';
     el.innerHTML = `${list}<span class="lw-count"><b>${st.locked.length}</b>/${st.board.length} tiles</span>`;
     const scroller = el.querySelector('.lw-list');
-    if (scroller) scroller.scrollLeft = scroller.scrollWidth;
+    if (scroller) scroller.scrollLeft = 0;
+    const fresh = el.querySelector('.lw');
+    if (fresh && st.words.length > (w.wordCount || 0) && w.wordCount !== undefined) {
+      fresh.classList.add('lw-new');
+      const shift = fresh.offsetWidth + 6;
+      if (scroller.animate) scroller.animate([{ transform: `translateX(-${shift}px)` }, { transform: 'translateX(0)' }], { duration: 280, easing: 'ease-out' });
+    }
+    w.wordCount = st.words.length;
     renderGoalBar();
   }
 
@@ -398,14 +409,14 @@ export function initWordMode(ctx) {
     $('#w-goalbar-level').textContent = g.retry ? `Level ${g.level} · retry` : `Level ${g.level}`;
     if (g.goal === null) {
       $('#w-goalbar-text').textContent = 'Goal: computing…';
-      $('#w-goalbar-fill').style.width = '0%';
+      $('#w-goalbar-fill').style.setProperty('--p', '0');
       bar.classList.remove('reached');
       $('#w-advance').hidden = true;
       return;
     }
     const reached = score >= g.goal;
     $('#w-goalbar-text').textContent = `${score} / ${g.goal}`;
-    $('#w-goalbar-fill').style.width = `${Math.max(0, Math.min(100, (100 * score) / g.goal))}%`;
+    $('#w-goalbar-fill').style.setProperty('--p', String(Math.max(0, Math.min(1, score / g.goal))));
     if (reached && !g.goalCelebrated && !w.over) {
       g.goalCelebrated = true;
       persist();
@@ -857,9 +868,8 @@ export function initWordMode(ctx) {
       $('#tm-prev').textContent = nudgeLetter(ch, -1);
       $('#tm-next').textContent = nudgeLetter(ch, 1);
     }
-    $('#tm-draw-sub').textContent = `draw · ${bagTotal(st.bag)}`;
     menu.querySelector('[data-act="draw"]').disabled = bagTotal(st.bag) === 0;
-    menu.querySelector('[data-act="wild"]').hidden = !(locked && !isWild && st.turns + WILD_COST <= limit());
+    menu.querySelector('[data-act="wild"]').hidden = !(locked && !isWild && st.turns + WILD_COST <= limit() && (st.wilds || 0) < MAX_WILDS);
     menu.hidden = false;
     $('#w-menu-backdrop').hidden = false;
     tileEl(cell).classList.add('selected');
@@ -1130,6 +1140,7 @@ export function initWordMode(ctx) {
       line,
       rows: scoreRows(st),
       total,
+      board: st,
       next: showNext,
       again: !showNext,
       againText: levelsRun || g.retry ? 'New game' : 'New board',
@@ -1144,8 +1155,8 @@ export function initWordMode(ctx) {
     const penalty = shortfallPenalty(st.locked.length);
     const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
     const rows = [
-      { label: plural(st.words.length, 'word'), value: st.score },
-      { label: plural(st.locked.length, 'tile'), value: bonus, signed: true, cls: bonus ? 'pos' : '' },
+      { label: plural(st.words.length, 'word'), value: st.score, pop: 'words' },
+      { label: plural(st.locked.length, 'tile'), value: bonus, signed: true, cls: bonus ? 'pos' : '', pop: 'tiles' },
     ];
     if (turnBonus) rows.push({ label: `${plural(turnLimit(st) - st.turns, 'turn')} left`, value: turnBonus, signed: true, cls: 'pos' });
     if (penalty) rows.push({ label: `${plural(COVERAGE_TARGET - st.locked.length, 'tile')} short`, value: -penalty, signed: true, cls: 'neg' });
@@ -1167,6 +1178,7 @@ export function initWordMode(ctx) {
       line: `Goal ${g.goal} reached${left > 0 ? ` with ${left} turn${left === 1 ? '' : 's'} to spare` : ''}`,
       rows: scoreRows(st),
       total,
+      board: st,
       next: true,
       again: false,
       replay: false,
@@ -1182,10 +1194,16 @@ export function initWordMode(ctx) {
     $('#w-rs-headtotal').textContent = String(data.total);
     const tally = $('#w-tally');
     tally.innerHTML = '';
+    closeTilePop();
     for (const r of data.rows) {
-      const el = document.createElement('div');
+      const el = document.createElement(r.pop ? 'button' : 'div');
       el.className = `rs-tile${r.cls ? ` ${r.cls}` : ''}${r.value === 0 ? ' zero' : ''}`;
       el.innerHTML = `<b>${r.signed && r.value > 0 ? `+${r.value}` : r.value}</b><small>${r.label}</small>`;
+      if (r.pop) {
+        el.type = 'button';
+        el.setAttribute('aria-label', r.pop === 'words' ? 'Show the words and their points' : 'Show the tile bonus ladder');
+        el.addEventListener('click', () => toggleTilePop(r.pop, el, data.board));
+      }
       tally.appendChild(el);
     }
     $('#w-next').hidden = !data.next;
@@ -1195,6 +1213,51 @@ export function initWordMode(ctx) {
     $('#screen-word').classList.add('sheet-up');
     openSheet(sheet);
     fitBoardAbove();
+  }
+
+  // ---- popups above the result tiles ----------------------------------------------------------------
+  let tilePopAnchor = null;
+
+  /** The words with their points (best first), or the tile ladder with this board's row marked. */
+  function tilePopHtml(kind, st) {
+    if (kind === 'words') {
+      if (!st.words.length) return '<div class="tp-empty">No words locked</div>';
+      return st.words
+        .slice()
+        .sort((a, b) => b.score - a.score)
+        .map((x) => `<div class="tp-row"><span>${x.word}</span><b>${x.score}</b></div>`)
+        .join('');
+    }
+    const ladder = COVERAGE_LADDER[st.size] || {};
+    const steps = Object.keys(ladder).map(Number).sort((a, b) => a - b);
+    const first = steps[0];
+    const mine = st.locked.length;
+    const row = (label, bonus, me) => `<tr${me ? ' class="me"' : ''}><td>${label}</td><td>${bonus ? `+${bonus}` : '0'}</td></tr>`;
+    return `<table><tr><th>Tiles locked</th><th>Bonus</th></tr>${row(`${first - 1} or fewer`, 0, mine < first)}${steps.map((k) => row(`${k}${k === st.board.length ? ' (all)' : ''}`, ladder[k], mine === k)).join('')}</table>`;
+  }
+
+  /** Open the popup directly above its tile, or close it if that tile's popup is already up. */
+  function toggleTilePop(kind, anchor, st) {
+    const pop = $('#w-tilepop');
+    if (!pop.hidden && tilePopAnchor === anchor) {
+      closeTilePop();
+      return;
+    }
+    pop.innerHTML = tilePopHtml(kind, st);
+    pop.hidden = false;
+    tilePopAnchor = anchor;
+    const a = anchor.getBoundingClientRect();
+    const p = pop.getBoundingClientRect();
+    const left = Math.max(8, Math.min(window.innerWidth - p.width - 8, a.left + a.width / 2 - p.width / 2));
+    pop.style.left = `${Math.round(left)}px`;
+    pop.style.top = `${Math.round(Math.max(8, a.top - p.height - 12))}px`;
+    pop.style.setProperty('--arrow-x', `${Math.round(a.left + a.width / 2 - left)}px`);
+  }
+
+  function closeTilePop() {
+    const pop = $('#w-tilepop');
+    pop.hidden = true;
+    tilePopAnchor = null;
   }
 
   /**
@@ -1337,8 +1400,18 @@ export function initWordMode(ctx) {
     else start(false, { mode: 'levels', level: w.nextLevel || 1, size: w.game ? w.game.size : 5 });
   });
   window.addEventListener('resize', () => {
+    closeTilePop();
     if (!$('#w-result').hidden) fitBoardAbove();
   });
+  document.addEventListener(
+    'pointerdown',
+    (e) => {
+      const pop = $('#w-tilepop');
+      if (pop.hidden || pop.contains(e.target) || (tilePopAnchor && tilePopAnchor.contains(e.target))) return;
+      closeTilePop(); // a press anywhere else closes the popup and nothing more
+    },
+    true,
+  );
   $('#w-again').addEventListener('click', () => {
     const g = w.game;
     const size = g ? g.size : 5;
@@ -1351,6 +1424,7 @@ export function initWordMode(ctx) {
   });
   $('#w-home').addEventListener('click', () => {
     cancelGesture();
+    closeTilePop();
     closeSheet($('#w-result'));
     if (w.over) w.game = null; // a passed board waiting for Next level stays saved
     ctx.showHome();
@@ -1358,6 +1432,7 @@ export function initWordMode(ctx) {
   $('#w-quit').addEventListener('click', () => {
     cancelGesture();
     closeMenu();
+    closeTilePop();
     closeSheet($('#w-result'));
     flushFinish();
     ctx.showHome();
