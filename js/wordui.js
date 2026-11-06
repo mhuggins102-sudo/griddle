@@ -60,7 +60,7 @@ export function initWordMode(ctx) {
     pointerTs: 0,
     worker: null,
     workerJob: 0,
-    resultVariant: null, // set to 'a' | 'b' | 'c' to override the trial layout from Settings (tests); ?result=… in the address does the same
+    resultTweak: 0, // the result sheet tweaks under trial: 0 as chosen, 1 the full set, 2 the alternative (tests set this)
   };
   const boardEl = $('#wboard');
   const wrapEl = boardEl.parentElement;
@@ -1114,7 +1114,8 @@ export function initWordMode(ctx) {
     } else if (g.replay) {
       line = beatBoard ? `Beat your previous best on this board (${previousOnBoard}) · not counted in stats` : `Best on this board stays ${previousOnBoard} · not counted in stats`;
     } else {
-      line = isBest ? 'New personal best!' : `Personal best: ${store.word[bestKey]}`;
+      const best = store.word[bestKey];
+      line = isBest ? 'New personal best!' : w.resultTweak && total === best ? 'Ties your personal best' : `Personal best: ${best}`;
     }
     if (g.practice) line = `${levelsRun ? (passed ? `Goal ${g.goal} reached` : `Reached level ${g.level}`) + ' · ' : ''}Practice board · not counted in stats`;
     play(levelsRun ? (passed ? 'fanfare' : 'fail') : isBoardFull(st) ? 'fanfare' : 'lock');
@@ -1130,7 +1131,6 @@ export function initWordMode(ctx) {
       line,
       rows: scoreRows(st),
       total,
-      words: st.words,
       next: showNext,
       again: !showNext,
       againText: levelsRun || g.retry ? 'New game' : 'New board',
@@ -1168,62 +1168,38 @@ export function initWordMode(ctx) {
       line: `Goal ${g.goal} reached${left > 0 ? ` with ${left} turn${left === 1 ? '' : 's'} to spare` : ''}`,
       rows: scoreRows(st),
       total,
-      words: st.words,
       next: true,
       again: false,
       replay: false,
     });
   }
 
-  /**
-   * Fill and open the result sheet. data: { state, title, line, rows, total, words, next, again, againText, replay }.
-   * The layout follows w.resultVariant while the three are under trial.
-   */
+  /** Fill and open the result sheet. data: { state, title, line, rows, total, next, again, againText, replay }. */
   function showResult(data) {
     const sheet = $('#w-result');
-    const fromUrl = new URLSearchParams(location.search).get('result');
-    const v = ['a', 'b', 'c'].find((x) => x === (w.resultVariant || fromUrl || (ctx.store.settings && ctx.store.settings.resultLayout))) || 'a';
-    sheet.dataset.variant = v;
+    const tweak = w.resultTweak || 0;
+    if (tweak) sheet.dataset.tweak = String(tweak);
+    else delete sheet.dataset.tweak;
     sheet.dataset.state = data.state || 'over';
     $('#w-result-title').textContent = data.title;
     $('#w-result-best').textContent = data.line;
-    const headTotal = $('#w-rs-headtotal');
-    headTotal.hidden = v !== 'c';
-    headTotal.textContent = String(data.total);
-    $('#w-share').hidden = v === 'c';
-    $('#w-share-foot').hidden = v !== 'c';
-    const big = $('#w-rs-big');
-    big.hidden = v !== 'b';
-    $('#w-rs-bignum').textContent = String(data.total);
-    const signed = (r) => (r.signed && r.value > 0 ? `+${r.value}` : String(r.value));
+    $('#w-rs-headtotal').textContent = String(data.total);
     const tally = $('#w-tally');
     tally.innerHTML = '';
-    tally.className = v === 'a' ? 'rs-rows' : v === 'b' ? 'rs-pills' : 'rs-tiles';
-    const make = (r, tag, cls, inner) => {
-      const el = document.createElement(r.words ? 'button' : tag);
-      el.className = cls + (r.cls ? ` ${r.cls}` : '');
+    for (const r of data.rows) {
+      const el = document.createElement(r.words ? 'button' : 'div');
+      el.className = `rs-tile${r.cls ? ` ${r.cls}` : ''}${r.words ? ' words' : ''}${r.value === 0 ? ' zero' : ''}`;
       if (r.words) {
         el.type = 'button';
         el.setAttribute('aria-label', 'Show the words you locked');
         el.addEventListener('click', showWordsPop);
       }
-      el.innerHTML = inner;
-      return el;
-    };
-    data.rows.forEach((r, i) => {
-      if (v === 'a') {
-        tally.appendChild(make(r, 'div', 'rs-r', `<span>${r.label}</span><b class="${r.cls || ''}">${signed(r)}</b>`));
-      } else if (v === 'b') {
-        if (i > 0) tally.appendChild(Object.assign(document.createElement('span'), { className: 'op', textContent: r.value < 0 ? '−' : '+' }));
-        tally.appendChild(make(r, 'div', 'rs-pill', `<b class="${r.cls || ''}">${Math.abs(r.value)}</b><small>${r.label}</small>`));
-      } else {
-        tally.appendChild(make(r, 'div', 'rs-tile', `<b class="${r.cls || ''}">${signed(r)}</b><small>${r.label}</small>`));
-      }
-    });
-    if (v === 'a') tally.appendChild(make({}, 'div', 'rs-r total', `<span>Total</span><b>${data.total}</b>`));
-    const wordsEl = $('#w-rs-words');
-    wordsEl.hidden = v !== 'a';
-    wordsEl.innerHTML = data.words.length ? data.words.map((x) => `<span class="lw">${x.word}<b>${x.score}</b></span>`).join('') : '<span class="rs-nowords">No words locked</span>';
+      el.innerHTML = `<b>${r.signed && r.value > 0 ? `+${r.value}` : r.value}</b><small>${r.label}</small>`;
+      tally.appendChild(el);
+    }
+    const share = $('#w-share');
+    if (!share.dataset.icon) share.dataset.icon = share.innerHTML;
+    share.innerHTML = tweak === 1 ? 'Share' : share.dataset.icon; // tweak 1: a text button like its neighbours
     $('#w-next').hidden = !data.next;
     $('#w-again').hidden = !data.again;
     $('#w-again').textContent = data.againText || 'New board';
@@ -1243,6 +1219,7 @@ export function initWordMode(ctx) {
     if (sheet.hidden) {
       boardEl.style.maxWidth = '';
       body.style.maxHeight = '';
+      wrapEl.style.paddingTop = '';
       return;
     }
     body.style.maxHeight = '';
@@ -1253,7 +1230,10 @@ export function initWordMode(ctx) {
       body.style.maxHeight = `${Math.max(MIN_SHEET_PX, window.innerHeight - top - MIN_BOARD_PX - gap)}px`;
       room = window.innerHeight - body.getBoundingClientRect().height - top - gap;
     }
-    boardEl.style.maxWidth = `${Math.max(MIN_BOARD_PX, Math.min(wrapEl.clientWidth, Math.floor(room)))}px`;
+    const width = Math.max(MIN_BOARD_PX, Math.min(wrapEl.clientWidth, Math.floor(room)));
+    boardEl.style.maxWidth = `${width}px`;
+    // tweak 1: the board sits in the middle of the room left above the sheet instead of leaving a band under it
+    wrapEl.style.paddingTop = w.resultTweak === 1 && room > width ? `${Math.floor((room - width) / 2)}px` : '';
   }
 
   /** Popup with the score composition as it stands now (tap on the goal bar or the score). */
@@ -1375,7 +1355,6 @@ export function initWordMode(ctx) {
     if (w.game && !w.over) advanceEarly(); // the goal was reached mid-board: score it and move on
     else start(false, { mode: 'levels', level: w.nextLevel || 1, size: w.game ? w.game.size : 5 });
   });
-  $('#w-share-foot').addEventListener('click', copyShare);
   window.addEventListener('resize', () => {
     if (!$('#w-result').hidden) fitBoardAbove();
   });

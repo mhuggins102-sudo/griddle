@@ -212,21 +212,18 @@
             <h2 id="w-result-title">Game over</h2>
             <span id="w-result-best" class="breakdown"></span>
           </div>
-          <b id="w-rs-headtotal" class="rs-headtotal" hidden>0</b>
-          <button id="w-share" class="btn btn-icon" aria-label="Share result"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 12V3m-3.5 3.5L10 3l3.5 3.5M4 10v6h12v-6"/></svg></button>
+          <b id="w-rs-headtotal" class="rs-headtotal">0</b>
         </div>
         <div class="sheet-scroll result-scroll">
-          <div id="w-rs-big" class="rs-big" hidden><b id="w-rs-bignum">0</b><small id="w-rs-bigsub">points</small></div>
-          <div id="w-tally" aria-label="Score breakdown"></div>
-          <div id="w-rs-words" class="rs-words" hidden></div>
+          <div id="w-tally" class="rs-tiles" aria-label="Score breakdown"></div>
         </div>
-        <div class="sheet-foot result-buttons">
+        <div class="sheet-foot">
           <button id="w-next" class="btn btn-primary btn-wide" hidden>Next level</button>
           <button id="w-again" class="btn btn-primary btn-wide">New board</button>
           <div class="rs-row">
             <button id="w-home" class="btn">Home</button>
             <button id="w-replay" class="btn">Replay board</button>
-            <button id="w-share-foot" class="btn btn-icon" aria-label="Share result" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 12V3m-3.5 3.5L10 3l3.5 3.5M4 10v6h12v-6"/></svg></button>
+            <button id="w-share" class="btn btn-icon" aria-label="Share result"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 12V3m-3.5 3.5L10 3l3.5 3.5M4 10v6h12v-6"/></svg></button>
           </div>
         </div>
       </div>
@@ -247,13 +244,6 @@
               </div>
             </div>
             <label class="toggle"><span>Show the words on the board <small>Practice: no stats saved</small></span><input type="checkbox" class="switch" role="switch" id="opt-show-words"></label>
-            <div class="toggle"><span>Result sheet layout <small>Trial: A receipt · B headline · C compact</small></span>
-              <div class="seg seg-small" role="radiogroup" aria-label="Result sheet layout">
-                <label><input type="radio" name="opt-result" id="opt-result-a" value="a" checked><span>A</span></label>
-                <label><input type="radio" name="opt-result" id="opt-result-b" value="b"><span>B</span></label>
-                <label><input type="radio" name="opt-result" id="opt-result-c" value="c"><span>C</span></label>
-              </div>
-            </div>
             <label class="toggle" id="opt-numerals-row" hidden><span>Number game: numerals instead of dice pips</span><input type="checkbox" class="switch" role="switch" id="opt-numerals"></label>
           </div>
           <p class="footnote">Progress and settings stay on this device. Only the results you choose to post to the leaderboard leave it.</p>
