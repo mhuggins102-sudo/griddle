@@ -869,11 +869,11 @@ svg { display: block; }
 .score-pop b { font-weight: 800; }
 
 /* With the found-words list showing, the board gives up a little height; on short screens the list drops to one row instead */
-.word-screen:has(#w-found-wrap:not([hidden])) .board.plain { max-width: min(100%, calc(100vh - 370px)); max-width: min(100%, calc(100dvh - 370px)); }
+.word-screen:has(#w-found-wrap:not([hidden])) .board.plain { max-width: min(100%, max(230px, calc(100vh - 370px))); max-width: min(100%, max(230px, calc(100dvh - 370px))); } /* never below a readable size (a phone on its side) */
 @media (max-height: 700px) {
   .chips { grid-template-rows: auto; }
   .chip { min-height: 36px; }
-  .word-screen:has(#w-found-wrap:not([hidden])) .board.plain { max-width: min(100%, calc(100vh - 310px)); max-width: min(100%, calc(100dvh - 310px)); }
+  .word-screen:has(#w-found-wrap:not([hidden])) .board.plain { max-width: min(100%, max(230px, calc(100vh - 310px))); max-width: min(100%, max(230px, calc(100dvh - 310px))); }
 }
 
 /* Board over: the board stays full size; only the strip goes */
