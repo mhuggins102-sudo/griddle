@@ -332,7 +332,8 @@ svg { display: block; }
   border-radius: var(--tile-radius);
   border: 1px solid var(--tile-edge);
   background: var(--tile);
-  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.12);
+  --tile-edge-h: 3px; /* the 3D lip under the tile */
+  box-shadow: inset 0 calc(-1 * var(--tile-edge-h)) 0 rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.12);
   cursor: pointer;
   transition: transform 220ms cubic-bezier(0.2, 0.9, 0.3, 1.1), opacity 200ms ease, box-shadow 120ms ease, background-color 300ms ease;
   display: grid;
@@ -455,11 +456,7 @@ svg { display: block; }
 .confirm span { flex: 1 1 100%; }
 
 /* Result (shared) */
-.result h2 { margin: 0; font-size: 28px; }
-.result-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.result-grid > div { display: flex; flex-direction: column; }
 .breakdown { margin: 0; color: var(--muted); }
-.result-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .replay-bar { font-size: 14px; color: var(--muted); min-height: 1.4em; }
 
 /* End screen (number game) */
@@ -675,22 +672,24 @@ svg { display: block; }
 .face.letter { position: absolute; inset: 0; width: auto; height: auto; display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr; place-items: center; }
 .face.letter .ch { font-size: clamp(22px, 8.5vw, 34px); font-weight: 800; color: var(--tile-ink); line-height: 1; }
 .face.letter .val { position: absolute; right: 5px; bottom: 3px; font-size: 11px; font-weight: 800; color: var(--tile-val); }
-/* Letter, value and the locked dot are sized against the tile itself (cqw), so a board shrunk under the
-   result sheet keeps its proportions instead of its viewport-based sizes */
-.board.plain:not(.mini) .tile { container-type: inline-size; }
+/* The board and each tile are query containers, so a board shrunk under the result sheet scales as a whole:
+   the tile's lip and corner radius follow the board's width (full size: 3px and 12px on a 358px board), and the
+   letter, the value and the locked dot follow the tile */
+.board.plain:not(.mini) { container-type: inline-size; }
+.board.plain:not(.mini) .tile { container-type: inline-size; --tile-edge-h: max(1.5px, min(3px, 0.88cqw)); border-radius: min(var(--tile-radius), 3.5cqw); }
 .board.plain:not(.mini) .face.letter .ch { font-size: clamp(9px, 53cqw, 34px); }
-.board.plain:not(.mini) .face.letter .val { font-size: clamp(6px, 18cqw, 11px); right: 8cqw; bottom: 5cqw; }
+.board.plain:not(.mini) .face.letter .val { font-size: clamp(6px, 18cqw, 11px); right: max(4px, 9cqw); bottom: max(3px, 6cqw); }
 .board.plain:not(.mini)[data-size="6"] .face.letter .ch { font-size: clamp(9px, 53cqw, 27px); }
-.board.plain:not(.mini)[data-size="6"] .face.letter .val { font-size: clamp(6px, 19cqw, 10px); right: 8cqw; bottom: 4cqw; }
+.board.plain:not(.mini)[data-size="6"] .face.letter .val { font-size: clamp(6px, 19cqw, 10px); right: max(3px, 8cqw); bottom: max(2px, 5cqw); }
 .board.plain:not(.mini) .tile.locked::after { left: 8cqw; top: 8cqw; width: 11cqw; height: 11cqw; }
 .board.plain:not(.mini)[data-size="6"] .tile.locked::after { left: 8cqw; top: 8cqw; width: 12cqw; height: 12cqw; }
 .face.letter.wild .ch { color: var(--region); }
-.tile.locked { background: var(--locked); border-color: var(--locked-edge); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.12); }
+.tile.locked { background: var(--locked); border-color: var(--locked-edge); box-shadow: inset 0 calc(-1 * var(--tile-edge-h)) 0 rgba(0, 0, 0, 0.12); }
 .tile.locked::after { content: ""; position: absolute; left: 5px; top: 5px; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
 .tile.locked.wild { background: var(--wild); border-color: var(--wild-edge); }
-.tile.first-pick { box-shadow: 0 0 0 3px var(--target), inset 0 -3px 0 rgba(0, 0, 0, 0.08); z-index: 2; }
-.tile.dragging { transition: none; z-index: 6; box-shadow: 0 12px 26px rgba(0, 0, 0, 0.28), inset 0 -3px 0 rgba(0, 0, 0, 0.08); cursor: grabbing; }
-.tile.drop-target { box-shadow: 0 0 0 3px var(--target), inset 0 -3px 0 rgba(0, 0, 0, 0.08); }
+.tile.first-pick { box-shadow: 0 0 0 3px var(--target), inset 0 calc(-1 * var(--tile-edge-h)) 0 rgba(0, 0, 0, 0.08); z-index: 2; }
+.tile.dragging { transition: none; z-index: 6; box-shadow: 0 12px 26px rgba(0, 0, 0, 0.28), inset 0 calc(-1 * var(--tile-edge-h)) 0 rgba(0, 0, 0, 0.08); cursor: grabbing; }
+.tile.drop-target { box-shadow: 0 0 0 3px var(--target), inset 0 calc(-1 * var(--tile-edge-h)) 0 rgba(0, 0, 0, 0.08); }
 .tile.drop-target::after {
   content: "";
   position: absolute;
@@ -852,24 +851,10 @@ svg { display: block; }
 .chip.active .chip-score { color: #fff; }
 
 /* Result panel (compact) */
-.result.compact { gap: 8px; padding: 12px; }
 .result-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .result-head h2 { font-size: 22px; margin: 0; }
 .result-titles { display: flex; flex-direction: column; min-width: 0; }
 .result-titles .breakdown { font-size: 13px; }
-.tally { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 6px 8px; font-variant-numeric: tabular-nums; font-size: 16px; }
-.tally .tally-col { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; padding: 0; margin: 0; border: 0; background: none; font: inherit; color: inherit; }
-.tally button.tally-col { cursor: pointer; }
-.tally .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); white-space: nowrap; }
-.tally .tally-item { display: inline-flex; align-items: center; justify-content: center; min-width: 56px; min-height: 44px; padding: 0 12px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); font-weight: 800; font-size: 18px; line-height: 1; }
-.tally .tally-item.neg { color: var(--danger); }
-.tally .tally-item.pos { color: var(--ok); }
-.tally .tally-op { color: var(--muted); font-weight: 700; padding-bottom: 12px; }
-.tally .tally-total { font-size: 26px; font-weight: 900; padding: 0 0 7px 4px; }
-.result .tally[hidden] { display: none; }
-.result-buttons.three { display: flex; }
-.result-buttons.three.two .btn { flex: 1 1 0; }
-.result-buttons.three .btn { flex: 1 1 0; padding: 0 6px; font-size: 13.5px; white-space: nowrap; }
 .words-pop {
   position: fixed; left: 50%; top: 110px; transform: translateX(-50%);
   max-width: min(92vw, 420px); background: var(--ink); color: var(--bg);
@@ -1029,7 +1014,7 @@ svg { display: block; }
 #btn-lb-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ===========================================================================
-   Result sheet: three layouts under trial, chosen by data-variant */
+   Result sheet: the total in the head, the components as tiles */
 .result-sheet { background: transparent; pointer-events: none; } /* the board stays visible and readable above */
 .result-sheet .sheet-body { pointer-events: auto; box-shadow: 0 -10px 34px rgba(0, 0, 0, 0.2); border-top: 1px solid var(--line); }
 .result-sheet .sheet-head { padding: 12px 16px 10px; }
@@ -1040,34 +1025,24 @@ svg { display: block; }
 .rs-row { display: flex; gap: 8px; }
 .rs-row .btn { flex: 1 1 0; white-space: nowrap; }
 .rs-row .btn-icon { flex: 0 0 44px; }
-.rs-words { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.rs-words .lw { background: var(--ok-bg); border-radius: 999px; padding: 2px 9px; font-weight: 700; font-size: 13px; letter-spacing: 0.03em; }
-.rs-words .lw b { color: var(--ok); margin-left: 3px; }
-.rs-words .rs-nowords { color: var(--muted); font-size: 13px; }
 .pos { color: var(--ok); }
 .neg { color: var(--danger); }
-/* A: a receipt */
-.rs-rows { display: flex; flex-direction: column; }
-.rs-rows .rs-r { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 7px 0; border-bottom: 1px dashed var(--line); font-size: 15px; font-weight: 600; }
-.rs-rows button.rs-r { width: 100%; background: none; border: 0; border-bottom: 1px dashed var(--line); font: inherit; color: inherit; cursor: pointer; text-align: left; }
-.rs-rows .rs-r small { color: var(--muted); font-weight: 500; font-size: 13px; margin-left: 6px; }
-.rs-rows .rs-r b { font-variant-numeric: tabular-nums; font-size: 17px; font-weight: 800; }
-.rs-rows .rs-r.total { border: 0; padding: 10px 0 0; font-weight: 800; font-size: 16px; }
-.rs-rows .rs-r.total b { font-size: 28px; }
-/* B: a headline number */
-.rs-big { display: flex; flex-direction: column; align-items: center; line-height: 1; margin: 0 0 12px; }
-.rs-big b { font-size: 54px; font-weight: 900; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-.rs-big small { margin-top: 6px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
-.rs-pills { display: flex; justify-content: center; align-items: center; gap: 6px; flex-wrap: wrap; }
-.rs-pill { display: inline-flex; flex-direction: column; align-items: center; min-width: 74px; padding: 6px 10px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); font: inherit; color: inherit; }
-button.rs-pill { cursor: pointer; }
-.rs-pill b { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.rs-pill small { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); white-space: nowrap; }
-.rs-pills .op { color: var(--muted); font-weight: 700; }
-/* C: compact, the total in the head */
 .rs-headtotal { font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums; margin-left: auto; padding-right: 4px; }
 .rs-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .rs-tile { display: flex; flex-direction: column; align-items: center; padding: 8px 4px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); font: inherit; color: inherit; }
 button.rs-tile { cursor: pointer; }
 .rs-tile b { font-size: 21px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .rs-tile small { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
+/* Tweaks under trial, chosen by data-tweak (1: the full set; 2: icon share, bordered words tile, board stays at the top) */
+.result-sheet[data-tweak] .sheet-head { padding: 10px 16px 8px; }
+.result-sheet[data-tweak] .sheet-scroll { padding: 10px 16px; }
+.result-sheet[data-tweak] .result-titles { min-width: 0; }
+.result-sheet[data-tweak] .rs-headtotal { font-size: 36px; line-height: 1; }
+.result-sheet[data-tweak] .rs-tiles { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
+.result-sheet[data-tweak] .rs-tile b { font-size: 24px; }
+.result-sheet[data-tweak] .rs-tile small { font-size: 12px; letter-spacing: 0.04em; }
+.result-sheet[data-tweak] .rs-tile.zero b { color: var(--muted); }
+.result-sheet[data-tweak="1"] .rs-tile.words small::after { content: " ›"; font-weight: 800; }
+.result-sheet[data-tweak="2"] .rs-tile.words { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.result-sheet[data-tweak="1"] #w-share { flex: 1 1 0; width: auto; border-radius: 12px; }
+.result-sheet[data-tweak="2"] #w-share { border-radius: 12px; }
