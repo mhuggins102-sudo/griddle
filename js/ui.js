@@ -68,6 +68,10 @@ async function boot() {
   });
   $('#opt-show-words').addEventListener('change', (e) => {
     ui.store.settings.showWords = e.target.checked;
+    if (e.target.checked && ui.store.wordGame && !ui.store.wordGame.practice) {
+      ui.store.wordGame.practice = true; // the board in progress becomes practice, for good
+      showHome(); // the Continue button says so
+    }
     saveStore(ui.store);
   });
   try {
@@ -112,7 +116,7 @@ function showHome() {
     const size = g.size || Math.round(Math.sqrt(g.state.board.length));
     const lim = TURNS_BY_SIZE[size] || 20;
     const turn = Math.min((g.state.turns || 0) + 1, lim);
-    $('#continue-sub').textContent = `${size === 6 ? '6×6 · ' : ''}${g.mode === 'levels' ? `Level ${g.level || 1}` : 'Free play'} · turn ${turn} of ${lim} · ${g.state.score || 0} points`;
+    $('#continue-sub').textContent = `${size === 6 ? '6×6 · ' : ''}${g.mode === 'levels' ? `Level ${g.level || 1}` : 'Free play'} · turn ${turn} of ${lim} · ${g.state.score || 0} points${g.practice ? ' · practice' : ''}`;
   }
   showScreen('screen-home'); // the figures live on the Stats screen
 }
