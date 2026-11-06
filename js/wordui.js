@@ -1269,7 +1269,7 @@ export function initWordMode(ctx) {
     const words = $('#w-locked').getBoundingClientRect();
     const bottom = window.innerHeight - 8;
     let top = words.bottom + 10;
-    if (bottom - top < 180) top = words.top;
+    if (bottom - top < 300) top = words.top; // the card needs about 300px to show whole; short of that it takes the word row's place
     Object.assign(body.style, { position: 'fixed', left: `${Math.round(col.left)}px`, width: `${Math.round(col.width)}px`, top: `${Math.round(top)}px`, maxHeight: `${Math.floor(bottom - top)}px` });
   }
 

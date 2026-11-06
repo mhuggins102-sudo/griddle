@@ -1118,5 +1118,11 @@ button.rs-tile:active { background: var(--line); }
     html[data-landscape="A"] .word-board-wrap, html[data-landscape="B"] .word-board-wrap { width: min(calc(100dvh - 20px), calc(100vw - var(--panel-w) - 48px)); }
     html[data-landscape] .strip { margin-top: 8px; min-height: 36px; }
     html[data-landscape] .legend .lg small { display: none; }
+    html[data-landscape] .result-sheet .rs-row .btn { padding: 0 8px; font-size: 14px; min-width: 0; } /* three buttons across a 300px card */
+    /* the card shaves its padding so it shows whole under the level bar on a 390px-tall screen */
+    html[data-landscape] .result-sheet .sheet-head { padding: 8px 14px 6px; }
+    html[data-landscape] .result-sheet .sheet-scroll { padding: 6px 14px; }
+    html[data-landscape] .result-sheet .rs-tile { padding: 5px 4px; }
+    html[data-landscape] .result-sheet .sheet-foot { padding: 8px 14px 8px; gap: 6px; }
   }
 }
