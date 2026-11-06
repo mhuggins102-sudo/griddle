@@ -39,6 +39,8 @@ const FLICK_SPEED_AT_ZERO = 24;
 const FLICK_SPEED_PER_TILE = 16;
 const FLICK_MIN_SPEED = 4;
 const FLICK_MIN_TRAVEL = 0.3; // tiles: anything shorter is a wobble, never a flick
+const MIN_BOARD_PX = 230; // the board never shrinks below this under the result sheet (about 36px tiles on a 5x5)
+const MIN_SHEET_PX = 190; // the sheet keeps at least its head and foot; the middle scrolls
 
 export function initWordMode(ctx) {
   const w = {
@@ -252,7 +254,7 @@ export function initWordMode(ctx) {
     ensureBoard(w.game.size);
     closeSheet($('#w-result'));
     $('#screen-word').classList.remove('sheet-up');
-    boardEl.style.maxWidth = '';
+    fitBoardAbove(); // the board gets its size back
     $('#w-words-pop').hidden = true;
     $('#screen-word').classList.remove('over');
     $('#w-locked').hidden = false;
@@ -1231,17 +1233,27 @@ export function initWordMode(ctx) {
     fitBoardAbove();
   }
 
-  /** The board gives up height so the whole of it shows above the result sheet. */
+  /**
+   * The board gives up height so the whole of it shows above the result sheet, down to MIN_BOARD_PX; past
+   * that the sheet is capped instead and its middle scrolls, so the board never becomes unreadable.
+   */
   function fitBoardAbove() {
     const sheet = $('#w-result');
+    const body = sheet.querySelector('.sheet-body');
     if (sheet.hidden) {
       boardEl.style.maxWidth = '';
+      body.style.maxHeight = '';
       return;
     }
-    const body = sheet.querySelector('.sheet-body');
+    body.style.maxHeight = '';
     const top = wrapEl.getBoundingClientRect().top;
-    const room = window.innerHeight - body.getBoundingClientRect().height - top - 10;
-    boardEl.style.maxWidth = `${Math.max(160, Math.min(wrapEl.clientWidth, Math.floor(room)))}px`;
+    const gap = 10;
+    let room = window.innerHeight - body.getBoundingClientRect().height - top - gap;
+    if (room < MIN_BOARD_PX) {
+      body.style.maxHeight = `${Math.max(MIN_SHEET_PX, window.innerHeight - top - MIN_BOARD_PX - gap)}px`;
+      room = window.innerHeight - body.getBoundingClientRect().height - top - gap;
+    }
+    boardEl.style.maxWidth = `${Math.max(MIN_BOARD_PX, Math.min(wrapEl.clientWidth, Math.floor(room)))}px`;
   }
 
   /** Popup with the score composition as it stands now (tap on the goal bar or the score). */
