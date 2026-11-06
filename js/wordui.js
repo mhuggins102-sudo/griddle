@@ -293,7 +293,7 @@ export function initWordMode(ctx) {
   function renderHud() {
     const st = w.game.state;
     const lim = limit();
-    $('#w-turn').textContent = `${Math.min(st.turns + 1, lim)} / ${lim}${w.game.replay ? ' ↻' : ''}`;
+    $('#w-turn').textContent = `${Math.min(st.turns + 1, lim)}/${lim}${w.game.replay ? ' ↻' : ''}`;
     $('#w-score').textContent = String(finalScore(st));
     const track = $('#w-turntrack');
     if (track.childElementCount !== lim) {
@@ -387,7 +387,7 @@ export function initWordMode(ctx) {
     const list = st.words.length
       ? `<span class="lw-list">${st.words.slice().reverse().map((x) => `<span class="lw">${x.word}<b>${x.score}</b></span>`).join('')}</span>`
       : '<span class="lw-list"><span>No words locked yet</span></span>';
-    el.innerHTML = `${list}<span class="lw-count"><b>${st.locked.length}</b>/${st.board.length} tiles</span>`;
+    el.innerHTML = list;
     const scroller = el.querySelector('.lw-list');
     if (scroller) scroller.scrollLeft = 0;
     const fresh = el.querySelector('.lw');
@@ -1156,9 +1156,9 @@ export function initWordMode(ctx) {
     const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
     const rows = [
       { label: plural(st.words.length, 'word'), value: st.score, pop: 'words' },
-      { label: plural(st.locked.length, 'tile'), value: bonus, signed: true, cls: bonus ? 'pos' : '', pop: 'tiles' },
+      { label: plural(st.locked.length, 'tile'), value: bonus, cls: bonus ? 'pos' : '', pop: 'tiles' },
     ];
-    if (turnBonus) rows.push({ label: `${plural(turnLimit(st) - st.turns, 'turn')} left`, value: turnBonus, signed: true, cls: 'pos' });
+    if (turnBonus) rows.push({ label: `${plural(turnLimit(st) - st.turns, 'turn')} left`, value: turnBonus, cls: 'pos' });
     if (penalty) rows.push({ label: `${plural(COVERAGE_TARGET - st.locked.length, 'tile')} short`, value: -penalty, signed: true, cls: 'neg' });
     return rows;
   }
@@ -1232,8 +1232,8 @@ export function initWordMode(ctx) {
     const steps = Object.keys(ladder).map(Number).sort((a, b) => a - b);
     const first = steps[0];
     const mine = st.locked.length;
-    const row = (label, bonus, me) => `<tr${me ? ' class="me"' : ''}><td>${label}</td><td>${bonus ? `+${bonus}` : '0'}</td></tr>`;
-    return `<table><tr><th>Tiles locked</th><th>Bonus</th></tr>${row(`${first - 1} or fewer`, 0, mine < first)}${steps.map((k) => row(`${k}${k === st.board.length ? ' (all)' : ''}`, ladder[k], mine === k)).join('')}</table>`;
+    const row = (label, bonus, me) => `<tr class="${me ? 'me' : ''}${bonus ? '' : ' zero'}"><td>${label}</td><td>${bonus}</td></tr>`;
+    return `<table><tr><th>Tiles</th><th>Bonus</th></tr>${row(`≤ ${first - 1}`, 0, mine < first)}${steps.map((k) => row(`${k}${k === st.board.length ? ' (all)' : ''}`, ladder[k], mine === k)).join('')}</table>`;
   }
 
   /** Open the popup directly above its tile, or close it if that tile's popup is already up. */
