@@ -38,6 +38,8 @@ const ui = {
 // Boot
 
 async function boot() {
+  const landscape = new URLSearchParams(location.search).get('landscape'); // ?landscape=A|B|C: the side-by-side layouts under trial
+  if (['A', 'B', 'C'].includes(landscape)) document.documentElement.dataset.landscape = landscape;
   buildBoardSkeleton($('#board'), makeDiceFace);
   wireEvents();
   $('#opt-numerals').checked = !!ui.store.settings.numerals;

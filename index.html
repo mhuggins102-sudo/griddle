@@ -177,10 +177,10 @@
         <div id="w-float" class="float-layer" aria-hidden="true"></div>
         <div id="w-menu-backdrop" class="menu-backdrop" hidden></div>
         <div id="w-tilemenu" class="tilemenu" role="menu" aria-label="Tile actions" hidden>
-          <button class="tm-btn" data-act="nudge-down" role="menuitem"><span class="tm-letter"><i class="tm-arrow left"></i><b id="tm-prev">A</b></span><span class="tm-sub">nudge</span></button>
-          <button class="tm-btn" data-act="nudge-up" role="menuitem"><span class="tm-letter"><b id="tm-next">C</b><i class="tm-arrow right"></i></span><span class="tm-sub">nudge</span></button>
-          <button class="tm-btn" data-act="draw" role="menuitem"><span class="tm-letter"><b class="tm-q">?</b></span><span class="tm-sub" id="tm-draw-sub">draw</span></button>
-          <button class="tm-btn wild" data-act="wild" role="menuitem" hidden><span class="tm-letter"><b>★</b></span><span class="tm-sub">wild · 2 turns</span></button>
+          <button class="tm-btn" data-act="nudge-down" role="menuitem"><span class="tm-letter"><i class="tm-arrow left"></i><b id="tm-prev">A</b></span><span class="tm-sub">Nudge</span></button>
+          <button class="tm-btn" data-act="nudge-up" role="menuitem"><span class="tm-letter"><b id="tm-next">C</b><i class="tm-arrow right"></i></span><span class="tm-sub">Nudge</span></button>
+          <button class="tm-btn" data-act="draw" role="menuitem"><span class="tm-letter"><b class="tm-q">?</b></span><span class="tm-sub" id="tm-draw-sub">Draw</span></button>
+          <button class="tm-btn wild" data-act="wild" role="menuitem" hidden><span class="tm-letter"><b>★</b></span><span class="tm-sub">Wild</span></button>
         </div>
       </div>
 
@@ -203,6 +203,7 @@
 
       <div id="w-pop" class="score-pop" hidden></div>
     </section>
+    <div id="w-tilepop" class="tilepop" hidden></div>
 
     <!-- Result sheet: the board's score at its end, or a passed level waiting for Next level; the board stays visible above -->
     <div id="w-result" class="sheet result-sheet" hidden data-variant="a">
@@ -344,7 +345,7 @@
                 <li><strong>Nudge</strong>: press and hold a tile, then pick the letter before or after it in the alphabet (A and Z wrap round, so any letter is at most 13 nudges away, and the wrap can turn an A into a Z). Locked tiles can be nudged too.</li>
                 <li><strong>Draw</strong>: press and hold a tile, then choose <em>draw</em> to replace it with a random letter from the bag. The old letter goes into the bag afterwards, so it cannot come straight back. Draw is the only random action and cannot be undone. The bag button in the header shows what is left.</li>
                 <li><strong>Lock</strong>: tap the first letter of a word, then its last letter. The word locks at once and its points are banked.</li>
-                <li><strong>Wild</strong> (two turns, so it needs two turns left): press and hold a <em>locked</em> tile and choose ★. A wild tile reads as any letter in any word but scores no points itself.</li>
+                <li><strong>Wild</strong> (two turns, so it needs two turns left, and only once per board): press and hold a <em>locked</em> tile and choose ★. A wild tile reads as any letter in any word but scores no points itself.</li>
               </ul>
               <p>In free play, the <strong>Undo</strong> button in the header takes back your moves and locks one at a time, as far back as you like. The one thing it cannot do is go back past a Draw, since the draw was random. The board is scored the moment the last turn is spent or the last tile is locked.</p>
               <p>The <strong>?</strong> button during a game opens a step-by-step tutorial that shows each move on a board.</p>
