@@ -565,7 +565,8 @@ svg { display: block; }
   overflow: hidden;
 }
 .topcard .hud { border: 0; border-radius: 0; box-shadow: none; background: transparent; padding: 8px 12px 6px; }
-.word-hud { grid-template-columns: auto auto 1fr; gap: 14px; }
+.word-hud { grid-template-columns: auto auto 1fr; gap: 20px; }
+.word-hud .hud-item { align-items: center; text-align: center; } /* the figure centred under its label */
 .hud-button { background: none; border: 0; padding: 0; text-align: left; cursor: pointer; border-radius: 8px; }
 .hud-button:focus-visible { outline: 3px solid var(--select); outline-offset: 4px; }
 .word-hud .hud-value { font-size: 22px; line-height: 1.1; white-space: nowrap; }
@@ -1077,18 +1078,20 @@ button.rs-tile:active { background: var(--line); }
   html[data-landscape] .strip { grid-area: strip; margin-top: 12px; }
   html[data-landscape] #w-found-wrap { grid-area: found; margin-top: 12px; }
   html[data-landscape] #w-bag { grid-area: bag; margin-top: 12px; align-self: start; }
-  html[data-landscape] .word-screen.over .strip, html[data-landscape] .word-screen.sheet-up .strip { display: flex; } /* the panel keeps its legend */
   html[data-landscape="A"] .word-screen, html[data-landscape="B"] .word-screen {
-    grid-template-columns: minmax(0, 1fr) var(--panel-w);
+    grid-template-columns: var(--panel-w) auto; /* panel left, board right, the pair centred and close together */
     grid-template-rows: auto auto auto auto auto auto 1fr; /* the last row takes the board's extra height, so the panel's rows stay tight */
-    grid-template-areas: "board hud" "board track" "board goal" "board words" "board strip" "board found" "board bag";
+    grid-template-areas: "hud board" "track board" "goal board" "words board" "strip board" "found board" "bag board";
+    justify-content: center;
   }
-  /* the result card docks in the panel, bottom right, instead of rising over the board */
-  html[data-landscape="A"] .result-sheet, html[data-landscape="B"] .result-sheet { left: auto; right: calc(max(0px, (100vw - 1180px) / 2) + 16px); width: var(--panel-w, 360px); align-items: flex-end; }
-  html[data-landscape="A"] .result-sheet .sheet-body, html[data-landscape="B"] .result-sheet .sheet-body { border-radius: 18px; margin-bottom: 12px; max-height: calc(100dvh - 24px); border: 1px solid var(--line); }
+  html[data-landscape="A"] .word-board-wrap, html[data-landscape="B"] .word-board-wrap { width: min(calc(100dvh - 40px), 680px, calc(100vw - var(--panel-w) - 64px)); }
+  /* the result card docks under the panel's content (placed by fitBoardAbove), never over the scores */
+  html[data-landscape="A"] .result-sheet, html[data-landscape="B"] .result-sheet { display: block; }
+  html[data-landscape="A"] .result-sheet .sheet-body, html[data-landscape="B"] .result-sheet .sheet-body { border-radius: 18px; border: 1px solid var(--line); }
+  html[data-landscape="A"] .result-sheet .sheet-foot, html[data-landscape="B"] .result-sheet .sheet-foot { padding-bottom: 10px; }
   /* B: the words as a list, newest at the top */
   html[data-landscape="B"] .topcard .locked-line { flex-direction: column; align-items: stretch; gap: 8px; }
-  html[data-landscape="B"] .locked-line .lw-list { flex-direction: column; gap: 4px; overflow: hidden auto; max-height: calc(100dvh - 430px); padding: 0; margin: 0; -webkit-mask-image: none; mask-image: none; }
+  html[data-landscape="B"] .locked-line .lw-list { flex-direction: column; gap: 4px; overflow: hidden auto; max-height: max(60px, calc(100dvh - 300px)); padding: 0; margin: 0; -webkit-mask-image: none; mask-image: none; }
   html[data-landscape="B"] .locked-line .lw { display: flex; justify-content: space-between; padding: 3px 10px; font-size: 14px; }
   /* C: rails either side of the board; the result is a dialog in the middle */
   html[data-landscape="C"] .word-screen {
@@ -1112,8 +1115,7 @@ button.rs-tile:active { background: var(--line); }
     html[data-landscape] .app { padding: 8px 12px; }
     html[data-landscape] .word-screen { --panel-w: 300px; gap: 0 12px; }
     html[data-landscape] .board.plain { max-width: min(100%, calc(100dvh - 20px)); }
-    html[data-landscape="A"] .result-sheet, html[data-landscape="B"] .result-sheet { right: 12px; width: 300px; }
-    html[data-landscape="A"] .result-sheet .sheet-body, html[data-landscape="B"] .result-sheet .sheet-body { margin-bottom: 8px; max-height: calc(100dvh - 16px); }
+    html[data-landscape="A"] .word-board-wrap, html[data-landscape="B"] .word-board-wrap { width: min(calc(100dvh - 20px), calc(100vw - var(--panel-w) - 48px)); }
     html[data-landscape] .strip { margin-top: 8px; min-height: 36px; }
     html[data-landscape] .legend .lg small { display: none; }
   }

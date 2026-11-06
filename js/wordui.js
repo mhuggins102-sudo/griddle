@@ -293,7 +293,7 @@ export function initWordMode(ctx) {
   function renderHud() {
     const st = w.game.state;
     const lim = limit();
-    $('#w-turn').textContent = `${Math.min(st.turns + 1, lim)}/${lim}${w.game.replay ? ' ↻' : ''}`;
+    $('#w-turn').textContent = `${Math.min(st.turns + 1, lim)} / ${lim}${w.game.replay ? ' ↻' : ''}`;
     $('#w-score').textContent = String(finalScore(st));
     const track = $('#w-turntrack');
     if (track.childElementCount !== lim) {
@@ -1261,19 +1261,40 @@ export function initWordMode(ctx) {
   }
 
   /**
+   * Beside the board, the result card sits in the panel column under the word row; when there is no room
+   * left there (a phone on its side) it covers the word row only, so turn, score and level stay in view.
+   */
+  function dockInPanel(body) {
+    const col = $('.word-hud').getBoundingClientRect();
+    const words = $('#w-locked').getBoundingClientRect();
+    const bottom = window.innerHeight - 8;
+    let top = words.bottom + 10;
+    if (bottom - top < 180) top = words.top;
+    Object.assign(body.style, { position: 'fixed', left: `${Math.round(col.left)}px`, width: `${Math.round(col.width)}px`, top: `${Math.round(top)}px`, maxHeight: `${Math.floor(bottom - top)}px` });
+  }
+
+  function undock(body) {
+    for (const k of ['position', 'left', 'width', 'top']) body.style[k] = '';
+  }
+
+  /**
    * The board gives up height so the whole of it shows above the result sheet, down to MIN_BOARD_PX; past
    * that the sheet is capped instead and its middle scrolls, so the board never becomes unreadable.
    */
   function fitBoardAbove() {
     const sheet = $('#w-result');
     const body = sheet.querySelector('.sheet-body');
-    const sideBySide = document.documentElement.dataset.landscape && matchMedia('(orientation: landscape) and (min-width: 640px)').matches;
-    if (sheet.hidden || sideBySide) { // beside its panel the board keeps its size and the sheet docks in the panel
+    const layout = document.documentElement.dataset.landscape;
+    const sideBySide = layout && matchMedia('(orientation: landscape) and (min-width: 640px)').matches;
+    if (sheet.hidden || sideBySide) { // beside its panel the board keeps its size and the card docks in the panel
       boardEl.style.maxWidth = '';
       body.style.maxHeight = '';
       wrapEl.style.paddingTop = '';
+      if (!sheet.hidden && sideBySide && (layout === 'A' || layout === 'B')) dockInPanel(body);
+      else undock(body);
       return;
     }
+    undock(body);
     body.style.maxHeight = '';
     const top = wrapEl.getBoundingClientRect().top;
     const gap = 10;
