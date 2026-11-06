@@ -1061,68 +1061,55 @@ button.rs-tile:active { background: var(--line); }
 .tilepop tr.me td:last-child { border-radius: 0 6px 6px 0; }
 
 /* ===========================================================================
-   Landscape (tablets, laptops, phones on their side): the board beside its panel. Three layouts under trial,
-   chosen with html[data-landscape]: A two columns, the word bar as in portrait; B two columns, the words as a
-   list; C the board between two rails. The top card dissolves into the grid so each of its parts can be placed. */
+   Landscape (tablets, laptops, phones on their side): the panel on the left, the board on the right, the
+   pair centred. The top card dissolves into the grid so each of its parts can be placed; the words become a
+   list that grows down the panel and scrolls past its room; at the board's end they fold back into one row
+   and the result card docks under them (or, on a short screen, takes the panel's place). */
 @media (orientation: landscape) and (min-width: 640px) {
-  html[data-landscape] .app { max-width: 1180px; padding: 12px 16px; }
-  html[data-landscape] .word-screen { --panel-w: 360px; --rail-w: 250px; display: grid; gap: 0 16px; align-content: start; align-items: start; }
-  html[data-landscape] .word-screen .topcard { display: contents; }
-  html[data-landscape] .topcard .hud { grid-area: hud; background: var(--panel); border: 1px solid var(--line); border-bottom: 0; border-radius: var(--radius) var(--radius) 0 0; padding: 10px 12px 6px; }
-  html[data-landscape] .turntrack { grid-area: track; height: auto; margin: 0; padding: 0 12px 8px; background: var(--panel); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
-  html[data-landscape] .turntrack span { height: 4px; }
-  html[data-landscape] .topcard .goalbar { grid-area: goal; background: var(--panel); border: 1px solid var(--line); border-bottom: 0; }
-  html[data-landscape] .topcard .locked-line { grid-area: words; background: var(--panel); border: 1px solid var(--line); border-radius: 0 0 var(--radius) var(--radius); }
-  html[data-landscape] .word-board-wrap { grid-area: board; align-self: center; width: 100%; }
-  html[data-landscape] .board.plain { max-width: min(100%, calc(100dvh - 40px), 680px); }
-  html[data-landscape] .strip { grid-area: strip; margin-top: 12px; }
-  html[data-landscape] #w-found-wrap { grid-area: found; margin-top: 12px; }
-  html[data-landscape] #w-bag { grid-area: bag; margin-top: 12px; align-self: start; }
-  html[data-landscape="A"] .word-screen, html[data-landscape="B"] .word-screen {
-    grid-template-columns: var(--panel-w) auto; /* panel left, board right, the pair centred and close together */
-    grid-template-rows: auto auto auto auto auto auto 1fr; /* the last row takes the board's extra height, so the panel's rows stay tight */
-    grid-template-areas: "hud board" "track board" "goal board" "words board" "strip board" "found board" "bag board";
+  .app { max-width: 1180px; padding: 12px 16px; }
+  .word-screen {
+    --panel-w: 360px;
+    flex: none; /* the screen is a flex item of .app: without this its height would be ignored */
+    min-height: 0;
+    height: calc(100dvh - 24px); /* a definite height, so the words row is capped and its list scrolls */
+    display: grid;
+    gap: 0 16px;
+    align-content: start;
+    align-items: start;
     justify-content: center;
+    grid-template-columns: var(--panel-w) auto;
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto auto auto; /* the words row takes the board's height */
+    grid-template-areas: "hud board" "track board" "goal board" "words board" "strip board" "found board" "bag board";
   }
-  html[data-landscape="A"] .word-board-wrap, html[data-landscape="B"] .word-board-wrap { width: min(calc(100dvh - 40px), 680px, calc(100vw - var(--panel-w) - 64px)); }
-  /* the result card docks under the panel's content (placed by fitBoardAbove), never over the scores */
-  html[data-landscape="A"] .result-sheet, html[data-landscape="B"] .result-sheet { display: block; }
-  html[data-landscape="A"] .result-sheet .sheet-body, html[data-landscape="B"] .result-sheet .sheet-body { border-radius: 18px; border: 1px solid var(--line); }
-  html[data-landscape="A"] .result-sheet .sheet-foot, html[data-landscape="B"] .result-sheet .sheet-foot { padding-bottom: 10px; }
-  /* B: the words as a list, newest at the top */
-  html[data-landscape="B"] .topcard .locked-line { flex-direction: column; align-items: stretch; gap: 8px; }
-  html[data-landscape="B"] .locked-line .lw-list { flex-direction: column; gap: 4px; overflow: hidden auto; max-height: max(60px, calc(100dvh - 300px)); padding: 0; margin: 0; -webkit-mask-image: none; mask-image: none; }
-  html[data-landscape="B"] .locked-line .lw { display: flex; justify-content: space-between; padding: 3px 10px; font-size: 14px; }
-  /* C: rails either side of the board; the result is a dialog in the middle */
-  html[data-landscape="C"] .word-screen {
-    grid-template-columns: var(--rail-w) minmax(0, 1fr) var(--rail-w);
-    grid-template-rows: auto auto auto auto auto 1fr;
-    grid-template-areas: "hud board words" "track board words" "goal board words" "strip board words" "found board words" "bag board words";
-  }
-  html[data-landscape="C"] .word-hud { grid-template-columns: 1fr 1fr; gap: 6px 10px; }
-  html[data-landscape="C"] .word-hud .hud-tools { grid-column: 1 / -1; justify-content: flex-start; }
-  html[data-landscape="C"] .topcard .goalbar { border-bottom: 1px solid var(--line); border-radius: 0 0 var(--radius) var(--radius); }
-  html[data-landscape="C"] .turntrack { border-bottom: 0; }
-  html[data-landscape="C"] .word-screen:not(:has(#w-goalbar:not([hidden]))) .turntrack { border-bottom: 1px solid var(--line); border-radius: 0 0 var(--radius) var(--radius); }
-  html[data-landscape="C"] .topcard .locked-line { border-radius: var(--radius); flex-direction: column; align-items: stretch; gap: 8px; align-self: start; }
-  html[data-landscape="C"] .locked-line .lw-list { flex-direction: column; gap: 4px; overflow: hidden auto; max-height: calc(100dvh - 120px); padding: 0; margin: 0; -webkit-mask-image: none; mask-image: none; }
-  html[data-landscape="C"] .locked-line .lw { display: flex; justify-content: space-between; padding: 3px 10px; font-size: 14px; }
-  html[data-landscape="C"] .legend { flex-wrap: wrap; justify-content: flex-start; gap: 8px 14px; }
-  html[data-landscape="C"] .result-sheet { align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.35); pointer-events: auto; }
-  html[data-landscape="C"] .result-sheet .sheet-body { max-width: 440px; border-radius: 18px; border: 1px solid var(--line); }
+  .word-screen .topcard { display: contents; }
+  .topcard .hud { grid-area: hud; background: var(--panel); border: 1px solid var(--line); border-bottom: 0; border-radius: var(--radius) var(--radius) 0 0; padding: 10px 12px 6px; }
+  .turntrack { grid-area: track; height: auto; margin: 0; padding: 0 12px 8px; background: var(--panel); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+  .turntrack span { height: 4px; }
+  .topcard .goalbar { grid-area: goal; background: var(--panel); border: 1px solid var(--line); border-bottom: 0; }
+  .topcard .locked-line { grid-area: words; align-self: stretch; min-height: 0; flex-direction: column; align-items: stretch; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 0 0 var(--radius) var(--radius); }
+  .locked-line .lw-list { flex: 0 1 auto; min-height: 0; flex-direction: column; gap: 4px; overflow: hidden auto; padding: 0; margin: 0; -webkit-mask-image: none; mask-image: none; }
+  .locked-line .lw { display: flex; justify-content: space-between; padding: 3px 10px; font-size: 14px; }
+  /* the board's end: the words fold into one row, as in portrait, and the card takes the room below */
+  .word-screen.sheet-up .topcard .locked-line { align-self: start; flex-direction: row; align-items: center; gap: 6px; }
+  .word-screen.sheet-up .locked-line .lw-list { flex: 1; flex-direction: row; gap: 6px; overflow: auto hidden; padding-right: 10px; margin-right: -10px; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 12px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 12px), transparent); }
+  .word-screen.sheet-up .locked-line .lw { display: inline-block; padding: 1px 8px; font-size: 13px; }
+  .word-board-wrap { grid-area: board; align-self: center; width: min(calc(100dvh - 40px), 680px, calc(100vw - var(--panel-w) - 64px)); }
+  .board.plain { max-width: min(100%, calc(100dvh - 40px), 680px); }
+  .strip { grid-area: strip; margin-top: 12px; }
+  #w-found-wrap { grid-area: found; margin-top: 12px; }
+  #w-bag { grid-area: bag; margin-top: 12px; align-self: start; }
+  /* the result card is placed by fitBoardAbove */
+  .result-sheet { display: block; }
+  .result-sheet .sheet-body { border-radius: 18px; border: 1px solid var(--line); }
+  .result-sheet .sheet-foot { padding-bottom: 10px; }
   /* phones on their side: a slimmer panel, tighter gutters */
   @media (max-height: 480px) {
-    html[data-landscape] .app { padding: 8px 12px; }
-    html[data-landscape] .word-screen { --panel-w: 300px; gap: 0 12px; }
-    html[data-landscape] .board.plain { max-width: min(100%, calc(100dvh - 20px)); }
-    html[data-landscape="A"] .word-board-wrap, html[data-landscape="B"] .word-board-wrap { width: min(calc(100dvh - 20px), calc(100vw - var(--panel-w) - 48px)); }
-    html[data-landscape] .strip { margin-top: 8px; min-height: 36px; }
-    html[data-landscape] .legend .lg small { display: none; }
-    html[data-landscape] .result-sheet .rs-row .btn { padding: 0 8px; font-size: 14px; min-width: 0; } /* three buttons across a 300px card */
-    /* the card shaves its padding so it shows whole under the level bar on a 390px-tall screen */
-    html[data-landscape] .result-sheet .sheet-head { padding: 8px 14px 6px; }
-    html[data-landscape] .result-sheet .sheet-scroll { padding: 6px 14px; }
-    html[data-landscape] .result-sheet .rs-tile { padding: 5px 4px; }
-    html[data-landscape] .result-sheet .sheet-foot { padding: 8px 14px 8px; gap: 6px; }
+    .app { padding: 8px 12px; }
+    .word-screen { --panel-w: 300px; gap: 0 12px; height: calc(100dvh - 16px); }
+    .board.plain { max-width: min(100%, calc(100dvh - 20px)); }
+    .word-board-wrap { width: min(calc(100dvh - 20px), calc(100vw - var(--panel-w) - 48px)); }
+    .strip { margin-top: 8px; min-height: 36px; }
+    .legend .lg small { display: none; }
+    .result-sheet .rs-row .btn { padding: 0 8px; font-size: 14px; min-width: 0; flex: 1 1 auto; } /* three buttons across a 300px card, each as wide as its label needs */
   }
 }

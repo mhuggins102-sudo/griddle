@@ -42,6 +42,7 @@ const FLICK_MIN_SPEED = 4;
 const FLICK_MIN_TRAVEL = 0.3; // tiles: anything shorter is a wobble, never a flick
 const MIN_BOARD_PX = 230; // the board never shrinks below this under the result sheet (about 36px tiles on a 5x5)
 const MIN_SHEET_PX = 190; // the sheet keeps at least its head and foot; the middle scrolls
+const PASS_PAUSE_MS = 900; // between the goal being reached and the result card, so the last word is seen landing
 
 export function initWordMode(ctx) {
   const w = {
@@ -255,6 +256,7 @@ export function initWordMode(ctx) {
     w.wordCount = w.game.state.words.length; // the bar animates only a word locked from here on
     closeTilePop();
     closeSheet($('#w-result'));
+    clearTimeout(w.passTimer);
     $('#w-pop').hidden = true;
     $('#screen-word').classList.remove('sheet-up');
     fitBoardAbove(); // the board gets its size back
@@ -293,7 +295,7 @@ export function initWordMode(ctx) {
   function renderHud() {
     const st = w.game.state;
     const lim = limit();
-    $('#w-turn').textContent = `${Math.min(st.turns + 1, lim)} / ${lim}${w.game.replay ? ' ↻' : ''}`;
+    $('#w-turn').textContent = `${Math.min(st.turns + 1, lim)}/${lim}${w.game.replay ? ' ↻' : ''}`;
     $('#w-score').textContent = String(finalScore(st));
     const track = $('#w-turntrack');
     if (track.childElementCount !== lim) {
@@ -391,10 +393,17 @@ export function initWordMode(ctx) {
     const scroller = el.querySelector('.lw-list');
     if (scroller) scroller.scrollLeft = 0;
     const fresh = el.querySelector('.lw');
-    if (fresh && st.words.length > (w.wordCount || 0) && w.wordCount !== undefined) {
-      fresh.classList.add('lw-new');
-      const shift = fresh.offsetWidth + 6;
-      if (scroller.animate) scroller.animate([{ transform: `translateX(-${shift}px)` }, { transform: 'translateX(0)' }], { duration: 280, easing: 'ease-out' });
+    if (fresh && st.words.length > (w.wordCount || 0) && w.wordCount !== undefined && scroller.animate) {
+      fresh.classList.add('lw-new'); // the new word slides in from the left
+      if (getComputedStyle(scroller).flexDirection === 'column') {
+        // a list: the earlier words bump down by one row
+        const shift = fresh.offsetHeight + 4;
+        for (const old of scroller.querySelectorAll('.lw:not(.lw-new)')) old.animate([{ transform: `translateY(-${shift}px)` }, { transform: 'none' }], { duration: 280, easing: 'ease-out' });
+      } else {
+        // a row: the earlier words bump right by the new one's width
+        const shift = fresh.offsetWidth + 6;
+        for (const old of scroller.querySelectorAll('.lw:not(.lw-new)')) old.animate([{ transform: `translateX(-${shift}px)` }, { transform: 'none' }], { duration: 280, easing: 'ease-out' });
+      }
     }
     w.wordCount = st.words.length;
     renderGoalBar();
@@ -433,7 +442,11 @@ export function initWordMode(ctx) {
       w.first = null;
       w.pending = null;
       closeMenu();
-      showPassed();
+      // a beat for the last word to land in the list before the result card appears
+      clearTimeout(w.passTimer);
+      w.passTimer = setTimeout(() => {
+        if (w.game === g && !w.over && goalReached()) showPassed();
+      }, PASS_PAUSE_MS);
     }
     bar.setAttribute('aria-label', `Level ${g.level}: score ${score} of goal ${g.goal}${reached ? ', goal reached' : ''}`);
   }
@@ -1262,14 +1275,14 @@ export function initWordMode(ctx) {
 
   /**
    * Beside the board, the result card sits in the panel column under the word row; when there is no room
-   * left there (a phone on its side) it covers the word row only, so turn, score and level stay in view.
+   * left there (a phone on its side) it takes the whole panel's place instead, so it shows whole.
    */
   function dockInPanel(body) {
     const col = $('.word-hud').getBoundingClientRect();
     const words = $('#w-locked').getBoundingClientRect();
     const bottom = window.innerHeight - 8;
     let top = words.bottom + 10;
-    if (bottom - top < 300) top = words.top; // the card needs about 300px to show whole; short of that it takes the word row's place
+    if (bottom - top < 300) top = col.top; // the card needs about 300px to show whole; short of that it takes the panel's place
     Object.assign(body.style, { position: 'fixed', left: `${Math.round(col.left)}px`, width: `${Math.round(col.width)}px`, top: `${Math.round(top)}px`, maxHeight: `${Math.floor(bottom - top)}px` });
   }
 
@@ -1284,13 +1297,12 @@ export function initWordMode(ctx) {
   function fitBoardAbove() {
     const sheet = $('#w-result');
     const body = sheet.querySelector('.sheet-body');
-    const layout = document.documentElement.dataset.landscape;
-    const sideBySide = layout && matchMedia('(orientation: landscape) and (min-width: 640px)').matches;
+    const sideBySide = matchMedia('(orientation: landscape) and (min-width: 640px)').matches;
     if (sheet.hidden || sideBySide) { // beside its panel the board keeps its size and the card docks in the panel
       boardEl.style.maxWidth = '';
       body.style.maxHeight = '';
       wrapEl.style.paddingTop = '';
-      if (!sheet.hidden && sideBySide && (layout === 'A' || layout === 'B')) dockInPanel(body);
+      if (!sheet.hidden && sideBySide) dockInPanel(body);
       else undock(body);
       return;
     }

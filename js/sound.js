@@ -2,6 +2,7 @@
 // Audio contexts need a user gesture, so the context is created lazily on first play.
 
 let ctx = null;
+let stale = false; // the context stopped making sound (a tab put away and brought back): rebuild it on the next tap
 let enabled = true;
 
 export function setSoundEnabled(on) {
@@ -17,13 +18,56 @@ export function audioState() {
   return ctx ? ctx.state : 'none';
 }
 
-function audio() {
-  if (typeof window === 'undefined') return null;
+function build() {
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return null;
-  if (!ctx) ctx = new AC();
-  if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+  if (ctx) {
+    try {
+      ctx.close().catch(() => {});
+    } catch {
+      // already gone
+    }
+  }
+  ctx = new AC();
+  stale = false;
   return ctx;
+}
+
+function audio() {
+  if (typeof window === 'undefined') return null;
+  if ((!ctx || stale) && !build()) return null;
+  // 'suspended' before the first tap, 'interrupted' after a call or another app's audio on iOS: both resume
+  if (ctx.state !== 'running') {
+    ctx.resume().catch(() => {
+      stale = true;
+    });
+  }
+  return ctx;
+}
+
+/**
+ * Coming back to the page (another app, the home screen, a locked phone) can leave the context suspended,
+ * 'interrupted', or looking fine while its clock has stopped. Resume it, and if the clock does not move,
+ * mark it for rebuilding on the next tap, which is the first moment a new context is allowed to start.
+ */
+function checkAlive() {
+  if (!ctx || stale) return;
+  if (ctx.state !== 'running') {
+    ctx.resume().catch(() => {
+      stale = true;
+    });
+  }
+  const t = ctx.currentTime;
+  setTimeout(() => {
+    if (ctx && !stale && ctx.state === 'running' && ctx.currentTime === t) stale = true;
+  }, 400);
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') checkAlive();
+  });
+  window.addEventListener('pageshow', checkAlive);
+  window.addEventListener('focus', checkAlive);
 }
 
 /** A tone with an attack/decay envelope. */
@@ -140,6 +184,7 @@ export function unlockAudio() {
   if (!enabled) return;
   try {
     audio();
+    checkAlive(); // a tap is also the moment to notice a context that came back dead
   } catch {
     // audio is best-effort
   }

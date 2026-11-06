@@ -38,7 +38,6 @@ const ui = {
 // Boot
 
 async function boot() {
-  applyLandscape(); // the side-by-side layouts under trial: Settings, or ?landscape=A|B|C in the address
   buildBoardSkeleton($('#board'), makeDiceFace);
   wireEvents();
   $('#opt-numerals').checked = !!ui.store.settings.numerals;
@@ -51,14 +50,6 @@ async function boot() {
     r.addEventListener('change', () => {
       ui.store.settings.theme = document.querySelector('input[name="opt-theme"]:checked').value;
       applyTheme(ui.store.settings.theme);
-      saveStore(ui.store);
-    });
-  }
-  for (const r of document.querySelectorAll('input[name="opt-landscape"]')) {
-    r.checked = r.value === (ui.store.settings.landscape || '');
-    r.addEventListener('change', () => {
-      ui.store.settings.landscape = document.querySelector('input[name="opt-landscape"]:checked').value || null;
-      applyLandscape();
       saveStore(ui.store);
     });
   }
@@ -145,14 +136,6 @@ function continueGame() {
 function persist() {
   ui.store.currentGame = ui.game;
   saveStore(ui.store);
-}
-
-/** The landscape layout under trial (A, B or C), from the address if given, else from Settings; nothing means today's single column. */
-function applyLandscape() {
-  const fromUrl = new URLSearchParams(location.search).get('landscape');
-  const choice = ['A', 'B', 'C'].includes(fromUrl) ? fromUrl : ui.store.settings.landscape;
-  if (['A', 'B', 'C'].includes(choice)) document.documentElement.dataset.landscape = choice;
-  else delete document.documentElement.dataset.landscape;
 }
 
 /** Light, dark, or follow the system (the default). */
@@ -609,8 +592,6 @@ function resetData() {
   $('#opt-sound').checked = true;
   $('#opt-size-5').checked = true;
   $('#opt-theme-system').checked = true;
-  $('#opt-landscape-off').checked = true;
-  applyLandscape();
   applyTheme('system');
   setSoundEnabled(true);
   closeSheet($('#reset'));
