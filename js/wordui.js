@@ -1267,7 +1267,8 @@ export function initWordMode(ctx) {
   function fitBoardAbove() {
     const sheet = $('#w-result');
     const body = sheet.querySelector('.sheet-body');
-    if (sheet.hidden) {
+    const sideBySide = document.documentElement.dataset.landscape && matchMedia('(orientation: landscape) and (min-width: 640px)').matches;
+    if (sheet.hidden || sideBySide) { // beside its panel the board keeps its size and the sheet docks in the panel
       boardEl.style.maxWidth = '';
       body.style.maxHeight = '';
       wrapEl.style.paddingTop = '';
