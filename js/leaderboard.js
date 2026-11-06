@@ -49,9 +49,9 @@ export function queueResult(pending, entry) {
 }
 
 /**
- * Bring the per-size counters up to what the recent history proves (stores from before the counters only
- * had a global top level across both sizes; that figure stays global, see legacyReached, and is never
- * posted to a board under one size). Returns true if a counter moved.
+ * Bring the per-size counters up to what the recent history proves. Stores from before the counters only
+ * had a global top level across both sizes (bestReached, bestLevel); that figure cannot be told apart by
+ * size, so it is neither shown per size nor posted to a board. Returns true if a counter moved.
  */
 export function seedReached(word) {
   if (!word) return false;
@@ -65,14 +65,6 @@ export function seedReached(word) {
     }
   }
   return moved;
-}
-
-/** The old global top level (any size), when it exceeds what the per-size figures can account for; 0 otherwise. */
-export function legacyReached(word) {
-  if (!word) return 0;
-  const global = Math.max(word.bestReached || 0, word.bestLevel ? word.bestLevel + 1 : 0);
-  const sized = bestReachedBySize(word);
-  return global > Math.max(sized[5], sized[6]) ? global : 0;
 }
 
 /** The highest level reached per board size, from the per-size counters and the recent history. */
