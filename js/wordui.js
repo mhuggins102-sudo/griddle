@@ -60,7 +60,6 @@ export function initWordMode(ctx) {
     pointerTs: 0,
     worker: null,
     workerJob: 0,
-    resultTweak: 0, // the result sheet tweaks under trial: 0 as chosen, 1 the full set, 2 the alternative (tests set this)
   };
   const boardEl = $('#wboard');
   const wrapEl = boardEl.parentElement;
@@ -253,9 +252,9 @@ export function initWordMode(ctx) {
     ctx.showScreen('screen-word');
     ensureBoard(w.game.size);
     closeSheet($('#w-result'));
+    $('#w-pop').hidden = true;
     $('#screen-word').classList.remove('sheet-up');
     fitBoardAbove(); // the board gets its size back
-    $('#w-words-pop').hidden = true;
     $('#screen-word').classList.remove('over');
     $('#w-locked').hidden = false;
     $('#w-strip').hidden = false;
@@ -1115,7 +1114,7 @@ export function initWordMode(ctx) {
       line = beatBoard ? `Beat your previous best on this board (${previousOnBoard}) · not counted in stats` : `Best on this board stays ${previousOnBoard} · not counted in stats`;
     } else {
       const best = store.word[bestKey];
-      line = isBest ? 'New personal best!' : w.resultTweak && total === best ? 'Ties your personal best' : `Personal best: ${best}`;
+      line = isBest ? 'New personal best!' : total === best ? 'Ties your personal best' : `Personal best: ${best}`;
     }
     if (g.practice) line = `${levelsRun ? (passed ? `Goal ${g.goal} reached` : `Reached level ${g.level}`) + ' · ' : ''}Practice board · not counted in stats`;
     play(levelsRun ? (passed ? 'fanfare' : 'fail') : isBoardFull(st) ? 'fanfare' : 'lock');
@@ -1145,11 +1144,11 @@ export function initWordMode(ctx) {
     const penalty = shortfallPenalty(st.locked.length);
     const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
     const rows = [
-      { label: plural(st.words.length, 'word'), short: 'words', value: st.score, words: true },
-      { label: `${plural(st.locked.length, 'tile')} locked`, short: 'tiles', value: bonus, signed: true, cls: bonus ? 'pos' : '' },
+      { label: plural(st.words.length, 'word'), value: st.score },
+      { label: plural(st.locked.length, 'tile'), value: bonus, signed: true, cls: bonus ? 'pos' : '' },
     ];
-    if (turnBonus) rows.push({ label: `${plural(turnLimit(st) - st.turns, 'turn')} left`, short: 'turns left', value: turnBonus, signed: true, cls: 'pos' });
-    if (penalty) rows.push({ label: `${plural(COVERAGE_TARGET - st.locked.length, 'tile')} short`, short: 'short', value: -penalty, signed: true, cls: 'neg' });
+    if (turnBonus) rows.push({ label: `${plural(turnLimit(st) - st.turns, 'turn')} left`, value: turnBonus, signed: true, cls: 'pos' });
+    if (penalty) rows.push({ label: `${plural(COVERAGE_TARGET - st.locked.length, 'tile')} short`, value: -penalty, signed: true, cls: 'neg' });
     return rows;
   }
 
@@ -1177,9 +1176,6 @@ export function initWordMode(ctx) {
   /** Fill and open the result sheet. data: { state, title, line, rows, total, next, again, againText, replay }. */
   function showResult(data) {
     const sheet = $('#w-result');
-    const tweak = w.resultTweak || 0;
-    if (tweak) sheet.dataset.tweak = String(tweak);
-    else delete sheet.dataset.tweak;
     sheet.dataset.state = data.state || 'over';
     $('#w-result-title').textContent = data.title;
     $('#w-result-best').textContent = data.line;
@@ -1187,19 +1183,11 @@ export function initWordMode(ctx) {
     const tally = $('#w-tally');
     tally.innerHTML = '';
     for (const r of data.rows) {
-      const el = document.createElement(r.words ? 'button' : 'div');
-      el.className = `rs-tile${r.cls ? ` ${r.cls}` : ''}${r.words ? ' words' : ''}${r.value === 0 ? ' zero' : ''}`;
-      if (r.words) {
-        el.type = 'button';
-        el.setAttribute('aria-label', 'Show the words you locked');
-        el.addEventListener('click', showWordsPop);
-      }
+      const el = document.createElement('div');
+      el.className = `rs-tile${r.cls ? ` ${r.cls}` : ''}${r.value === 0 ? ' zero' : ''}`;
       el.innerHTML = `<b>${r.signed && r.value > 0 ? `+${r.value}` : r.value}</b><small>${r.label}</small>`;
       tally.appendChild(el);
     }
-    const share = $('#w-share');
-    if (!share.dataset.icon) share.dataset.icon = share.innerHTML;
-    share.innerHTML = tweak === 1 ? 'Share' : share.dataset.icon; // tweak 1: a text button like its neighbours
     $('#w-next').hidden = !data.next;
     $('#w-again').hidden = !data.again;
     $('#w-again').textContent = data.againText || 'New board';
@@ -1232,8 +1220,17 @@ export function initWordMode(ctx) {
     }
     const width = Math.max(MIN_BOARD_PX, Math.min(wrapEl.clientWidth, Math.floor(room)));
     boardEl.style.maxWidth = `${width}px`;
-    // tweak 1: the board sits in the middle of the room left above the sheet instead of leaving a band under it
-    wrapEl.style.paddingTop = w.resultTweak === 1 && room > width ? `${Math.floor((room - width) / 2)}px` : '';
+    // the board sits in the middle of the room left above the sheet instead of leaving a band under it
+    wrapEl.style.paddingTop = room > width ? `${Math.floor((room - width) / 2)}px` : '';
+  }
+
+  let popTimer = null;
+  function showPop(html) {
+    const pop = $('#w-pop');
+    pop.innerHTML = html;
+    pop.hidden = false;
+    clearTimeout(popTimer);
+    popTimer = setTimeout(() => (pop.hidden = true), 4500);
   }
 
   /** Popup with the score composition as it stands now (tap on the goal bar or the score). */
@@ -1252,22 +1249,6 @@ export function initWordMode(ctx) {
     if (w.game.mode === 'levels' && w.game.goal !== null) html += `<br><span style="opacity:.75">Goal ${w.game.goal}: ${total >= w.game.goal ? 'reached' : `${w.game.goal - total} to go`}</span>`;
     if (st.words.length) html += `<br><span style="opacity:.75">${st.words.map((x) => `${x.word} ${x.score}`).join(', ')}</span>`;
     showPop(html);
-  }
-
-  let popTimer = null;
-  function showPop(html) {
-    const pop = $('#w-words-pop');
-    pop.innerHTML = html;
-    pop.hidden = false;
-    clearTimeout(popTimer);
-    popTimer = setTimeout(() => (pop.hidden = true), 4500);
-  }
-
-  function showWordsPop() {
-    const st = w.game.state;
-    showPop(st.words.length
-      ? st.words.map((x) => `<b>${x.word}</b> ${x.score}`).join(' · ') + ` <span style="opacity:.7">· ${st.locked.length}/${st.board.length} tiles</span>`
-      : 'No words were locked.');
   }
 
   async function copyShare() {
@@ -1337,7 +1318,6 @@ export function initWordMode(ctx) {
       renderStrip();
     }
   });
-  $('#w-words-pop').addEventListener('click', () => ($('#w-words-pop').hidden = true));
   $('#w-goalbar').addEventListener('click', (e) => {
     if (e.target.closest('#w-advance')) return;
     showScorePop();
@@ -1350,6 +1330,7 @@ export function initWordMode(ctx) {
     renderBag();
   });
   $('#w-undo').addEventListener('click', undo);
+  $('#w-pop').addEventListener('click', () => ($('#w-pop').hidden = true));
   $('#w-share').addEventListener('click', copyShare);
   $('#w-next').addEventListener('click', () => {
     if (w.game && !w.over) advanceEarly(); // the goal was reached mid-board: score it and move on
