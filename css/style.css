@@ -586,7 +586,7 @@ svg { display: block; }
   justify-content: space-between;
   gap: 8px;
   min-height: 44px;
-  padding: 0 12px;
+  padding: 0 20px; /* 8px inside the fill (which starts at 12px), in line with the text of the word chips below */
   border-top: 1px solid var(--line);
   font-weight: 800;
   cursor: pointer;
@@ -647,8 +647,6 @@ svg { display: block; }
 .locked-line .lw-list::-webkit-scrollbar { display: none; }
 .locked-line .lw { flex: 0 0 auto; background: var(--ok-bg); color: var(--ink); border-radius: 999px; padding: 1px 8px; font-weight: 700; letter-spacing: 0.03em; }
 .locked-line .lw b { color: var(--ok); font-weight: 800; margin-left: 3px; }
-.locked-line .lw-count { flex: 0 0 auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.locked-line .lw-count b { color: var(--ink); }
 
 /* The 5x5 board sits on a tray; gestures happen here */
 .word-board-wrap { display: block; }
@@ -797,7 +795,7 @@ svg { display: block; }
 .tm-btn .tm-letter { display: flex; align-items: center; gap: 3px; font-size: 22px; font-weight: 800; line-height: 1; }
 .tm-btn .tm-sub { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
 .tm-btn:active .tm-sub { color: inherit; }
-.tm-btn.wild { width: 84px; background: color-mix(in srgb, var(--region) 18%, var(--bg)); }
+.tm-btn.wild { background: color-mix(in srgb, var(--region) 18%, var(--bg)); }
 .tm-btn.wild .tm-letter { color: var(--region); }
 .tm-btn.wild:active .tm-letter { color: inherit; }
 .tm-arrow { width: 0; height: 0; border: 5px solid transparent; }
@@ -1024,9 +1022,9 @@ svg { display: block; }
 .result-sheet { background: transparent; pointer-events: none; } /* the board stays visible and readable above */
 .result-sheet .sheet-body { pointer-events: auto; box-shadow: 0 -10px 34px rgba(0, 0, 0, 0.2); border-top: 1px solid var(--line); }
 .result-sheet .sheet-head { padding: 10px 16px 8px; }
-.result-sheet .sheet-head h2 { font-size: 22px; line-height: 1.15; }
+.result-sheet .sheet-head h2 { font-size: 22px; line-height: 1.1; }
 .result-sheet .result-titles { min-width: 0; }
-.result-sheet .result-titles .breakdown { font-size: 13px; margin-top: 2px; }
+.result-sheet .result-titles .breakdown { font-size: 13px; margin-top: 0; line-height: 1.2; }
 .result-sheet .sheet-scroll { padding: 10px 16px; }
 .result-sheet .sheet-foot { display: flex; flex-direction: column; gap: 8px; }
 .rs-row { display: flex; gap: 8px; }
@@ -1055,7 +1053,8 @@ button.rs-tile:active { background: var(--line); }
 .tilepop table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .tilepop th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; text-align: left; padding: 0 10px 4px 6px; }
 .tilepop td { padding: 3px 10px 3px 6px; }
-.tilepop td:last-child { text-align: right; font-weight: 800; }
+.tilepop td:last-child { text-align: right; font-weight: 800; color: var(--ok); }
+.tilepop tr.zero td:last-child { color: var(--muted); }
 .tilepop tr.me td { background: color-mix(in srgb, var(--accent) 18%, transparent); font-weight: 800; }
 .tilepop tr.me td:first-child { border-radius: 6px 0 0 6px; }
 .tilepop tr.me td:last-child { border-radius: 0 6px 6px 0; }
@@ -1077,11 +1076,11 @@ button.rs-tile:active { background: var(--line); }
   html[data-landscape] .board.plain { max-width: min(100%, calc(100dvh - 40px), 680px); }
   html[data-landscape] .strip { grid-area: strip; margin-top: 12px; }
   html[data-landscape] #w-found-wrap { grid-area: found; margin-top: 12px; }
-  html[data-landscape] #w-bag { grid-area: bag; margin-top: 12px; }
+  html[data-landscape] #w-bag { grid-area: bag; margin-top: 12px; align-self: start; }
   html[data-landscape] .word-screen.over .strip, html[data-landscape] .word-screen.sheet-up .strip { display: flex; } /* the panel keeps its legend */
   html[data-landscape="A"] .word-screen, html[data-landscape="B"] .word-screen {
     grid-template-columns: minmax(0, 1fr) var(--panel-w);
-    grid-template-rows: auto auto auto auto auto auto auto;
+    grid-template-rows: auto auto auto auto auto auto 1fr; /* the last row takes the board's extra height, so the panel's rows stay tight */
     grid-template-areas: "board hud" "board track" "board goal" "board words" "board strip" "board found" "board bag";
   }
   /* the result card docks in the panel, bottom right, instead of rising over the board */
@@ -1091,11 +1090,10 @@ button.rs-tile:active { background: var(--line); }
   html[data-landscape="B"] .topcard .locked-line { flex-direction: column; align-items: stretch; gap: 8px; }
   html[data-landscape="B"] .locked-line .lw-list { flex-direction: column; gap: 4px; overflow: hidden auto; max-height: calc(100dvh - 430px); padding: 0; margin: 0; -webkit-mask-image: none; mask-image: none; }
   html[data-landscape="B"] .locked-line .lw { display: flex; justify-content: space-between; padding: 3px 10px; font-size: 14px; }
-  html[data-landscape="B"] .locked-line .lw-count { align-self: flex-end; }
   /* C: rails either side of the board; the result is a dialog in the middle */
   html[data-landscape="C"] .word-screen {
     grid-template-columns: var(--rail-w) minmax(0, 1fr) var(--rail-w);
-    grid-template-rows: auto auto auto auto auto auto;
+    grid-template-rows: auto auto auto auto auto 1fr;
     grid-template-areas: "hud board words" "track board words" "goal board words" "strip board words" "found board words" "bag board words";
   }
   html[data-landscape="C"] .word-hud { grid-template-columns: 1fr 1fr; gap: 6px 10px; }
@@ -1106,7 +1104,6 @@ button.rs-tile:active { background: var(--line); }
   html[data-landscape="C"] .topcard .locked-line { border-radius: var(--radius); flex-direction: column; align-items: stretch; gap: 8px; align-self: start; }
   html[data-landscape="C"] .locked-line .lw-list { flex-direction: column; gap: 4px; overflow: hidden auto; max-height: calc(100dvh - 120px); padding: 0; margin: 0; -webkit-mask-image: none; mask-image: none; }
   html[data-landscape="C"] .locked-line .lw { display: flex; justify-content: space-between; padding: 3px 10px; font-size: 14px; }
-  html[data-landscape="C"] .locked-line .lw-count { align-self: flex-end; }
   html[data-landscape="C"] .legend { flex-wrap: wrap; justify-content: flex-start; gap: 8px 14px; }
   html[data-landscape="C"] .result-sheet { align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.35); pointer-events: auto; }
   html[data-landscape="C"] .result-sheet .sheet-body { max-width: 440px; border-radius: 18px; border: 1px solid var(--line); }
