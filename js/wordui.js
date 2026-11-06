@@ -58,7 +58,7 @@ export function initWordMode(ctx) {
     pointerTs: 0,
     worker: null,
     workerJob: 0,
-    resultVariant: ['a', 'b', 'c'].includes(new URLSearchParams(location.search).get('result')) ? new URLSearchParams(location.search).get('result') : 'a', // the result sheet layout under trial (?result=a|b|c): receipt, headline, compact
+    resultVariant: null, // set to 'a' | 'b' | 'c' to override the trial layout from Settings (tests); ?result=… in the address does the same
   };
   const boardEl = $('#wboard');
   const wrapEl = boardEl.parentElement;
@@ -1179,7 +1179,8 @@ export function initWordMode(ctx) {
    */
   function showResult(data) {
     const sheet = $('#w-result');
-    const v = w.resultVariant || 'a';
+    const fromUrl = new URLSearchParams(location.search).get('result');
+    const v = ['a', 'b', 'c'].find((x) => x === (w.resultVariant || fromUrl || (ctx.store.settings && ctx.store.settings.resultLayout))) || 'a';
     sheet.dataset.variant = v;
     sheet.dataset.state = data.state || 'over';
     $('#w-result-title').textContent = data.title;
