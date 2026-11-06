@@ -32,9 +32,10 @@
           <button id="btn-word-continue" class="btn btn-primary btn-big" hidden><span class="btn-main">Continue</span><span class="btn-sub" id="continue-sub"></span></button>
           <button id="btn-word" class="btn btn-primary btn-big"><span class="btn-main">New game</span><span class="btn-sub">Levels with a goal to beat</span></button>
           <button id="btn-free" class="btn btn-big"><span class="btn-main">Free play</span><span class="btn-sub">One board, no goal, unlimited undos</span></button>
-          <div class="btn-row three">
+          <div class="btn-row four">
             <button id="btn-help-home" class="btn">How to play</button>
             <button id="btn-stats" class="btn">Stats</button>
+            <button id="btn-leaderboard" class="btn btn-gear" aria-label="Leaderboard"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1.5A3.5 3.5 0 0 0 7.5 11"/><path d="M17 6h3v1.5a3.5 3.5 0 0 1-3.5 3.5"/><path d="M12 14v4M9 18h6v3H9z"/></svg></button>
             <button id="btn-settings" class="btn btn-gear" aria-label="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
           </div>
           <div id="number-game-buttons" class="home-buttons" hidden>
@@ -252,6 +253,62 @@
         <div class="sheet-foot btn-row">
           <button id="btn-stats-reset" class="btn btn-quiet">Reset device data</button>
           <button id="btn-stats-done" class="btn btn-primary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leaderboard sheet: top 10 per board size and kind -->
+    <div id="leaderboard" class="sheet" hidden>
+      <div class="sheet-body">
+        <div class="sheet-head"><h2>Leaderboard</h2><button id="btn-lb-close" class="btn btn-icon" aria-label="Close">✕</button></div>
+        <div class="sheet-scroll">
+          <div class="lb-controls">
+            <div class="seg seg-small" role="radiogroup" aria-label="Board size">
+              <label><input type="radio" name="lb-size" id="lb-size-5" value="5" checked><span>5×5</span></label>
+              <label><input type="radio" name="lb-size" id="lb-size-6" value="6"><span>6×6</span></label>
+            </div>
+            <div class="seg seg-small" role="radiogroup" aria-label="Board">
+              <label><input type="radio" name="lb-kind" id="lb-kind-score" value="score" checked><span>High scores</span></label>
+              <label><input type="radio" name="lb-kind" id="lb-kind-level" value="level"><span>Top level</span></label>
+            </div>
+          </div>
+          <ol id="lb-list" class="lb-list" aria-live="polite"></ol>
+          <p id="lb-status" class="hint lb-status"></p>
+        </div>
+        <div class="sheet-foot btn-row">
+          <button id="btn-lb-name" class="btn btn-quiet">Join</button>
+          <button id="btn-lb-done" class="btn btn-primary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Name sheet: join the leaderboard, change the name, or stay anonymous -->
+    <div id="lb-name" class="sheet" hidden>
+      <div class="sheet-body">
+        <div class="sheet-head"><h2 id="lb-name-title">Join the leaderboard?</h2><button id="btn-lb-name-close" class="btn btn-icon" aria-label="Close">✕</button></div>
+        <div class="sheet-scroll">
+          <p class="hint">Pick a name and your best scores and highest levels are posted to the leaderboard for other players to see. Stay anonymous and nothing leaves this device.</p>
+          <input id="lb-name-input" class="text-input" type="text" maxlength="16" autocomplete="nickname" autocapitalize="words" spellcheck="false" placeholder="Your name" aria-label="Leaderboard name">
+          <p id="lb-name-error" class="hint bad" hidden></p>
+        </div>
+        <div class="sheet-foot btn-row">
+          <button id="btn-lb-anon" class="btn btn-quiet">Stay anonymous</button>
+          <button id="btn-lb-save" class="btn btn-primary">Post my scores</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reset sheet: wipe the device, keeping or forgetting the leaderboard name -->
+    <div id="reset" class="sheet" hidden>
+      <div class="sheet-body">
+        <div class="sheet-head"><h2>Reset device data</h2><button id="btn-reset-close" class="btn btn-icon" aria-label="Close">✕</button></div>
+        <div class="sheet-scroll">
+          <p class="hint">Erases the history, best scores, settings and any game in progress on this device.</p>
+          <label class="toggle" id="reset-forget-row"><span><span id="reset-forget-label">Also forget my leaderboard name</span><small id="reset-forget-sub"></small></span><input type="checkbox" class="switch" role="switch" id="reset-forget"></label>
+        </div>
+        <div class="sheet-foot btn-row">
+          <button id="btn-reset-cancel" class="btn btn-quiet">Cancel</button>
+          <button id="btn-reset-confirm" class="btn btn-primary">Reset</button>
         </div>
       </div>
     </div>

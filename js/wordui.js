@@ -1065,7 +1065,11 @@ export function initWordMode(ctx) {
       if (isBest) store.word[bestKey] = total;
       store.word.gamesPlayed++;
       if (passed) store.word.bestLevel = Math.max(store.word.bestLevel || 0, g.level);
-      if (g.mode === 'levels') store.word.bestReached = Math.max(store.word.bestReached || 0, g.level);
+      if (g.mode === 'levels') {
+        store.word.bestReached = Math.max(store.word.bestReached || 0, g.level);
+        const key = `bestReached${g.size}`; // per board size, for the stats and the leaderboard
+        store.word[key] = Math.max(store.word[key] || 0, passed ? g.level + 1 : g.level);
+      }
       store.word.history.unshift({
         at: new Date().toISOString(), seed: g.seed, drawSeed: g.drawSeed, size: g.size, score: total, bonus, mode: g.mode, level: g.level, goal: g.goal, passed,
         words: st.words.map((x) => ({ word: x.word, score: x.score })),
@@ -1074,6 +1078,9 @@ export function initWordMode(ctx) {
     }
     store.wordGame = null;
     ctx.saveStore(store);
+    // the leaderboard hears about every finished board; replays and retries never count, and the name
+    // question waits for a board whose result is on screen
+    if (ctx.leaderboard) ctx.leaderboard.afterBoard({ size: g.size, score: total, levelReached: g.mode === 'levels' ? store.word[`bestReached${g.size}`] : 0, replay: !!g.replay, prompt: !silent });
     if (silent) return;
 
     $('#w-strip').hidden = true;
