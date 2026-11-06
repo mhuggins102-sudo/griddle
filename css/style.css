@@ -1014,6 +1014,7 @@ svg { display: block; }
 .lb-list .lb-value { font-weight: 800; font-variant-numeric: tabular-nums; }
 .lb-list li.lb-gap { grid-template-columns: 1fr; justify-items: center; min-height: 0; padding: 0; background: none; border: 0; color: var(--muted); font-weight: 800; letter-spacing: 0.2em; }
 .lb-status { margin-top: 10px; }
+#reset .sheet-scroll .hint { margin-bottom: 12px; } /* room between the warning and the switch */
 .lb-status:empty { display: none; }
 #leaderboard .sheet-foot { grid-template-columns: minmax(0, 3fr) 2fr; }
 #btn-lb-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

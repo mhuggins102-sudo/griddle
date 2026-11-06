@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanName, queueResult, bestReachedBySize, localBests, listRows, seedReached, legacyReached, defaultIdentity, NAME_MAX } from '../js/leaderboard.js';
+import { cleanName, queueResult, bestReachedBySize, localBests, listRows, seedReached, defaultIdentity, NAME_MAX } from '../js/leaderboard.js';
 
 test('cleanName trims, collapses spaces, strips control characters and caps the length', () => {
   assert.equal(cleanName('  Mia   Huggins '), 'Mia Huggins');
@@ -31,17 +31,12 @@ test('seedReached brings the per-size counters up to what the history proves, an
   assert.equal(ahead.bestReached5, 9);
 });
 
-test('legacyReached is the old global top level only while nothing per size accounts for it', () => {
-  assert.equal(legacyReached(undefined), 0);
-  // a veteran 5x5 player whose last run was a 6x6 loss: the 12 stays size-less, nothing is attributed to 6x6
+test('an old global top level is never attributed to a size', () => {
+  // a veteran 5x5 player whose last run was a 6x6 loss: the old 12 is not given to 6x6 (or to 5x5)
   const old = { bestReached: 12, bestLevel: 11, best6: 50, history: [{ mode: 'levels', size: 6, level: 1, passed: false }] };
-  assert.equal(legacyReached(old), 12);
+  assert.equal(seedReached(old), true);
   assert.deepEqual(bestReachedBySize(old), { 5: 0, 6: 1 });
   assert.deepEqual(localBests(old).filter((b) => b.kind === 'level'), [{ size: 6, kind: 'level', value: 1 }]);
-  // once a size reaches it, the size-less figure retires
-  assert.equal(legacyReached({ bestReached: 12, bestReached5: 12 }), 0);
-  assert.equal(legacyReached({ bestLevel: 4, bestReached5: 5 }), 0);
-  assert.equal(legacyReached({ bestLevel: 4, bestReached5: 4 }), 5);
   assert.deepEqual(defaultIdentity(), { playerId: null, name: null, status: 'unasked', pending: [], removals: [], rename: null });
 });
 

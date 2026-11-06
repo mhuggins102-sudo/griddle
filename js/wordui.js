@@ -204,6 +204,8 @@ export function initWordMode(ctx) {
       if (w.game.history === undefined) w.game.history = w.game.prev && !w.game.undoUsed ? [w.game.prev] : []; // saves from the one-undo days
       if (w.game.retry === undefined) w.game.retry = null;
       if (w.game.size === undefined) w.game.size = w.game.state.size || Math.round(Math.sqrt(w.game.state.board.length));
+      if (w.game.practice === undefined) w.game.practice = false;
+      if (showWordsOption()) w.game.practice = true; // once the words have been shown, the board stays practice
     } else {
       const seed = opts.seed ?? randomSeed();
       const drawSeed = opts.drawSeed ?? randomSeed();
@@ -222,6 +224,7 @@ export function initWordMode(ctx) {
         botWords: null,
         history: [], // states to undo back to; emptied by a draw, since a draw cannot be undone
         replay: !!opts.replay,
+        practice: showWordsOption(), // the words on show: a practice board, nothing saved to stats or the leaderboard
         retry: null, // a free-play replay of the board that ended a run: its goal stays on show
       };
       if (opts.retry) {
@@ -253,6 +256,7 @@ export function initWordMode(ctx) {
     if (opts.note) say(opts.note, 'good', 2800);
     else if (opts.retry) say(`Replaying the board that ended your run · goal ${opts.retry.goal} · not counted in stats`, '', 3500);
     else if (opts.replay) say('Replaying this board · not counted in your stats', '', 3000);
+    else if (w.game.practice) say('Practice board · words shown · not counted in stats', '', 3500);
     computeGoal(w.game);
     // a board saved in its last moment (full, or a level run out of turns) is scored straight away
     const st = w.game.state;
@@ -1057,10 +1061,10 @@ export function initWordMode(ctx) {
     const boardKey = `${g.seed}:${g.drawSeed}`;
     const previousOnBoard = store.word.boards[boardKey];
     const beatBoard = previousOnBoard !== undefined && total > previousOnBoard;
-    if (previousOnBoard === undefined || total > previousOnBoard) store.word.boards[boardKey] = total;
+    if (!g.practice && (previousOnBoard === undefined || total > previousOnBoard)) store.word.boards[boardKey] = total;
     const passed = g.mode === 'levels' && total >= g.goal;
     let isBest = false;
-    if (!g.replay) {
+    if (!g.replay && !g.practice) {
       isBest = store.word[bestKey] == null || total > store.word[bestKey];
       if (isBest) store.word[bestKey] = total;
       store.word.gamesPlayed++;
@@ -1080,7 +1084,7 @@ export function initWordMode(ctx) {
     ctx.saveStore(store);
     // the leaderboard hears about every finished board; replays and retries never count, and the name
     // question waits for a board whose result is on screen
-    if (ctx.leaderboard) ctx.leaderboard.afterBoard({ size: g.size, score: total, levelReached: g.mode === 'levels' ? store.word[`bestReached${g.size}`] : 0, replay: !!g.replay, prompt: !silent });
+    if (ctx.leaderboard) ctx.leaderboard.afterBoard({ size: g.size, score: total, levelReached: g.mode === 'levels' ? store.word[`bestReached${g.size}`] : 0, replay: !!g.replay || !!g.practice, prompt: !silent });
     if (silent) return;
 
     $('#w-strip').hidden = true;
@@ -1136,6 +1140,7 @@ export function initWordMode(ctx) {
     } else {
       line = isBest ? 'New personal best!' : `Personal best: ${store.word[bestKey]}`;
     }
+    if (g.practice) line = `${levelsRun ? (passed ? `Goal ${g.goal} reached` : `Reached level ${g.level}`) + ' · ' : ''}Practice board · not counted in stats`;
     $('#w-tally').hidden = false;
     $('#w-share').hidden = false;
     play(levelsRun ? (passed ? 'fanfare' : 'fail') : isBoardFull(st) ? 'fanfare' : 'lock');
