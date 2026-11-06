@@ -53,6 +53,13 @@ async function boot() {
       saveStore(ui.store);
     });
   }
+  for (const r of document.querySelectorAll('input[name="opt-result"]')) {
+    r.checked = r.value === (ui.store.settings.resultLayout || 'a');
+    r.addEventListener('change', () => {
+      ui.store.settings.resultLayout = document.querySelector('input[name="opt-result"]:checked').value; // the result sheet layout under trial
+      saveStore(ui.store);
+    });
+  }
   $('#opt-size-6').checked = ui.store.settings.boardSize === 6;
   $('#opt-size-5').checked = ui.store.settings.boardSize !== 6;
   for (const r of document.querySelectorAll('input[name="opt-size"]')) {
@@ -592,6 +599,7 @@ function resetData() {
   $('#opt-sound').checked = true;
   $('#opt-size-5').checked = true;
   $('#opt-theme-system').checked = true;
+  $('#opt-result-a').checked = true;
   applyTheme('system');
   setSoundEnabled(true);
   closeSheet($('#reset'));

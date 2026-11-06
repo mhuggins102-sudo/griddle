@@ -240,7 +240,7 @@ export function initLeaderboard(ctx) {
         // the player may have moved on already (new board, home, the tutorial): then the next result asks
         const result = $('#w-result');
         const screen = $('#screen-word');
-        if (!result || result.hidden || !screen || screen.hidden || document.querySelector('.sheet:not([hidden])')) return;
+        if (!result || result.hidden || !screen || screen.hidden || document.querySelector('.sheet:not([hidden]):not(#w-result)')) return;
         openNameSheet();
       }, PROMPT_DELAY_MS);
     } else {
