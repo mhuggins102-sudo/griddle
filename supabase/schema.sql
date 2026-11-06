@@ -38,8 +38,10 @@ create index if not exists leaderboard_rank_idx on public.leaderboard (size, kin
 alter table public.leaderboard enable row level security;
 revoke all on table public.leaderboard from public, anon, authenticated;
 
--- A name as the server keeps it: control characters removed, runs of whitespace collapsed, trimmed, at most
--- 16 characters; null when nothing is left. The game applies the same rule before sending.
+-- A name as the server keeps it: control and invisible characters removed (C0 and C1 controls, zero-width
+-- spaces and joiners, direction marks, soft hyphens, the byte-order mark), every kind of whitespace collapsed
+-- to one space, trimmed, at most 16 characters; null when nothing is left. The game applies the same rule
+-- (cleanName in js/leaderboard.js) before sending.
 create or replace function public.clean_name(p_name text)
 returns text
 language sql
@@ -47,7 +49,9 @@ immutable
 set search_path = ''
 as $$
   select nullif(
-    btrim(left(btrim(regexp_replace(regexp_replace(coalesce(p_name, ''), '[[:cntrl:]]', '', 'g'), '\s+', ' ', 'g')), 16)),
+    btrim(left(btrim(regexp_replace(
+      regexp_replace(coalesce(p_name, ''), '[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u206f\ufeff]', '', 'g'),
+      '[\s\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+', ' ', 'g')), 16)),
     ''
   );
 $$;
