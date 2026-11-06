@@ -17,7 +17,7 @@ export function defaultStore() {
     currentGame: null,
     word: { gamesPlayed: 0, best: null, history: [] },
     wordGame: null,
-    leaderboard: { playerId: null, name: null, status: 'unasked', pending: [], removals: [] }, // who this device is on the leaderboard, results waiting to go out, rows still to take down
+    leaderboard: { playerId: null, name: null, status: 'unasked', pending: [], removals: [], rename: null }, // who this device is on the leaderboard, and what still has to reach it
   };
 }
 

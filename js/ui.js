@@ -7,7 +7,7 @@ import {
 import { ANIM_MS, wait, neighbours, buildBoardSkeleton, tileIn, animateAction, clearTileEffects } from './board.js';
 import { initWordMode } from './wordui.js';
 import { initTutorial } from './tutorial.js';
-import { initLeaderboard, bestReachedBySize, migrateReached } from './leaderboard.js';
+import { initLeaderboard, bestReachedBySize, legacyReached, seedReached } from './leaderboard.js';
 import { openSheet, closeSheet } from './sheet.js';
 import { setSoundEnabled, audioState } from './sound.js';
 import { TURNS_BY_SIZE } from './words.js';
@@ -84,7 +84,7 @@ async function boot() {
     saveStore(ui.store);
   }
   ui.tutorial = initTutorial();
-  migrateReached(ui.store.word); // a save from before the per-size top level; the next save keeps it
+  seedReached(ui.store.word); // the per-size top levels catch up with the history; the next save keeps it
   ui.leaderboard = initLeaderboard({ store: ui.store, saveStore, showToast, boardSize });
   ui.word = initWordMode({ store: ui.store, saveStore, showScreen, showHome, showToast, openHelp, openTutorial: (size, opts) => ui.tutorial.open(size, opts), leaderboard: ui.leaderboard });
   showHome();
@@ -541,6 +541,7 @@ function showStats() {
     const wordsPlayed = hist.reduce((a, g) => a + g.words.length, 0);
     const bestWord = hist.flatMap((g) => g.words).sort((a, b) => b.score - a.score)[0];
     const reached = bestReachedBySize(w);
+    const legacy = legacyReached(w); // a save from before levels were counted per size
     body.innerHTML = `
       <div class="stat-summary">
         <div><span class="hud-label">Games</span><span class="hud-value">${w.gamesPlayed}</span></div>
@@ -552,6 +553,7 @@ function showStats() {
         <div><span class="hud-label">Best word</span><span class="hud-value">${bestWord ? `${escapeHtml(bestWord.word)} ${bestWord.score}` : '–'}</span></div>
         <div><span class="hud-label">${w.best6 != null ? 'Top level 5×5' : 'Top level'}</span><span class="hud-value">${reached[5] || '–'}</span></div>
         ${w.best6 != null ? `<div><span class="hud-label">Top level 6×6</span><span class="hud-value">${reached[6] || '–'}</span></div>` : ''}
+        ${legacy ? `<div><span class="hud-label">Top level, any size</span><span class="hud-value">${legacy}</span></div>` : ''}
       </div>
       <h3>Recent games</h3>
       <ul class="stat-list">${hist
@@ -671,10 +673,15 @@ function wireEvents() {
   $('#btn-stats').addEventListener('click', showStats);
   $('#btn-stats-reset').addEventListener('click', openReset);
   $('#btn-reset-confirm').addEventListener('click', resetData);
-  $('#btn-reset-cancel').addEventListener('click', () => closeSheet($('#reset')));
-  $('#btn-reset-close').addEventListener('click', () => closeSheet($('#reset')));
+  // backing out of a reset returns to Stats, where the player came from
+  const cancelReset = () => {
+    closeSheet($('#reset'));
+    showStats();
+  };
+  $('#btn-reset-cancel').addEventListener('click', cancelReset);
+  $('#btn-reset-close').addEventListener('click', cancelReset);
   $('#reset').addEventListener('click', (e) => {
-    if (e.target === $('#reset')) closeSheet($('#reset'));
+    if (e.target === $('#reset')) cancelReset();
   });
   $('#opt-numerals').addEventListener('change', (e) => {
     ui.store.settings.numerals = e.target.checked;

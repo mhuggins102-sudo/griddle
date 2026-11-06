@@ -1124,7 +1124,7 @@ export function initWordMode(ctx) {
     let title = 'Final score';
     let line;
     if (levelsRun) {
-      const bestReached = store.word[`bestReached${g.size}`] || g.level; // per board size, like Stats and the leaderboard
+      const bestReached = Math.max(store.word[`bestReached${g.size}`] || 0, g.level); // per board size, like Stats and the leaderboard
       title = passed ? `Level ${g.level} passed!` : 'Game over';
       line = passed ? `Goal ${g.goal} reached` : `Reached level ${g.level} · best level ${bestReached}`;
     } else if (g.retry) {

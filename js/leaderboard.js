@@ -21,19 +21,18 @@ export function cleanName(raw) {
   const s = String(raw ?? '')
     .replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u206f\ufeff]/g, '')
     .replace(/[\s\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+/g, ' ')
-    .trim()
-    .slice(0, NAME_MAX)
     .trim();
-  return s || null;
+  return Array.from(s).slice(0, NAME_MAX).join('').trim() || null; // counted in characters, as the server does
 }
 
 /**
  * The identity and outbox as stored under store.leaderboard. status: 'unasked' | 'named' | 'anonymous';
  * pending holds results waiting to go out; removals holds player ids whose rows still have to come down
- * (a player who went anonymous or was forgotten while the network was away).
+ * (a player who went anonymous or was forgotten while the network was away); rename is a new name not yet
+ * on every row.
  */
 export function defaultIdentity() {
-  return { playerId: null, name: null, status: 'unasked', pending: [], removals: [] };
+  return { playerId: null, name: null, status: 'unasked', pending: [], removals: [], rename: null };
 }
 
 /** Put a result in the outbox, in place: one entry per board, the highest value wins. Returns true if anything changed. */
@@ -50,17 +49,30 @@ export function queueResult(pending, entry) {
 }
 
 /**
- * Stores from before the per-size counters only knew a global top level. Give it, once, to the size of the
- * most recent level run in the history (5x5 when there is none), so Stats and the leaderboard keep it.
+ * Bring the per-size counters up to what the recent history proves (stores from before the counters only
+ * had a global top level across both sizes; that figure stays global, see legacyReached, and is never
+ * posted to a board under one size). Returns true if a counter moved.
  */
-export function migrateReached(word) {
-  if (!word || word.bestReached5 !== undefined || word.bestReached6 !== undefined) return false;
+export function seedReached(word) {
+  if (!word) return false;
+  const proven = bestReachedBySize(word);
+  let moved = false;
+  for (const size of [5, 6]) {
+    const key = `bestReached${size}`;
+    if ((word[key] || 0) < proven[size]) {
+      word[key] = proven[size];
+      moved = true;
+    }
+  }
+  return moved;
+}
+
+/** The old global top level (any size), when it exceeds what the per-size figures can account for; 0 otherwise. */
+export function legacyReached(word) {
+  if (!word) return 0;
   const global = Math.max(word.bestReached || 0, word.bestLevel ? word.bestLevel + 1 : 0);
-  const latest = (word.history || []).find((g) => g.mode === 'levels');
-  const size = latest && latest.size === 6 ? 6 : 5;
-  word.bestReached5 = size === 5 ? global : 0;
-  word.bestReached6 = size === 6 ? global : 0;
-  return true;
+  const sized = bestReachedBySize(word);
+  return global > Math.max(sized[5], sized[6]) ? global : 0;
 }
 
 /** The highest level reached per board size, from the per-size counters and the recent history. */
@@ -122,32 +134,44 @@ export function initLeaderboard(ctx) {
     const id = s.leaderboard;
     if (!Array.isArray(id.pending)) id.pending = [];
     if (!Array.isArray(id.removals)) id.removals = [];
+    if (typeof id.rename !== 'string') id.rename = null;
     if (!['unasked', 'named', 'anonymous'].includes(id.status)) id.status = 'unasked';
     if (id.status === 'named' && !id.playerId) id.playerId = randomId();
     return id;
   }
 
   async function rpc(name, args) {
-    const res = await fetch(`${base}/rest/v1/rpc/${name}`, {
-      method: 'POST',
-      headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json', Accept: 'application/json' }, // the public key travels in apikey only
-      body: JSON.stringify(args),
-      signal: typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(RPC_TIMEOUT_MS) : undefined,
-    });
-    if (!res.ok) {
-      const err = new Error(`${name}: HTTP ${res.status}`);
-      err.status = res.status;
-      throw err;
+    const ac = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = ac ? setTimeout(() => ac.abort(), RPC_TIMEOUT_MS) : null;
+    try {
+      const res = await fetch(`${base}/rest/v1/rpc/${name}`, {
+        method: 'POST',
+        headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json', Accept: 'application/json' }, // the public key travels in apikey only
+        body: JSON.stringify(args),
+        signal: ac ? ac.signal : undefined,
+      });
+      if (!res.ok) {
+        const err = new Error(`${name}: HTTP ${res.status}`);
+        err.status = res.status;
+        throw err;
+      }
+      const text = await res.text();
+      return text ? JSON.parse(text) : null;
+    } finally {
+      clearTimeout(timer);
     }
-    const text = await res.text();
-    return text ? JSON.parse(text) : null;
+  }
+
+  /** Only a request the server examined and refused is final; a missing key, a missing grant, a stale schema cache or a rate limit is tried again. */
+  function rejected(err) {
+    return err.status === 400 || err.status === 422;
   }
 
   /**
-   * Send what is waiting: removals first, then results oldest first. A rejected entry is dropped; a network
-   * or server failure keeps the rest for next time. The identity is read afresh at every step, so a reset
-   * or a change of mind while a request is in flight is honoured. Resolves to the number of requests that
-   * went through.
+   * Send what is waiting: removals first, then a pending rename, then results oldest first. An entry the
+   * server refused (HTTP 400) is dropped; anything else (no network, a server error, a missing key or grant,
+   * a rate limit) keeps it for next time. The identity is read afresh at every step, so a reset or a change
+   * of mind while a request is in flight is honoured. Resolves to the number of requests that went through.
    */
   function flush() {
     if (flushing) return flushing;
@@ -160,23 +184,36 @@ export function initLeaderboard(ctx) {
           const gone = id.removals[0];
           try {
             await rpc('remove_player', { p_player: gone });
+            sent++;
           } catch (err) {
-            if (!(err.status >= 400 && err.status < 500)) break;
+            if (!rejected(err)) break;
           }
           const now = identity();
           const i = now.removals.indexOf(gone);
           if (i >= 0) now.removals.splice(i, 1);
           ctx.saveStore(ctx.store);
-          sent++;
           continue;
         }
-        if (id.status !== 'named' || !id.pending.length) break;
+        if (id.status !== 'named') break;
+        if (id.rename) {
+          try {
+            await rpc('rename_player', { p_player: id.playerId, p_name: id.rename });
+            sent++;
+          } catch (err) {
+            if (!rejected(err)) break;
+          }
+          const now = identity();
+          if (now === id && now.rename === id.rename) now.rename = null;
+          ctx.saveStore(ctx.store);
+          continue;
+        }
+        if (!id.pending.length) break;
         const e = id.pending[0];
         try {
           await rpc('submit_score', { p_player: id.playerId, p_name: id.name, p_size: e.size, p_kind: e.kind, p_value: e.value });
           sent++;
         } catch (err) {
-          if (!(err.status >= 400 && err.status < 500)) break;
+          if (!rejected(err)) break;
         }
         const now = identity();
         if (now !== id) continue; // the identity changed under the request: start over with the new one
@@ -207,7 +244,13 @@ export function initLeaderboard(ctx) {
     if (id.status === 'unasked') {
       if (!prompt) return; // a board scored on the way out: the question waits for one whose result is on screen
       clearTimeout(promptTimer);
-      promptTimer = setTimeout(() => openNameSheet(), PROMPT_DELAY_MS);
+      promptTimer = setTimeout(() => {
+        // the player may have moved on already (new board, home, the tutorial): then the next result asks
+        const result = $('#w-result');
+        const screen = $('#screen-word');
+        if (!result || result.hidden || !screen || screen.hidden || document.querySelector('.sheet:not([hidden])')) return;
+        openNameSheet();
+      }, PROMPT_DELAY_MS);
     } else {
       flush();
     }
@@ -224,7 +267,7 @@ export function initLeaderboard(ctx) {
     $('#btn-lb-anon').textContent = named ? 'Remove my name' : id.status === 'anonymous' ? 'Cancel' : 'Stay anonymous';
     $('#btn-lb-save').textContent = named ? 'Save' : 'Post my scores';
     openSheet(nameSheet);
-    setTimeout(() => $('#lb-name-input').focus({ preventScroll: true }), 50);
+    $('#lb-name-input').focus({ preventScroll: true }); // within the tap, so phones bring the keyboard up
   }
 
   function closeNameSheet() {
@@ -241,14 +284,13 @@ export function initLeaderboard(ctx) {
       return;
     }
     const id = identity();
-    const rename = id.status === 'named' && id.name !== name;
+    if (id.status === 'named' && id.name !== name) id.rename = name; // every row takes the new name, retried until it does
     if (!id.playerId) id.playerId = randomId();
     id.name = name;
     id.status = 'named';
     for (const b of localBests(ctx.store.word)) queueResult(id.pending, b);
     ctx.saveStore(ctx.store);
     closeNameSheet();
-    if (rename && configured) rpc('rename_player', { p_player: id.playerId, p_name: name }).catch(() => {});
     flush().then(() => {
       if (sheet && !sheet.hidden) load();
     });
@@ -305,11 +347,9 @@ export function initLeaderboard(ctx) {
     status.textContent = 'Loading…';
     const token = ++view.loadToken;
     const id = identity();
-    if (!flushing) {
-      flush().then((sent) => {
-        if (sent && token === view.loadToken && !sheet.hidden) load(); // the boards just changed: show it
-      });
-    }
+    flush().then((sent) => {
+      if (sent && token === view.loadToken && !sheet.hidden) load(); // the boards just changed: show it
+    });
     let rows;
     try {
       rows = await rpc('get_leaderboard', { p_size: view.size, p_kind: view.kind, p_player: id.status === 'named' ? id.playerId : null });
@@ -378,7 +418,7 @@ export function initLeaderboard(ctx) {
   $('#btn-lb-save').addEventListener('click', saveName);
   $('#btn-lb-anon').addEventListener('click', goAnonymous);
   $('#lb-name-input').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.isComposing) {
       e.preventDefault();
       saveName();
     }
