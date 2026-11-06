@@ -1076,11 +1076,11 @@ button.rs-tile:active { background: var(--line); }
   html[data-landscape] .board.plain { max-width: min(100%, calc(100dvh - 40px), 680px); }
   html[data-landscape] .strip { grid-area: strip; margin-top: 12px; }
   html[data-landscape] #w-found-wrap { grid-area: found; margin-top: 12px; }
-  html[data-landscape] #w-bag { grid-area: bag; margin-top: 12px; }
+  html[data-landscape] #w-bag { grid-area: bag; margin-top: 12px; align-self: start; }
   html[data-landscape] .word-screen.over .strip, html[data-landscape] .word-screen.sheet-up .strip { display: flex; } /* the panel keeps its legend */
   html[data-landscape="A"] .word-screen, html[data-landscape="B"] .word-screen {
     grid-template-columns: minmax(0, 1fr) var(--panel-w);
-    grid-template-rows: auto auto auto auto auto auto auto;
+    grid-template-rows: auto auto auto auto auto auto 1fr; /* the last row takes the board's extra height, so the panel's rows stay tight */
     grid-template-areas: "board hud" "board track" "board goal" "board words" "board strip" "board found" "board bag";
   }
   /* the result card docks in the panel, bottom right, instead of rising over the board */
@@ -1093,7 +1093,7 @@ button.rs-tile:active { background: var(--line); }
   /* C: rails either side of the board; the result is a dialog in the middle */
   html[data-landscape="C"] .word-screen {
     grid-template-columns: var(--rail-w) minmax(0, 1fr) var(--rail-w);
-    grid-template-rows: auto auto auto auto auto auto;
+    grid-template-rows: auto auto auto auto auto 1fr;
     grid-template-areas: "hud board words" "track board words" "goal board words" "strip board words" "found board words" "bag board words";
   }
   html[data-landscape="C"] .word-hud { grid-template-columns: 1fr 1fr; gap: 6px 10px; }
