@@ -7,7 +7,7 @@ import {
 import { ANIM_MS, wait, neighbours, buildBoardSkeleton, tileIn, animateAction, clearTileEffects } from './board.js';
 import { initWordMode } from './wordui.js';
 import { initTutorial } from './tutorial.js';
-import { initLeaderboard, bestReachedBySize } from './leaderboard.js';
+import { initLeaderboard, bestReachedBySize, migrateReached } from './leaderboard.js';
 import { openSheet, closeSheet } from './sheet.js';
 import { setSoundEnabled, audioState } from './sound.js';
 import { TURNS_BY_SIZE } from './words.js';
@@ -84,6 +84,7 @@ async function boot() {
     saveStore(ui.store);
   }
   ui.tutorial = initTutorial();
+  migrateReached(ui.store.word); // a save from before the per-size top level; the next save keeps it
   ui.leaderboard = initLeaderboard({ store: ui.store, saveStore, showToast, boardSize });
   ui.word = initWordMode({ store: ui.store, saveStore, showScreen, showHome, showToast, openHelp, openTutorial: (size, opts) => ui.tutorial.open(size, opts), leaderboard: ui.leaderboard });
   showHome();
@@ -574,14 +575,14 @@ function openReset() {
 
 function resetData() {
   const forget = $('#reset-forget').checked;
-  const kept = forget ? null : { ...ui.leaderboard.identity(), pending: [] };
-  if (forget) ui.leaderboard.forgetIdentity();
+  const kept = forget ? ui.leaderboard.forgetIdentity() : { ...ui.leaderboard.identity(), pending: [] };
   const fresh = defaultStore();
   fresh.settings.tutorialSeen = true; // a player clearing their data already knows the game
-  if (kept) fresh.leaderboard = kept;
+  fresh.leaderboard = kept; // the name and player id stay, or only the removals still owed to the server
   for (const k of Object.keys(ui.store)) delete ui.store[k];
   Object.assign(ui.store, fresh);
   saveStore(ui.store);
+  ui.leaderboard.flush();
   $('#opt-numerals').checked = false;
   $('#opt-show-words').checked = false;
   $('#opt-sound').checked = true;

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanName, queueResult, bestReachedBySize, localBests, listRows, NAME_MAX } from '../js/leaderboard.js';
+import { cleanName, queueResult, bestReachedBySize, localBests, listRows, migrateReached, defaultIdentity, NAME_MAX } from '../js/leaderboard.js';
 
 test('cleanName trims, collapses spaces, strips control characters and caps the length', () => {
   assert.equal(cleanName('  Mia   Huggins '), 'Mia Huggins');
@@ -10,6 +10,28 @@ test('cleanName trims, collapses spaces, strips control characters and caps the 
   assert.equal(cleanName(null), null);
   assert.equal(cleanName('x'.repeat(40)).length, NAME_MAX);
   assert.equal(cleanName('abcdefghijklmno  pq'), 'abcdefghijklmno'); // the cut falls on a space, which is trimmed again
+  // invisible characters go, every kind of space becomes one space
+  assert.equal(cleanName('\u200b'), null);
+  assert.equal(cleanName('A\u200dB\u0085C\u00adD\ufeff'), 'ABCD');
+  assert.equal(cleanName('a\u00a0\u3000b\u2028c'), 'a b c');
+  assert.equal(cleanName('\u202e evil'), 'evil');
+});
+
+test('migrateReached gives an old global top level to one size, once', () => {
+  assert.equal(migrateReached(undefined), false);
+  const fresh = { bestReached5: 0, bestReached6: 2 };
+  assert.equal(migrateReached(fresh), false);
+  const old5 = { bestLevel: 7, bestReached: 8, history: [{ mode: 'free', size: 6 }] };
+  assert.equal(migrateReached(old5), true);
+  assert.deepEqual([old5.bestReached5, old5.bestReached6], [8, 0]);
+  const old6 = { bestLevel: 3, history: [{ mode: 'levels', size: 6, level: 2, passed: false }, { mode: 'levels', size: 5, level: 9, passed: true }] };
+  assert.equal(migrateReached(old6), true);
+  assert.deepEqual([old6.bestReached5, old6.bestReached6], [0, 4]); // the latest run was 6x6; bestLevel 3 passed means 4 reached
+  assert.equal(migrateReached(old6), false);
+  const never = { gamesPlayed: 3 };
+  assert.equal(migrateReached(never), true);
+  assert.deepEqual([never.bestReached5, never.bestReached6], [0, 0]);
+  assert.deepEqual(defaultIdentity(), { playerId: null, name: null, status: 'unasked', pending: [], removals: [] });
 });
 
 test('queueResult keeps one entry per board with the highest value', () => {

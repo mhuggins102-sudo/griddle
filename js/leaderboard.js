@@ -10,21 +10,30 @@ import { openSheet, closeSheet } from './sheet.js';
 export const NAME_MAX = 16;
 export const TOP_N = 10;
 const PROMPT_DELAY_MS = 700; // the result shows first, then the question
+const RPC_TIMEOUT_MS = 10000; // a stalled request is given up, and tried again later
 
-/** A name as the server keeps it: no control characters, single spaces, trimmed, at most NAME_MAX; null if nothing is left. */
+/**
+ * A name as the server keeps it: control and invisible characters (zero-width spaces, joiners, direction
+ * marks, soft hyphens, the byte-order mark) dropped, every kind of whitespace collapsed to one space,
+ * trimmed, at most NAME_MAX characters; null if nothing is left. clean_name in supabase/schema.sql does the same.
+ */
 export function cleanName(raw) {
   const s = String(raw ?? '')
-    .replace(/[\u0000-\u001f\u007f]/g, '')
-    .replace(/\s+/g, ' ')
+    .replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u206f\ufeff]/g, '')
+    .replace(/[\s\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+/g, ' ')
     .trim()
     .slice(0, NAME_MAX)
     .trim();
   return s || null;
 }
 
-/** The identity and outbox as stored under store.leaderboard. status: 'unasked' | 'named' | 'anonymous'. */
+/**
+ * The identity and outbox as stored under store.leaderboard. status: 'unasked' | 'named' | 'anonymous';
+ * pending holds results waiting to go out; removals holds player ids whose rows still have to come down
+ * (a player who went anonymous or was forgotten while the network was away).
+ */
 export function defaultIdentity() {
-  return { playerId: null, name: null, status: 'unasked', pending: [] };
+  return { playerId: null, name: null, status: 'unasked', pending: [], removals: [] };
 }
 
 /** Put a result in the outbox, in place: one entry per board, the highest value wins. Returns true if anything changed. */
@@ -40,7 +49,21 @@ export function queueResult(pending, entry) {
   return true;
 }
 
-/** The highest level reached per board size, from the per-size counters and the recent history (older stores only had a global one). */
+/**
+ * Stores from before the per-size counters only knew a global top level. Give it, once, to the size of the
+ * most recent level run in the history (5x5 when there is none), so Stats and the leaderboard keep it.
+ */
+export function migrateReached(word) {
+  if (!word || word.bestReached5 !== undefined || word.bestReached6 !== undefined) return false;
+  const global = Math.max(word.bestReached || 0, word.bestLevel ? word.bestLevel + 1 : 0);
+  const latest = (word.history || []).find((g) => g.mode === 'levels');
+  const size = latest && latest.size === 6 ? 6 : 5;
+  word.bestReached5 = size === 5 ? global : 0;
+  word.bestReached6 = size === 6 ? global : 0;
+  return true;
+}
+
+/** The highest level reached per board size, from the per-size counters and the recent history. */
 export function bestReachedBySize(word) {
   const out = { 5: word?.bestReached5 || 0, 6: word?.bestReached6 || 0 };
   for (const g of word?.history || []) {
@@ -98,6 +121,7 @@ export function initLeaderboard(ctx) {
     if (!s.leaderboard || typeof s.leaderboard !== 'object') s.leaderboard = defaultIdentity();
     const id = s.leaderboard;
     if (!Array.isArray(id.pending)) id.pending = [];
+    if (!Array.isArray(id.removals)) id.removals = [];
     if (!['unasked', 'named', 'anonymous'].includes(id.status)) id.status = 'unasked';
     if (id.status === 'named' && !id.playerId) id.playerId = randomId();
     return id;
@@ -108,6 +132,7 @@ export function initLeaderboard(ctx) {
       method: 'POST',
       headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json', Accept: 'application/json' }, // the public key travels in apikey only
       body: JSON.stringify(args),
+      signal: typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(RPC_TIMEOUT_MS) : undefined,
     });
     if (!res.ok) {
       const err = new Error(`${name}: HTTP ${res.status}`);
@@ -118,22 +143,48 @@ export function initLeaderboard(ctx) {
     return text ? JSON.parse(text) : null;
   }
 
-  /** Send what is waiting, oldest first. A rejected entry is dropped; a network or server failure keeps the rest for next time. */
+  /**
+   * Send what is waiting: removals first, then results oldest first. A rejected entry is dropped; a network
+   * or server failure keeps the rest for next time. The identity is read afresh at every step, so a reset
+   * or a change of mind while a request is in flight is honoured. Resolves to the number of requests that
+   * went through.
+   */
   function flush() {
     if (flushing) return flushing;
     flushing = (async () => {
-      const id = identity();
-      while (configured && id.status === 'named' && id.pending.length) {
+      let sent = 0;
+      if (!configured) return sent;
+      for (;;) {
+        const id = identity();
+        if (id.removals.length) {
+          const gone = id.removals[0];
+          try {
+            await rpc('remove_player', { p_player: gone });
+          } catch (err) {
+            if (!(err.status >= 400 && err.status < 500)) break;
+          }
+          const now = identity();
+          const i = now.removals.indexOf(gone);
+          if (i >= 0) now.removals.splice(i, 1);
+          ctx.saveStore(ctx.store);
+          sent++;
+          continue;
+        }
+        if (id.status !== 'named' || !id.pending.length) break;
         const e = id.pending[0];
         try {
           await rpc('submit_score', { p_player: id.playerId, p_name: id.name, p_size: e.size, p_kind: e.kind, p_value: e.value });
+          sent++;
         } catch (err) {
           if (!(err.status >= 400 && err.status < 500)) break;
         }
-        const i = id.pending.indexOf(e);
-        if (i >= 0) id.pending.splice(i, 1);
+        const now = identity();
+        if (now !== id) continue; // the identity changed under the request: start over with the new one
+        const i = now.pending.indexOf(e);
+        if (i >= 0) now.pending.splice(i, 1);
         ctx.saveStore(ctx.store);
       }
+      return sent;
     })().finally(() => {
       flushing = null;
     });
@@ -147,7 +198,7 @@ export function initLeaderboard(ctx) {
    * question, for a board scored while leaving the screen); after that results go out.
    */
   function afterBoard({ size, score, levelReached = 0, replay = false, prompt = true }) {
-    if (replay) return;
+    if (replay || !configured) return; // replays never count; without a project there is nothing to post to
     const id = identity();
     if (id.status === 'anonymous') return;
     let changed = queueResult(id.pending, { size, kind: 'score', value: score });
@@ -211,15 +262,17 @@ export function initLeaderboard(ctx) {
       closeNameSheet();
       return;
     }
-    const wasNamed = id.status === 'named';
-    if (wasNamed && configured) rpc('remove_player', { p_player: id.playerId }).catch(() => {});
+    if (id.status === 'named' && id.playerId) id.removals.push(id.playerId);
     id.status = 'anonymous';
     id.name = null;
+    id.playerId = null; // a later join is a fresh player
     id.pending = [];
     ctx.saveStore(ctx.store);
     closeNameSheet();
     renderFoot();
-    if (sheet && !sheet.hidden) load();
+    flush().then(() => {
+      if (sheet && !sheet.hidden) load();
+    });
   }
 
   // ---- the leaderboard sheet ------------------------------------------------------------------------
@@ -227,6 +280,7 @@ export function initLeaderboard(ctx) {
   function renderFoot() {
     const id = identity();
     const b = $('#btn-lb-name');
+    b.hidden = !configured;
     if (id.status === 'named') {
       b.textContent = `✎ ${id.name}`;
       b.setAttribute('aria-label', `Playing as ${id.name}. Change your name`);
@@ -251,7 +305,11 @@ export function initLeaderboard(ctx) {
     status.textContent = 'Loading…';
     const token = ++view.loadToken;
     const id = identity();
-    await flush();
+    if (!flushing) {
+      flush().then((sent) => {
+        if (sent && token === view.loadToken && !sheet.hidden) load(); // the boards just changed: show it
+      });
+    }
     let rows;
     try {
       rows = await rpc('get_leaderboard', { p_size: view.size, p_kind: view.kind, p_player: id.status === 'named' ? id.playerId : null });
@@ -336,11 +394,14 @@ export function initLeaderboard(ctx) {
     identity,
     promptName: openNameSheet,
     configured,
-    /** Forget who this device is on the leaderboard (and take a named player's rows down). */
+    /** Forget who this device is on the leaderboard; a named player's rows come down (retried until they do). */
     forgetIdentity() {
       const id = identity();
-      if (id.status === 'named' && configured) rpc('remove_player', { p_player: id.playerId }).catch(() => {});
-      ctx.store.leaderboard = defaultIdentity();
+      const fresh = defaultIdentity();
+      fresh.removals = id.removals.slice();
+      if (id.status === 'named' && id.playerId) fresh.removals.push(id.playerId);
+      ctx.store.leaderboard = fresh;
+      return fresh;
     },
   };
 }
