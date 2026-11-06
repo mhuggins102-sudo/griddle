@@ -201,26 +201,36 @@
 
       <div id="w-bag" class="panel bag letters" aria-label="Letters left in the bag" hidden></div>
 
-      <div id="w-result" class="panel result compact" hidden>
-        <div class="result-head">
+      <div id="w-words-pop" class="words-pop" hidden></div>
+    </section>
+
+    <!-- Result sheet: the board's score at its end, or a passed level waiting for Next level; the board stays visible above -->
+    <div id="w-result" class="sheet result-sheet" hidden data-variant="a">
+      <div class="sheet-body">
+        <div class="sheet-head result-head">
           <div class="result-titles">
             <h2 id="w-result-title">Game over</h2>
             <span id="w-result-best" class="breakdown"></span>
           </div>
-          <button id="w-share" class="btn btn-icon" aria-label="Share result">
-            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 12V3m-3.5 3.5L10 3l3.5 3.5M4 10v6h12v-6"/></svg>
-          </button>
+          <b id="w-rs-headtotal" class="rs-headtotal" hidden>0</b>
+          <button id="w-share" class="btn btn-icon" aria-label="Share result"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 12V3m-3.5 3.5L10 3l3.5 3.5M4 10v6h12v-6"/></svg></button>
         </div>
-        <div class="tally" id="w-tally" aria-label="Score breakdown"></div>
-        <div class="result-buttons three">
-          <button id="w-home" class="btn">Home</button>
-          <button id="w-replay" class="btn">Replay board</button>
-          <button id="w-again" class="btn">New board</button>
-          <button id="w-next" class="btn btn-primary" hidden>Next level</button>
+        <div class="sheet-scroll result-scroll">
+          <div id="w-rs-big" class="rs-big" hidden><b id="w-rs-bignum">0</b><small id="w-rs-bigsub">points</small></div>
+          <div id="w-tally" aria-label="Score breakdown"></div>
+          <div id="w-rs-words" class="rs-words" hidden></div>
+        </div>
+        <div class="sheet-foot result-buttons">
+          <button id="w-next" class="btn btn-primary btn-wide" hidden>Next level</button>
+          <button id="w-again" class="btn btn-primary btn-wide">New board</button>
+          <div class="rs-row">
+            <button id="w-home" class="btn">Home</button>
+            <button id="w-replay" class="btn">Replay board</button>
+            <button id="w-share-foot" class="btn btn-icon" aria-label="Share result" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 12V3m-3.5 3.5L10 3l3.5 3.5M4 10v6h12v-6"/></svg></button>
+          </div>
         </div>
       </div>
-      <div id="w-words-pop" class="words-pop" hidden></div>
-    </section>
+    </div>
 
     <!-- Settings sheet -->
     <div id="settings" class="sheet" hidden>
