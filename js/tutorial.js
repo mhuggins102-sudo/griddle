@@ -198,7 +198,7 @@ export function initTutorial() {
         title: 'Filling the board',
         rows: lockEx.rows,
         locked: manyLocked,
-        html: `<p>From the <strong>${firstRung}th locked tile</strong> every tile adds +5 to your score (${ladderText(n)}). Lock all ${cells} with turns to spare and each spare turn adds +${FULL_COVER_TURN_BONUS}. The board here has ${manyLocked.length} locked: +${COVERAGE_LADDER[n][manyLocked.length] || 0}.</p><p>In a level run a bot plays your board first; the goal is a share of the word points it banked, ${GOAL_START_PERCENT}% at level 1 and ${GOAL_STEP_PERCENT} points more each level, with no ceiling. Your fill bonuses count toward it, so crossing words through locked tiles to cover the board is what carries a run.</p>`,
+        html: `<p>From the <strong>${firstRung}th locked tile</strong> the bonus climbs by 1, 3, 5, 7… per tile: the tiles past ${firstRung - 1}, squared (${ladderText(n)}). Lock all ${cells} with turns to spare and each spare turn adds +${FULL_COVER_TURN_BONUS}. The board here has ${manyLocked.length} locked: +${COVERAGE_LADDER[n][manyLocked.length] || 0}.</p><p>In a level run a bot plays your board first; the goal is a share of the word points it banked, ${GOAL_START_PERCENT}% at level 1 and ${GOAL_STEP_PERCENT} points more each level, with no ceiling. Your fill bonuses count toward it, so crossing words through locked tiles to cover the board is what carries a run.</p>`,
       },
     ];
   }

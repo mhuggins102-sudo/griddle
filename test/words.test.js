@@ -232,13 +232,14 @@ test('findWordAt: first and last tap define the word, in either direction', () =
   assert.match(findWordAt(s, dict, 0, 0).error, /first and last/);
 });
 
-test('coverage ladder: +5 per locked tile from the 20th, +30 for all 25, nothing below 20; no penalties', () => {
-  assert.equal(coverageBonus(25), 30);
+test('coverage ladder: the tiles past the 19th squared, +36 for all 25, nothing below 20; no penalties', () => {
+  // the tiles past the 19th, squared
+  assert.equal(coverageBonus(25), 36);
   assert.equal(coverageBonus(24), 25);
-  assert.equal(coverageBonus(23), 20);
-  assert.equal(coverageBonus(22), 15);
-  assert.equal(coverageBonus(21), 10);
-  assert.equal(coverageBonus(20), 5);
+  assert.equal(coverageBonus(23), 16);
+  assert.equal(coverageBonus(22), 9);
+  assert.equal(coverageBonus(21), 4);
+  assert.equal(coverageBonus(20), 1);
   assert.equal(coverageBonus(19), 0);
   assert.equal(shortfallPenalty(21), 0);
   assert.equal(shortfallPenalty(0), 0);
@@ -246,14 +247,14 @@ test('coverage ladder: +5 per locked tile from the 20th, +30 for all 25, nothing
   s.score = 30;
   s.locked = new Array(24).fill(0).map((_, i) => i);
   s.turns = WORD_TURNS;
-  assert.equal(finalScore(s), 55);
+  assert.equal(finalScore(s), 55); // 30 + 25 for 24 tiles
   s.locked = new Array(25).fill(0).map((_, i) => i);
-  assert.equal(finalScore(s), 60);
+  assert.equal(finalScore(s), 66); // 30 + 36 for all 25
   assert.ok(isBoardFull(s));
   // all 25 locked with turns to spare: +10 per unused turn
   s.turns = 14;
   assert.equal(fullCoverTurnBonus(s), 60);
-  assert.equal(finalScore(s), 120);
+  assert.equal(finalScore(s), 126); // 30 + 36 + 60
   s.locked = new Array(24).fill(0).map((_, i) => i);
   assert.equal(fullCoverTurnBonus(s), 0, 'only a full board earns the turn bonus');
   s.locked = new Array(3).fill(0).map((_, i) => i);
@@ -287,9 +288,10 @@ test('6x6: geometry, 25 turns, 6-letter words score +30, the coverage ladder run
   assert.deepEqual(letter.cells, [0, 1, 2, 3, 4, 5]);
   assert.equal(letter.score, 6 + 30);
   assert.equal(findWordAt(s, dict, 0, 5).word, 'LETTER');
-  // the ladder: +5 per tile from the 29th, +40 for all 36; nothing on 5x5-sized counts
-  assert.equal(coverageBonus(36, 6), 40);
-  assert.equal(coverageBonus(29, 6), 5);
+  // the ladder: the tiles past the 28th, squared, +64 for all 36; nothing on 5x5-sized counts
+  assert.equal(coverageBonus(36, 6), 64);
+  assert.equal(coverageBonus(35, 6), 49);
+  assert.equal(coverageBonus(29, 6), 1);
   assert.equal(coverageBonus(28, 6), 0);
   assert.equal(coverageBonus(25, 6), 0);
   const t = lockWord(s, letter);
@@ -307,7 +309,7 @@ test('6x6: geometry, 25 turns, 6-letter words score +30, the coverage ladder run
   full.turns = 20;
   assert.ok(isBoardFull(full));
   assert.equal(fullCoverTurnBonus(full), 50, '5 unused turns of 25');
-  assert.equal(finalScore(full), 10 + 40 + 50);
+  assert.equal(finalScore(full), 10 + 64 + 50); // the ladder tops out at +64 for all 36
   // a 5x5 state never sees 6-letter words even though the dictionary has them
   const five = createWordState(rows6(['LETTE', 'RXXXX', 'XXXXX', 'XXXXX', 'XXXXX']).slice(0, 25), {});
   assert.equal(five.size, 5);
