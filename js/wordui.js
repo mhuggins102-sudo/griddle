@@ -295,7 +295,9 @@ export function initWordMode(ctx) {
   function renderHud() {
     const st = w.game.state;
     const lim = limit();
-    $('#w-turn').textContent = `${Math.min(st.turns + 1, lim)}/${lim}`;
+    // the turn in play; once play has stopped (goal reached, board over) the turns used, so the count does not advance
+    const stopped = w.over || (w.game.goal !== null && w.game.mode === 'levels' && finalScore(st) >= w.game.goal);
+    $('#w-turn').textContent = `${stopped ? st.turns : Math.min(st.turns + 1, lim)}/${lim}`;
     $('#w-score').textContent = String(finalScore(st));
     const track = $('#w-turntrack');
     if (track.childElementCount !== lim) {
