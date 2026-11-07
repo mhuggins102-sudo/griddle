@@ -1136,7 +1136,7 @@ export function initWordMode(ctx) {
       title = won ? 'Goal reached!' : 'Game over';
       line = `Level ${g.retry.level} retry · Goal ${g.goal} ${won ? 'reached' : 'missed'}`;
     } else if (g.replay) {
-      line = beatBoard ? `Beat your previous best on this board (${previousOnBoard}) · not counted in stats` : `Best on this board stays ${previousOnBoard} · not counted in stats`;
+      line = `${beatBoard ? `Beat previous best (${previousOnBoard})` : `Short of previous best (${previousOnBoard})`} · (Not counted in stats)`;
     } else {
       const best = store.word[bestKey];
       line = isBest ? 'New personal best!' : total === best ? 'Ties your personal best' : `Personal best: ${best}`;
@@ -1207,9 +1207,9 @@ export function initWordMode(ctx) {
     $('#w-result-title').textContent = data.title;
     const best = $('#w-result-best');
     best.innerHTML = '';
-    String(data.line).split(' · ').forEach((part, i) => { // one note per line in portrait; a dotted row in landscape
+    String(data.line).split(' · ').forEach((part, i) => { // one part per line, each starting with a capital
       if (i) best.appendChild(Object.assign(document.createElement('span'), { className: 'sep', textContent: ' · ' }));
-      best.appendChild(Object.assign(document.createElement('span'), { className: 'rs-line', textContent: part }));
+      best.appendChild(Object.assign(document.createElement('span'), { className: 'rs-line', textContent: part.charAt(0).toUpperCase() + part.slice(1) }));
     });
     $('#w-rs-headtotal').textContent = String(data.total);
     const tally = $('#w-tally');

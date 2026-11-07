@@ -1025,7 +1025,7 @@ svg { display: block; }
 .result-sheet .sheet-head { padding: 10px 16px 8px; }
 .result-sheet .sheet-head h2 { font-size: 22px; line-height: 1.1; }
 /* the head: one row, the title at the left and its note right-justified; the total is a tile among the components */
-.result-sheet .result-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.result-sheet .result-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .result-sheet .result-titles { display: contents; }
 .result-sheet .result-titles .breakdown { font-size: 13px; line-height: 1.25; margin: 0 0 0 auto; text-align: right; }
 .result-sheet .breakdown .rs-line { display: block; } /* one part per line: "Level 2 retry" over "Goal 70 reached" */
