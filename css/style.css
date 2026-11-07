@@ -117,7 +117,8 @@ svg { display: block; }
 .app {
   max-width: 480px;
   margin: 0 auto;
-  padding: max(12px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); /* 12px: the same as the result card's gap below */
+  --edge-gap: max(12px, env(safe-area-inset-bottom)); /* the result card's gap above the bottom edge; the page's top gap is the same (or the top safe area if larger) */
+  padding: max(var(--edge-gap), env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
@@ -1021,7 +1022,7 @@ svg { display: block; }
 /* ===========================================================================
    Result sheet: the total in the head, the components as tiles, the board whole above it */
 .result-sheet { background: transparent; pointer-events: none; } /* the board stays visible and readable above */
-.result-sheet .sheet-body { pointer-events: auto; width: calc(100% - 24px); margin: 0 12px max(12px, env(safe-area-inset-bottom)); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 10px 34px rgba(0, 0, 0, 0.22); }
+.result-sheet .sheet-body { pointer-events: auto; width: calc(100% - 24px); margin: 0 12px var(--edge-gap, 12px); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 10px 34px rgba(0, 0, 0, 0.22); }
 .result-sheet .sheet-head { padding: 10px 16px 8px; }
 .result-sheet .sheet-head h2 { font-size: 22px; line-height: 1.1; }
 /* the head: the title with its note under it at the left, the total at the right */
