@@ -1,7 +1,6 @@
 /* GridLock: layout, tiles, gestures, animations. Portrait phone first (390x844), works at 360 wide. */
 
 :root {
-  --edge-gap: max(12px, env(safe-area-inset-bottom)); /* the result card's gap above the bottom edge, and the page's top gap */
   --bg: #f4efe6;
   --panel: #fffdf8;
   --tray: #e9e2d4;
@@ -118,7 +117,7 @@ svg { display: block; }
 .app {
   max-width: 480px;
   margin: 0 auto;
-  padding: max(var(--edge-gap), env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); /* the top gap equals the result card's bottom gap, unless the top safe area is larger */
+  padding: max(8px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
@@ -1022,7 +1021,7 @@ svg { display: block; }
 /* ===========================================================================
    Result sheet: the total in the head, the components as tiles, the board whole above it */
 .result-sheet { background: transparent; pointer-events: none; } /* the board stays visible and readable above */
-.result-sheet .sheet-body { pointer-events: auto; width: calc(100% - 24px); margin: 0 12px var(--edge-gap, 12px); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 10px 34px rgba(0, 0, 0, 0.22); }
+.result-sheet .sheet-body { pointer-events: auto; width: calc(100% - 24px); margin: 0 12px max(12px, env(safe-area-inset-bottom)); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 10px 34px rgba(0, 0, 0, 0.22); }
 .result-sheet .sheet-head { padding: 10px 16px 8px; }
 .result-sheet .sheet-head h2 { font-size: 22px; line-height: 1.1; }
 /* the head: one row, the title at the left and its note right-justified; the total is a tile among the components */
