@@ -117,7 +117,7 @@ svg { display: block; }
 .app {
   max-width: 480px;
   margin: 0 auto;
-  padding: max(8px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  padding: max(12px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); /* 12px: the same as the result card's gap below */
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
@@ -1024,19 +1024,34 @@ svg { display: block; }
 .result-sheet .sheet-body { pointer-events: auto; width: calc(100% - 24px); margin: 0 12px max(12px, env(safe-area-inset-bottom)); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 10px 34px rgba(0, 0, 0, 0.22); }
 .result-sheet .sheet-head { padding: 10px 16px 8px; }
 .result-sheet .sheet-head h2 { font-size: 22px; line-height: 1.1; }
-/* the head: the title with the total under it; the notes right-justified beside the title, one per line */
-.result-sheet .result-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title notes" "total notes"; align-items: start; column-gap: 12px; }
-.result-sheet .result-titles { display: contents; }
-.result-sheet .result-head h2 { grid-area: title; }
-.result-sheet .result-titles .breakdown { grid-area: notes; justify-self: end; display: flex; flex-direction: column; align-items: flex-end; text-align: right; font-size: 13px; line-height: 1.25; margin-top: 5px; }
-.result-sheet .breakdown .sep { display: none; }
+/* the head: the title with its note under it at the left, the total at the right */
+.result-sheet .result-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.result-sheet .result-titles { display: flex; flex-direction: column; min-width: 0; }
+.result-sheet .result-titles .breakdown { font-size: 13px; line-height: 1.2; margin-top: 0; }
 .result-sheet .sheet-scroll { padding: 10px 16px; }
+/* Head arrangements on trial (data-head): 2 the total as a tile with the components; 3 everything centred,
+   the total as a headline; 4 title and total on one row, the note on its own line beneath */
+.result-sheet[data-head="2"] .rs-headtotal { display: none; }
+.result-sheet[data-head="2"] .rs-tile.total { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.result-sheet[data-head="2"] .rs-tile.total small { color: var(--accent-ink); opacity: 0.85; }
+.result-sheet[data-head="2"] .rs-tiles { gap: 6px; }
+.result-sheet[data-head="2"] .rs-tile { padding: 8px 2px; }
+.result-sheet[data-head="2"] .rs-tile small { font-size: 11px; letter-spacing: 0.02em; }
+.result-sheet[data-head="3"] .result-head { flex-direction: column; align-items: center; text-align: center; gap: 2px; padding-bottom: 10px; }
+.result-sheet[data-head="3"] .result-titles { display: contents; }
+.result-sheet[data-head="3"] .result-titles .breakdown { order: 3; margin-top: 2px; }
+.result-sheet[data-head="3"] .rs-headtotal { font-size: 44px; margin: 4px 0 0; }
+.result-sheet[data-head="4"] .result-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title total" "note note"; align-items: center; row-gap: 2px; }
+.result-sheet[data-head="4"] .result-titles { display: contents; }
+.result-sheet[data-head="4"] .result-head h2 { grid-area: title; }
+.result-sheet[data-head="4"] .result-titles .breakdown { grid-area: note; }
+.result-sheet[data-head="4"] .rs-headtotal { grid-area: total; }
 .result-sheet .sheet-foot { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; }
 .rs-row { display: flex; gap: 8px; }
 .rs-row .btn { flex: 1 1 0; white-space: nowrap; }
 .pos { color: var(--ok); }
 .neg { color: var(--danger); }
-.rs-headtotal { grid-area: total; font-size: 36px; line-height: 1; font-weight: 900; font-variant-numeric: tabular-nums; margin: 4px 0 0; }
+.rs-headtotal { font-size: 36px; line-height: 1; font-weight: 900; font-variant-numeric: tabular-nums; margin: 0 0 0 auto; padding-right: 4px; }
 .rs-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; }
 .rs-tile { display: flex; flex-direction: column; align-items: center; padding: 8px 4px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); }
 .rs-tile b { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
@@ -1107,11 +1122,6 @@ button.rs-tile:active { background: var(--line); }
   .result-sheet { display: block; }
   .result-sheet .sheet-body { margin: 0; width: auto; }
   .result-sheet .sheet-foot { padding-bottom: 10px; }
-  .result-sheet .result-head { display: flex; align-items: center; justify-content: space-between; }
-  .result-sheet .result-titles { display: flex; flex-direction: column; min-width: 0; }
-  .result-sheet .result-titles .breakdown { display: block; text-align: left; margin-top: 0; }
-  .result-sheet .breakdown .sep { display: inline; }
-  .result-sheet .rs-headtotal { margin: 0 0 0 auto; padding-right: 4px; }
   /* the tutorial: its board beside the text, so it fits a short screen */
   .tutorial-body { max-width: 720px; max-height: calc(100dvh - 16px); margin-bottom: 8px; border-radius: 18px; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "head head" "board text" "board nav"; gap: 8px 16px; padding: 12px 16px; }
   .tut-head { grid-area: head; }
