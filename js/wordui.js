@@ -1203,7 +1203,12 @@ export function initWordMode(ctx) {
     const sheet = $('#w-result');
     sheet.dataset.state = data.state || 'over';
     $('#w-result-title').textContent = data.title;
-    $('#w-result-best').textContent = data.line;
+    const best = $('#w-result-best');
+    best.innerHTML = '';
+    String(data.line).split(' · ').forEach((part, i) => { // one note per line in portrait; a dotted row in landscape
+      if (i) best.appendChild(Object.assign(document.createElement('span'), { className: 'sep', textContent: ' · ' }));
+      best.appendChild(Object.assign(document.createElement('span'), { className: 'rs-line', textContent: part }));
+    });
     $('#w-rs-headtotal').textContent = String(data.total);
     const tally = $('#w-tally');
     tally.innerHTML = '';
@@ -1310,10 +1315,11 @@ export function initWordMode(ctx) {
     body.style.maxHeight = '';
     const top = wrapEl.getBoundingClientRect().top;
     const gap = 10;
-    let room = window.innerHeight - body.getBoundingClientRect().height - top - gap;
+    const inset = parseFloat(getComputedStyle(body).marginBottom) || 0; // the card floats above the bottom edge
+    let room = window.innerHeight - body.getBoundingClientRect().height - inset - top - gap;
     if (room < MIN_BOARD_PX) {
-      body.style.maxHeight = `${Math.max(MIN_SHEET_PX, window.innerHeight - top - MIN_BOARD_PX - gap)}px`;
-      room = window.innerHeight - body.getBoundingClientRect().height - top - gap;
+      body.style.maxHeight = `${Math.max(MIN_SHEET_PX, window.innerHeight - top - MIN_BOARD_PX - gap - inset)}px`;
+      room = window.innerHeight - body.getBoundingClientRect().height - inset - top - gap;
     }
     const width = Math.max(MIN_BOARD_PX, Math.min(wrapEl.clientWidth, Math.floor(room)));
     boardEl.style.maxWidth = `${width}px`;
@@ -1433,10 +1439,28 @@ export function initWordMode(ctx) {
     if (w.game && !w.over) advanceEarly(); // the goal was reached mid-board: score it and move on
     else start(false, { mode: 'levels', level: w.nextLevel || 1, size: w.game ? w.game.size : 5 });
   });
-  window.addEventListener('resize', () => {
+  /** The card's place depends on the layout settling: place it now, next frame, and once more a moment later. */
+  function refit() {
     closeTilePop();
-    if (!$('#w-result').hidden) fitBoardAbove();
+    if ($('#w-result').hidden) return;
+    fitBoardAbove();
+    requestAnimationFrame(fitBoardAbove);
+    clearTimeout(w.refitTimer);
+    w.refitTimer = setTimeout(fitBoardAbove, 350);
+  }
+  window.addEventListener('resize', refit);
+  window.addEventListener('orientationchange', refit);
+  window.addEventListener('pageshow', refit);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refit();
   });
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(() => {
+      if (!$('#w-result').hidden) fitBoardAbove();
+    });
+    ro.observe($('.word-hud'));
+    ro.observe($('#w-locked'));
+  }
   document.addEventListener(
     'pointerdown',
     (e) => {
