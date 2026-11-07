@@ -1202,9 +1202,6 @@ export function initWordMode(ctx) {
   function showResult(data) {
     const sheet = $('#w-result');
     sheet.dataset.state = data.state || 'over';
-    const head = w.resultHead || (ctx.store.settings && ctx.store.settings.resultHead) || 1; // head arrangements on trial: Settings, or the screenshot script
-    if (head > 1) sheet.dataset.head = String(head);
-    else delete sheet.dataset.head;
     $('#w-result-title').textContent = data.title;
     const best = $('#w-result-best');
     best.innerHTML = '';
@@ -1227,12 +1224,10 @@ export function initWordMode(ctx) {
       }
       tally.appendChild(el);
     }
-    if (head === 2) {
-      const el = document.createElement('div');
-      el.className = 'rs-tile total';
-      el.innerHTML = `<b>${data.total}</b><small>Total</small>`;
-      tally.appendChild(el);
-    }
+    const totalTile = document.createElement('div'); // the total as a tile in portrait; landscape shows it in the head instead
+    totalTile.className = 'rs-tile total';
+    totalTile.innerHTML = `<b>${data.total}</b><small>Total</small>`;
+    tally.appendChild(totalTile);
     $('#w-next').hidden = !data.next;
     $('#w-again').hidden = !data.again;
     $('#w-again').textContent = data.againText || 'New board';

@@ -1,6 +1,7 @@
 /* GridLock: layout, tiles, gestures, animations. Portrait phone first (390x844), works at 360 wide. */
 
 :root {
+  --edge-gap: max(12px, env(safe-area-inset-bottom)); /* the result card's gap above the bottom edge, and the page's top gap */
   --bg: #f4efe6;
   --panel: #fffdf8;
   --tray: #e9e2d4;
@@ -117,8 +118,7 @@ svg { display: block; }
 .app {
   max-width: 480px;
   margin: 0 auto;
-  --edge-gap: max(12px, env(safe-area-inset-bottom)); /* the result card's gap above the bottom edge; the page's top gap is the same (or the top safe area if larger) */
-  padding: max(var(--edge-gap), env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  padding: max(var(--edge-gap), env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); /* the top gap equals the result card's bottom gap, unless the top safe area is larger */
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
@@ -1025,28 +1025,17 @@ svg { display: block; }
 .result-sheet .sheet-body { pointer-events: auto; width: calc(100% - 24px); margin: 0 12px var(--edge-gap, 12px); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 10px 34px rgba(0, 0, 0, 0.22); }
 .result-sheet .sheet-head { padding: 10px 16px 8px; }
 .result-sheet .sheet-head h2 { font-size: 22px; line-height: 1.1; }
-/* the head: the title with its note under it at the left, the total at the right */
-.result-sheet .result-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.result-sheet .result-titles { display: flex; flex-direction: column; min-width: 0; }
-.result-sheet .result-titles .breakdown { font-size: 13px; line-height: 1.2; margin-top: 0; }
+/* the head: one row, the title at the left and its note right-justified; the total is a tile among the components */
+.result-sheet .result-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.result-sheet .result-titles { display: contents; }
+.result-sheet .result-titles .breakdown { font-size: 13px; line-height: 1.25; margin: 0 0 0 auto; text-align: right; }
+.result-sheet .rs-headtotal { display: none; }
+.result-sheet .rs-tile.total { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.result-sheet .rs-tile.total small { color: var(--accent-ink); opacity: 0.85; }
+.result-sheet .rs-tiles { gap: 6px; }
+.result-sheet .rs-tile { padding: 8px 2px; }
+.result-sheet .rs-tile small { font-size: 11px; letter-spacing: 0.02em; }
 .result-sheet .sheet-scroll { padding: 10px 16px; }
-/* Head arrangements on trial (data-head): 2 the total as a tile with the components; 3 everything centred,
-   the total as a headline; 4 title and total on one row, the note on its own line beneath */
-.result-sheet[data-head="2"] .rs-headtotal { display: none; }
-.result-sheet[data-head="2"] .rs-tile.total { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
-.result-sheet[data-head="2"] .rs-tile.total small { color: var(--accent-ink); opacity: 0.85; }
-.result-sheet[data-head="2"] .rs-tiles { gap: 6px; }
-.result-sheet[data-head="2"] .rs-tile { padding: 8px 2px; }
-.result-sheet[data-head="2"] .rs-tile small { font-size: 11px; letter-spacing: 0.02em; }
-.result-sheet[data-head="3"] .result-head { flex-direction: column; align-items: center; text-align: center; gap: 2px; padding-bottom: 10px; }
-.result-sheet[data-head="3"] .result-titles { display: contents; }
-.result-sheet[data-head="3"] .result-titles .breakdown { order: 3; margin-top: 2px; }
-.result-sheet[data-head="3"] .rs-headtotal { font-size: 44px; margin: 4px 0 0; }
-.result-sheet[data-head="4"] .result-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title total" "note note"; align-items: center; row-gap: 2px; }
-.result-sheet[data-head="4"] .result-titles { display: contents; }
-.result-sheet[data-head="4"] .result-head h2 { grid-area: title; }
-.result-sheet[data-head="4"] .result-titles .breakdown { grid-area: note; }
-.result-sheet[data-head="4"] .rs-headtotal { grid-area: total; }
 .result-sheet .sheet-foot { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; }
 .rs-row { display: flex; gap: 8px; }
 .rs-row .btn { flex: 1 1 0; white-space: nowrap; }
@@ -1119,8 +1108,16 @@ button.rs-tile:active { background: var(--line); }
   .strip { grid-area: strip; margin-top: 12px; }
   #w-found-wrap { grid-area: found; margin-top: 12px; }
   #w-bag { grid-area: bag; margin-top: 12px; align-self: start; }
-  /* the result card is placed by fitBoardAbove; its head keeps the title and notes at the left, the total at the right */
+  /* the result card is placed by fitBoardAbove; its head keeps the title and note at the left, the total at the right */
   .result-sheet { display: block; }
+  .result-sheet .result-head { align-items: center; }
+  .result-sheet .result-titles { display: flex; flex-direction: column; min-width: 0; }
+  .result-sheet .result-titles .breakdown { margin: 0; text-align: left; }
+  .result-sheet .rs-headtotal { display: block; }
+  .result-sheet .rs-tile.total { display: none; }
+  .result-sheet .rs-tiles { gap: 8px; }
+  .result-sheet .rs-tile { padding: 8px 4px; }
+  .result-sheet .rs-tile small { font-size: 12px; letter-spacing: 0.04em; }
   .result-sheet .sheet-body { margin: 0; width: auto; }
   .result-sheet .sheet-foot { padding-bottom: 10px; }
   /* the tutorial: its board beside the text, so it fits a short screen */

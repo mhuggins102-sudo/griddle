@@ -53,13 +53,6 @@ async function boot() {
       saveStore(ui.store);
     });
   }
-  for (const r of document.querySelectorAll('input[name="opt-head"]')) {
-    r.checked = r.value === String(ui.store.settings.resultHead || 1);
-    r.addEventListener('change', () => {
-      ui.store.settings.resultHead = Number(document.querySelector('input[name="opt-head"]:checked').value); // the result card head under trial
-      saveStore(ui.store);
-    });
-  }
   $('#opt-size-6').checked = ui.store.settings.boardSize === 6;
   $('#opt-size-5').checked = ui.store.settings.boardSize !== 6;
   for (const r of document.querySelectorAll('input[name="opt-size"]')) {
@@ -599,7 +592,6 @@ function resetData() {
   $('#opt-sound').checked = true;
   $('#opt-size-5').checked = true;
   $('#opt-theme-system').checked = true;
-  $('#opt-head-1').checked = true;
   applyTheme('system');
   setSoundEnabled(true);
   closeSheet($('#reset'));
