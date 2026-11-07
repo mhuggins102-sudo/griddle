@@ -1202,7 +1202,8 @@ export function initWordMode(ctx) {
   function showResult(data) {
     const sheet = $('#w-result');
     sheet.dataset.state = data.state || 'over';
-    if (w.resultHead) sheet.dataset.head = String(w.resultHead); // head arrangements on trial (set by the screenshot script)
+    const head = w.resultHead || (ctx.store.settings && ctx.store.settings.resultHead) || 1; // head arrangements on trial: Settings, or the screenshot script
+    if (head > 1) sheet.dataset.head = String(head);
     else delete sheet.dataset.head;
     $('#w-result-title').textContent = data.title;
     const best = $('#w-result-best');
@@ -1226,7 +1227,7 @@ export function initWordMode(ctx) {
       }
       tally.appendChild(el);
     }
-    if (w.resultHead === 2) {
+    if (head === 2) {
       const el = document.createElement('div');
       el.className = 'rs-tile total';
       el.innerHTML = `<b>${data.total}</b><small>Total</small>`;
