@@ -22,9 +22,11 @@ export const LENGTH_BONUS = { 3: 0, 4: 5, 5: 15, 6: 30 };
  * End-of-game coverage ladder by board size: +5 per locked tile over the last stretch of the board
  * (from the 20th of 25, from the 29th of 36), so the whole board earns +30 on 5x5 and +40 on 6x6.
  */
+// The bonus climbs by 1, 3, 5, 7… per tile, so a count of n tiles past the first rung is worth n² (1, 4, 9, 16…):
+// the last tiles are worth the most, and filling the board is worth +36 on 5x5 and +64 on 6x6.
 export const COVERAGE_LADDER = {
-  5: { 20: 5, 21: 10, 22: 15, 23: 20, 24: 25, 25: 30 },
-  6: { 29: 5, 30: 10, 31: 15, 32: 20, 33: 25, 34: 30, 35: 35, 36: 40 },
+  5: { 20: 1, 21: 4, 22: 9, 23: 16, 24: 25, 25: 36 },
+  6: { 29: 1, 30: 4, 31: 9, 32: 16, 33: 25, 34: 36, 35: 49, 36: 64 },
 };
 /** The 5x5 ladder, kept under its old name. */
 export const COVERAGE_BONUS = COVERAGE_LADDER[5];
