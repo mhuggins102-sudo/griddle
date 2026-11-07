@@ -295,7 +295,7 @@ export function initWordMode(ctx) {
   function renderHud() {
     const st = w.game.state;
     const lim = limit();
-    $('#w-turn').textContent = `${Math.min(st.turns + 1, lim)}/${lim}${w.game.replay ? ' ↻' : ''}`;
+    $('#w-turn').textContent = `${Math.min(st.turns + 1, lim)}/${lim}`;
     $('#w-score').textContent = String(finalScore(st));
     const track = $('#w-turntrack');
     if (track.childElementCount !== lim) {
@@ -1132,7 +1132,7 @@ export function initWordMode(ctx) {
     } else if (g.retry) {
       const won = total >= g.goal;
       title = won ? 'Goal reached!' : 'Game over';
-      line = `Level ${g.retry.level} retry: goal ${g.goal} ${won ? 'reached' : 'missed'} · ${beatBoard ? `beat your ${previousOnBoard} on this board` : previousOnBoard !== undefined ? `best on this board stays ${previousOnBoard}` : 'not counted in stats'}`;
+      line = `Level ${g.retry.level} retry · Goal ${g.goal} ${won ? 'reached' : 'missed'}`;
     } else if (g.replay) {
       line = beatBoard ? `Beat your previous best on this board (${previousOnBoard}) · not counted in stats` : `Best on this board stays ${previousOnBoard} · not counted in stats`;
     } else {
@@ -1188,7 +1188,7 @@ export function initWordMode(ctx) {
     showResult({
       state: 'passed',
       title: `Level ${g.level} passed!`,
-      line: `Goal ${g.goal} reached${left > 0 ? ` with ${left} turn${left === 1 ? '' : 's'} to spare` : ''}`,
+      line: `Goal ${g.goal} reached${left > 0 ? ` · ${left} turn${left === 1 ? '' : 's'} to spare` : ''}`,
       rows: scoreRows(st),
       total,
       board: st,

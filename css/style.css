@@ -1028,6 +1028,8 @@ svg { display: block; }
 .result-sheet .result-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .result-sheet .result-titles { display: contents; }
 .result-sheet .result-titles .breakdown { font-size: 13px; line-height: 1.25; margin: 0 0 0 auto; text-align: right; }
+.result-sheet .breakdown .rs-line { display: block; } /* one part per line: "Level 2 retry" over "Goal 70 reached" */
+.result-sheet .breakdown .sep { display: none; }
 .result-sheet .rs-headtotal { display: none; }
 .result-sheet .rs-tile.total { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
 .result-sheet .rs-tile.total small { color: var(--accent-ink); opacity: 0.85; }
@@ -1133,6 +1135,9 @@ button.rs-tile:active { background: var(--line); }
     .word-board-wrap { width: min(calc(100dvh - 20px), calc(100vw - var(--panel-w) - 48px)); }
     .strip { margin-top: 8px; min-height: 36px; }
     .legend .lg small { display: none; }
+    .word-hud { gap: 10px; }
+    .hud-tools { gap: 4px; }
+    .hud-tools .btn-icon { width: 34px; min-height: 34px; height: 34px; }
     .result-sheet .rs-row .btn { padding: 0 8px; font-size: 14px; min-width: 0; flex: 1 1 auto; } /* three buttons across a 300px card, each as wide as its label needs */
   }
 }
