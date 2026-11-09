@@ -532,6 +532,11 @@ export function initWordMode(ctx) {
   // ---------------------------------------------------------------------------
   // Board feedback: floating labels, shakes
 
+  /** How far the label's top edge rises above its anchor, in label heights (see the floatUp keyframes). */
+  const FLOAT_RISE = 1.7;
+  const FLOAT_MARGIN = 8;
+
+  /** Pop a label over a tile, kept on screen: a wide label on an edge column or a top-row word would otherwise leave the viewport. */
   function floatAt(cell, text, cls = '') {
     const layer = $('#w-float');
     const tr = tileEl(cell).getBoundingClientRect();
@@ -539,9 +544,13 @@ export function initWordMode(ctx) {
     const el = document.createElement('span');
     el.className = `float ${cls}`.trim();
     el.textContent = text;
-    el.style.left = `${tr.left - wr.left + tr.width / 2}px`;
-    el.style.top = `${tr.top - wr.top + tr.height / 2}px`;
     layer.appendChild(el);
+    const half = el.offsetWidth / 2;
+    const vw = document.documentElement.clientWidth;
+    const x = Math.max(FLOAT_MARGIN + half, Math.min(vw - FLOAT_MARGIN - half, tr.left + tr.width / 2));
+    const y = Math.max(FLOAT_MARGIN + FLOAT_RISE * el.offsetHeight, tr.top + tr.height / 2);
+    el.style.left = `${x - wr.left}px`;
+    el.style.top = `${y - wr.top}px`;
     setTimeout(() => el.remove(), 1300);
   }
 
