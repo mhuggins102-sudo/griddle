@@ -7,7 +7,7 @@ import {
 } from '../js/words.js';
 import {
   CARDS, CARD_BY_ID, FAMILIES, MARKET_SIZE, emptyPerk, newPerkRun, beginLevel, goldForPass, pickOffer, openMarket, buyBlock, buyCard, closeMarket, affordable, hasMarket,
-  playBlock, rotateBlocks, bigNudgeOptions, peekDraws, applyPerkAction, powerPairCells, perkSummary, encorePoints, perkLabel,
+  playBlock, rotateBlocks, bigNudgeOptions, peekDraws, applyPerkAction, powerPairCells, perkSummary, perkLabel,
 } from '../js/perks.js';
 
 const dict = parseDictionary(readFileSync(new URL('../data/words.txt', import.meta.url), 'utf8'));
@@ -23,49 +23,54 @@ function stateWith(rows, extra = {}) {
 const sum = (bag) => bagTotal(bag);
 const lock = (st, first, last) => lockWord(st, findWordAt(st, dict, first, last));
 
-test('catalogue: 31 unique cards, prices in the four tiers, every family represented', () => {
-  assert.equal(CARDS.length, 31);
-  assert.equal(new Set(CARDS.map((c) => c.id)).size, 31);
+test('catalogue: 30 unique cards priced 3 to 10 averaging about 6, every family represented', () => {
+  assert.equal(CARDS.length, 30);
+  assert.equal(new Set(CARDS.map((c) => c.id)).size, 30);
+  const avg = CARDS.reduce((a, c) => a + c.cost, 0) / CARDS.length;
+  assert.ok(avg > 5.5 && avg < 6.5, String(avg));
+  assert.equal(CARD_BY_ID['gold-rush'].cost, 3);
+  for (const id of ['long-swap', 'rotate', 'big-nudge', 'pick-letter', 'wild-card']) assert.equal(CARD_BY_ID[id].turn, 1, `${id} costs a turn`);
+  assert.equal(CARD_BY_ID.unlock.turn, 0);
   for (const c of CARDS) {
-    assert.ok([12, 14, 16, 18].includes(c.cost), `${c.id} costs ${c.cost}`);
+    assert.ok(c.cost >= 3 && c.cost <= 10, `${c.id} costs ${c.cost}`);
     assert.ok(FAMILIES[c.family], `${c.id} family`);
     assert.ok(c.text.length > 20 && c.name, c.id);
     assert.ok(['none', 'tile', 'pair', 'block', 'multi', 'line', 'flick', 'word', 'market'].includes(c.target), c.id);
   }
   assert.equal(perkLabel('squares'), 'Letter squares');
-  assert.equal(perkLabel('next-plus10'), 'Next Word +10');
+  assert.equal(perkLabel('open-field'), 'Open Field');
 });
 
 test('a new run: no gold, the whole deck shuffled by seed, empty hand; the offer mixes families', () => {
   const a = newPerkRun(42);
   const b = newPerkRun(42);
   assert.deepEqual(a.deck, b.deck);
-  assert.equal(a.deck.length, 31);
+  assert.equal(a.deck.length, 30);
   assert.notDeepEqual(newPerkRun(43).deck, a.deck);
   assert.equal(a.gold, 0);
   assert.deepEqual(a.hand, []);
   const offer = pickOffer(a.deck);
   assert.equal(offer.length, MARKET_SIZE);
   assert.equal(new Set(offer.map((id) => CARD_BY_ID[id].family)).size, 3, 'three different families');
-  assert.deepEqual(pickOffer(['crossroads', 'diagonal', 'encore']), ['crossroads', 'diagonal', 'encore'], 'one family left: fill from it');
+  assert.deepEqual(pickOffer(['crossroads', 'diagonal', 'short-stack']), ['crossroads', 'diagonal', 'short-stack'], 'one family left: fill from it');
 });
 
 test('the offer is drawn from the cards the gold can buy: none below the cheapest card, fewer than three from a small pool', () => {
   const run = newPerkRun(5);
   assert.equal(hasMarket(run), false, 'no gold, no market');
   assert.equal(openMarket(run, 1), null);
-  assert.equal(run.deck.length, 31, 'nothing left the deck');
+  assert.equal(run.deck.length, 30, 'nothing left the deck');
   assert.equal(run.market, null);
-  run.gold = 13;
-  assert.ok(affordable(run).every((id) => CARD_BY_ID[id].cost === 12));
+  run.gold = 4;
+  assert.ok(affordable(run).every((id) => CARD_BY_ID[id].cost <= 4));
   assert.ok(hasMarket(run));
   const m = openMarket(run, 1);
   assert.ok(m.offer.length >= 1 && m.offer.length <= 3);
-  assert.ok(m.offer.every((id) => CARD_BY_ID[id].cost <= 13), m.offer.join());
+  assert.ok(m.offer.every((id) => CARD_BY_ID[id].cost <= 4), m.offer.join());
   assert.ok(m.offer.every((id) => buyBlock(run, id) === ''), 'everything on offer can be bought');
   closeMarket(run);
   run.deck = ['wild-card', 'hint', 'borrowed-time'];
-  run.gold = 12;
+  run.gold = 4;
   assert.deepEqual(openMarket(run, 2).offer, ['hint'], 'a pool of one gives a market of one');
   closeMarket(run);
   run.gold = 100;
@@ -77,7 +82,7 @@ test('market: offer leaves the deck, buying costs gold and fills the hand, Scout
   run.gold = 30;
   const market = openMarket(run, 999);
   assert.equal(run.nextSeed, 999);
-  assert.equal(run.deck.length, 31 - 3);
+  assert.equal(run.deck.length, 30 - 3);
   for (const id of market.offer) assert.ok(!run.deck.includes(id));
   assert.equal(openMarket(run, 5), market, 'opening again keeps the same offer');
   const [first, second] = market.offer;
@@ -92,7 +97,7 @@ test('market: offer leaves the deck, buying costs gold and fills the hand, Scout
   assert.throws(() => buyCard(run, second), /more gold/);
   closeMarket(run);
   assert.equal(run.market, null);
-  assert.equal(run.deck.length + run.hand.length + (market.scouted ? 1 : 0), 31);
+  assert.equal(run.deck.length + run.hand.length + (market.scouted ? 1 : 0), 30);
   assert.ok(run.deck.includes(second), 'the unbought card is back in the deck');
   // scout ahead explicitly
   const run2 = newPerkRun(2);
@@ -101,7 +106,7 @@ test('market: offer leaves the deck, buying costs gold and fills the hand, Scout
   buyCard(run2, 'scout-ahead');
   assert.ok(run2.market.scouted);
   assert.deepEqual(run2.hand, []);
-  assert.equal(run2.gold, 50 - 12);
+  assert.equal(run2.gold, 50 - 3);
 });
 
 test('beginLevel frees the perk slot and remembers the hand; gold is the spare turns on the base limit, doubled by Gold Rush', () => {
@@ -149,63 +154,66 @@ test('engine hooks: extra turns, head start capped at the full board, free move 
   assert.equal(fm.perk.freeMove, true, 'input untouched');
 });
 
-test('extras: squares and stickers pay once at lock, word bonuses wait for a qualifying word, crossroads and diagonals add', () => {
-  const st = stateWith(['CATXX', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']);
+test('extras: squares pay once, stickers every word, word bonuses wait for a qualifying word, board-wide bonuses add', () => {
+  const st = stateWith(['CATXX', 'XRXXX', 'XTXXX', 'XXXXX', 'XXXXX']);
   st.perk.squares = { 0: 3, 1: 2 }; // C x3, A x2
-  st.perk.stickers = { 2: 5 };
-  st.perk.next = 'plus10';
+  st.perk.stickers = { 1: 5 };
+  st.perk.next = 'double';
   const ex = perkExtras(st, [0, 1, 2]);
-  assert.deepEqual(ex, [{ card: 'squares', pts: 3 * 2 + 1 }, { card: 'sticker', pts: 5 }, { card: 'next-plus10', pts: 10 }]);
+  assert.deepEqual(ex, [{ card: 'squares', pts: 3 * 2 + 1 }, { card: 'sticker', pts: 5 }, { card: 'double-down', pts: 5 }]);
   const locked = lock(st, 0, 2);
-  assert.equal(locked.words[0].score, scoreWord(st.board, [0, 1, 2]) + 22);
+  assert.equal(locked.words[0].score, scoreWord(st.board, [0, 1, 2]) + 17);
   assert.deepEqual(locked.words[0].extras, ex);
-  assert.equal(locked.perkPoints, 22);
-  assert.deepEqual(locked.perk.squares, {});
-  assert.deepEqual(locked.perk.stickers, {});
+  assert.equal(locked.perkPoints, 17);
+  assert.deepEqual(locked.perk.squares, {}, 'a square pays once');
+  assert.deepEqual(locked.perk.stickers, { 1: 5 }, 'a sticker stays');
   assert.equal(locked.perk.next, null);
   assert.equal(locked.perk.log.length, 3);
-  assert.deepEqual(perkSummary(locked).map((x) => [x.card, x.pts]), [['squares', 7], ['sticker', 5], ['next-plus10', 10]]);
+  assert.deepEqual(perkSummary(locked).map((x) => [x.card, x.pts]), [['squares', 7], ['sticker', 5], ['double-down', 5]]);
+  const again = lock(locked, 1, 11);
+  assert.equal(again.words[1].word, 'ART');
+  assert.deepEqual(again.words[1].extras, [{ card: 'sticker', pts: 5 }], 'the sticker pays the next word through its cell too');
   // double down is capped at 15
   const dd = stateWith(['QUIZX', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']);
   dd.perk.next = 'double';
   assert.deepEqual(perkExtras(dd, [0, 1, 2, 3]), [{ card: 'double-down', pts: 15 }]);
-  dd.board[0] = 'C';
-  dd.board[3] = 'T'; // CUIT is not a word, extras do not care
-  assert.deepEqual(perkExtras(dd, [0, 1, 2, 3]), [{ card: 'double-down', pts: 3 + 1 + 1 + 1 }]);
-  // long word waits for 5 letters; stretch pays one rung up from 4
+  // stretch waits for 4 letters and pays one rung up
   const lw = stateWith(['CATSX', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']);
-  lw.perk.next = 'long';
+  lw.perk.next = 'stretch';
   assert.deepEqual(perkExtras(lw, [0, 1, 2]), []);
   const stillWaiting = lock(lw, 0, 2);
-  assert.equal(stillWaiting.perk.next, 'long', 'a 3-letter word leaves it waiting');
-  lw.perk.next = 'stretch';
+  assert.equal(stillWaiting.perk.next, 'stretch', 'a 3-letter word leaves it waiting');
   assert.deepEqual(perkExtras(lw, [0, 1, 2, 3]), [{ card: 'stretch', pts: 10 }]);
-  assert.deepEqual(perkExtras(lw, [0, 1, 2]), []);
   const five = stateWith(['ZESTY', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']);
-  five.perk.next = 'long';
-  assert.deepEqual(perkExtras(five, [0, 1, 2, 3, 4]), [{ card: 'long-word', pts: 15 }]);
   five.perk.next = 'stretch';
   assert.deepEqual(perkExtras(five, [0, 1, 2, 3, 4]), [{ card: 'stretch', pts: 15 }]);
-  // crossroads needs a reused locked tile; diagonal needs a diagonal
+  // crossroads needs a reused locked tile, open field the opposite, short stack a 3-letter word, diagonal a diagonal
   const cr = stateWith(['CATXX', 'XOXXX', 'XXTXX', 'XXXXX', 'XXXXX']);
   cr.perk.crossroads = true;
+  cr.perk.openField = true;
+  cr.perk.shortStack = true;
   cr.perk.diagonal = true;
-  assert.deepEqual(perkExtras(cr, [0, 1, 2]), []);
+  assert.deepEqual(perkExtras(cr, [0, 1, 2]), [{ card: 'open-field', pts: 4 }, { card: 'short-stack', pts: 3 }]);
   const one = lock(cr, 0, 2);
-  assert.deepEqual(perkExtras(one, [0, 6, 12]), [{ card: 'crossroads', pts: 2 }, { card: 'diagonal', pts: 5 }]);
+  assert.deepEqual(perkExtras(one, [0, 6, 12]), [{ card: 'crossroads', pts: 2 }, { card: 'short-stack', pts: 3 }, { card: 'diagonal', pts: 5 }]);
+  const four = stateWith(['DOGSX', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']);
+  four.perk.shortStack = true;
+  assert.deepEqual(perkExtras(four, [0, 1, 2, 3]), [], 'short stack pays 3-letter words only');
 });
 
 test('perk actions: long swap, rotate, big nudge, pick a letter, unlock, trade, wild card, squares, sticker, encore, flags, turns', () => {
   const st = stateWith(['CATXX', 'DOGXX', 'XXXXX', 'XXXXX', 'XXXXX']);
   const sw = applyPerkAction(st, { type: 'pswap', a: 0, b: 4 });
   assert.equal(sw.board.join('').slice(0, 5), 'XATXC');
-  assert.equal(sw.turns, 0);
+  assert.equal(sw.turns, 1, 'a long swap costs a turn');
   assert.throws(() => applyPerkAction(st, { type: 'pswap', a: 0, b: 0 }), /different/);
   const ro = applyPerkAction(st, { type: 'rotate', cell: 0 });
   assert.equal(ro.board.slice(0, 2).join('') + ro.board.slice(5, 7).join(''), 'DCOA', 'clockwise quarter turn');
+  assert.equal(ro.turns, 1);
   assert.ok(rotateBlocks(st).includes(0));
   const nu = applyPerkAction(st, { type: 'setletter', cell: 0, letter: 'F' });
   assert.equal(nu.board[0], 'F');
+  assert.equal(nu.turns, 1, 'a big nudge costs a turn');
   assert.throws(() => applyPerkAction(st, { type: 'setletter', cell: 0, letter: 'K' }), /three letters/);
   assert.deepEqual(bigNudgeOptions('B'), ['Y', 'Z', 'A', 'C', 'D', 'E']);
   const pk = applyPerkAction(st, { type: 'setletter', cell: 0, letter: 'Q', fromBag: true });
@@ -213,12 +221,14 @@ test('perk actions: long swap, rotate, big nudge, pick a letter, unlock, trade, 
   assert.equal(pk.bag.Q, st.bag.Q - 1);
   assert.equal(pk.bag.C, st.bag.C + 1);
   assert.equal(sum(pk.bag), sum(st.bag));
+  assert.equal(pk.turns, 1, 'picking a letter costs a turn');
   const lockedSt = lock(st, 0, 2);
   assert.throws(() => applyPerkAction(lockedSt, { type: 'setletter', cell: 0, letter: 'Q', fromBag: true }), /locked/);
   const un = applyPerkAction(lockedSt, { type: 'unlock', cell: 1 });
   assert.deepEqual(un.locked, [0, 2]);
   assert.equal(un.score, lockedSt.score);
   assert.equal(un.words.length, 1);
+  assert.equal(un.turns, lockedSt.turns, 'unlock is free');
   const tr = applyPerkAction(lockedSt, { type: 'trade', a: 0, b: 5 });
   assert.equal(tr.board[0], 'D');
   assert.equal(tr.board[5], 'C');
@@ -227,18 +237,15 @@ test('perk actions: long swap, rotate, big nudge, pick a letter, unlock, trade, 
   const wc = applyPerkAction(lockedSt, { type: 'wildcard', cell: 0 });
   assert.equal(wc.board[0], WILD);
   assert.equal(wc.wilds || 0, 0, 'does not count against the one wild per board');
-  assert.equal(wc.turns, lockedSt.turns);
+  assert.equal(wc.turns, lockedSt.turns + 1, 'one turn, not the two of a normal wild');
   const sq = applyPerkAction(st, { type: 'squares', cells: [{ cell: 3, mult: 2 }, { cell: 4, mult: 3 }] });
   assert.deepEqual(sq.perk.squares, { 3: 2, 4: 3 });
   assert.throws(() => applyPerkAction(lockedSt, { type: 'squares', cells: [{ cell: 0, mult: 2 }] }), /locked/);
   const stk = applyPerkAction(st, { type: 'sticker', cell: 3 });
   assert.deepEqual(stk.perk.stickers, { 3: 5 });
-  const en = applyPerkAction(lockedSt, { type: 'encore', index: 0 });
-  assert.equal(en.score, lockedSt.score + encorePoints('CAT'));
-  assert.equal(en.perkPoints, 5);
-  assert.deepEqual(en.perk.log, [{ card: 'encore', pts: 5, word: 'CAT' }]);
-  const fl = applyPerkAction(st, { type: 'flag', key: 'next', value: 'plus10' });
-  assert.equal(fl.perk.next, 'plus10');
+  const fl = applyPerkAction(st, { type: 'flag', key: 'next', value: 'double' });
+  assert.equal(fl.perk.next, 'double');
+  assert.equal(applyPerkAction(st, { type: 'flag', key: 'shortStack', value: true }).perk.shortStack, true);
   assert.throws(() => applyPerkAction(st, { type: 'flag', key: 'gold', value: 1 }), /Unknown/);
   const tu = applyPerkAction(st, { type: 'turns', n: 2 });
   assert.equal(turnLimit(tu), 22);
@@ -270,10 +277,14 @@ test('perk actions: choice draw, exchange, fresh line and slide2 keep the bag wh
   assert.equal(fl.board[5], locked.board[5]);
   assert.equal(sum(fl.bag), sum(locked.bag));
   const one = applyWordAction(applyWordAction(locked, { type: 'slide', axis: 'row', index: 2, dir: 1 }), { type: 'slide', axis: 'row', index: 2, dir: 1 });
-  const two = applyPerkAction(locked, { type: 'slide2', axis: 'row', index: 2, dir: 1 });
+  const two = applyPerkAction(locked, { type: 'slideN', axis: 'row', index: 2, dir: 1, steps: 2 });
   assert.deepEqual(two.board, one.board);
   assert.equal(two.turns, locked.turns + 1);
-  assert.throws(() => applyPerkAction(locked, { type: 'slide2', axis: 'row', index: 1, dir: 1 }), /three unlocked/);
+  const three = applyPerkAction(locked, { type: 'slideN', axis: 'row', index: 2, dir: 1, steps: 3 });
+  assert.deepEqual(three.board, applyWordAction(one, { type: 'slide', axis: 'row', index: 2, dir: 1 }).board, 'three steps are three slides');
+  assert.throws(() => applyPerkAction(locked, { type: 'slideN', axis: 'row', index: 2, dir: 1, steps: 5 }), /6 unlocked/);
+  assert.throws(() => applyPerkAction(locked, { type: 'slideN', axis: 'row', index: 2, dir: 1, steps: 1 }), /Two steps/);
+  assert.throws(() => applyPerkAction(locked, { type: 'slideN', axis: 'row', index: 1, dir: 1, steps: 2 }), /3 unlocked/);
 });
 
 test('playability reasons and power pair picks', () => {
@@ -281,11 +292,11 @@ test('playability reasons and power pair picks', () => {
   assert.equal(playBlock('fresh-deal', st, { historyLength: 0 }), '');
   assert.match(playBlock('fresh-deal', st, { historyLength: 1 }), /first move/);
   assert.match(playBlock('unlock', st), /Nothing is locked/);
-  assert.match(playBlock('encore', st), /No word/);
+  assert.match(playBlock('open-field', { ...st, perk: { ...st.perk, openField: true } }), /Already/);
   assert.match(playBlock('rewind', st, { historyLength: 0 }), /Nothing to take back/);
   assert.equal(playBlock('rewind', st, { historyLength: 2 }), '');
   assert.match(playBlock('scout-ahead', st), /market/);
-  st.perk.next = 'plus10';
+  st.perk.next = 'stretch';
   assert.match(playBlock('double-down', st), /already waiting/);
   st.turns = 20;
   assert.match(playBlock('letter-trade', st), /Needs 1 turn left/);
@@ -296,15 +307,4 @@ test('playability reasons and power pair picks', () => {
   const full = stateWith(['CATXX', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX'], { locked: Array.from({ length: 24 }, (_, i) => i) });
   assert.equal(powerPairCells(full), null);
   assert.equal(finalScore(st), 0);
-});
-
-test('Encore pays the letter points as scored: a wild scored 0 at lock and pays 0 again', () => {
-  const st = stateWith(['QUI*X', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']);
-  const locked = lock(st, 0, 3);
-  assert.equal(locked.words[0].word, 'QUIT');
-  assert.equal(locked.words[0].letters, 12);
-  assert.equal(encorePoints(locked.words[0]), 12);
-  assert.equal(encorePoints('QUIT'), 13, 'a bare word still sums its letters');
-  const en = applyPerkAction(locked, { type: 'encore', index: 0 });
-  assert.equal(en.score, locked.score + 12);
 });

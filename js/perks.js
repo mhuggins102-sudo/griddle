@@ -4,11 +4,12 @@
 // rather than the board (Fresh Deal, Rewind, Hint, Scout Ahead).
 //
 // Gold is the turns to spare when a level's goal is reached (Gold Rush doubles it). Each card exists
-// once per run, costs 12 to 18 gold, and one card may be played per level. Board effects live in
-// state.perk so the engine scores them and undo snapshots carry them.
+// once per run, costs 3 to 10 gold (about 6 on average), and one card may be played per level. A card
+// that enhances a turn still costs that turn; only the Tempo cards lengthen the game. Board effects
+// live in state.perk so the engine scores them and undo snapshots carry them.
 
 import { mulberry32, shuffle, hashString, rngNext } from './rng.js';
-import { LETTERS, WILD, letterValue, bagTotal, isLocked, lineCellsFree, slideMoves, turnLimit, baseTurnLimit, gridOfState, sizeOf } from './words.js';
+import { LETTERS, WILD, bagTotal, isLocked, lineCellsFree, slideMoves, turnLimit, baseTurnLimit, gridOfState, sizeOf } from './words.js';
 
 export const FAMILIES = { board: 'Board', letters: 'Letters', power: 'Power tiles', scoring: 'Scoring', tempo: 'Tempo', info: 'Information', economy: 'Economy' };
 export const MARKET_SIZE = 3;
@@ -21,43 +22,42 @@ export const MARKET_SIZE = 3;
  */
 export const CARDS = [
   // board
-  { id: 'fresh-deal', name: 'Fresh Deal', cost: 14, family: 'board', target: 'none', turn: 0, text: 'Turn 1 only, before any move: a whole new board. The goal is worked out again for the new letters.' },
-  { id: 'long-swap', name: 'Long Swap', cost: 14, family: 'board', target: 'pair', turn: 0, text: 'Swap two unlocked tiles in the same row or column, any distance apart. No turn.' },
-  { id: 'rotate', name: 'Rotate', cost: 14, family: 'board', target: 'block', turn: 0, text: 'Turn a 2×2 block of unlocked tiles a quarter turn clockwise. No turn.' },
-  { id: 'unlock', name: 'Unlock', cost: 14, family: 'board', target: 'tile', turn: 0, text: 'A locked tile can move again. Its word keeps its points; it counts for the tile bonus again once re-locked.' },
-  { id: 'long-flick', name: 'Long Flick', cost: 12, family: 'board', target: 'flick', turn: 1, text: 'Flick a row or column and it slides two steps for one turn.' },
-  { id: 'letter-trade', name: 'Letter Trade', cost: 16, family: 'board', target: 'pair', turn: 1, text: 'Swap the letters of any two tiles, locked or not; the tiles keep their locks. One turn.' },
-  { id: 'fresh-line', name: 'Fresh Line', cost: 14, family: 'board', target: 'line', turn: 1, text: 'Every unlocked tile in one row or column gets a fresh letter from the bag. One turn.' },
+  { id: 'fresh-deal', name: 'Fresh Deal', cost: 3, family: 'board', target: 'none', turn: 0, text: 'Turn 1 only, before any move: a whole new board. The goal is worked out again for the new letters.' },
+  { id: 'long-swap', name: 'Long Swap', cost: 5, family: 'board', target: 'pair', turn: 1, text: 'Swap two unlocked tiles in the same row or column, any distance apart. One turn.' },
+  { id: 'rotate', name: 'Rotate', cost: 5, family: 'board', target: 'block', turn: 1, text: 'Turn a 2×2 block of unlocked tiles a quarter turn clockwise. One turn.' },
+  { id: 'unlock', name: 'Unlock', cost: 6, family: 'board', target: 'tile', turn: 0, text: 'A locked tile can move again. Its word keeps its points; it counts for the tile bonus again once re-locked. No turn.' },
+  { id: 'long-flick', name: 'Long Flick', cost: 5, family: 'board', target: 'flick', turn: 1, text: 'Flick a row or column and choose how far it slides: two steps or more. One turn.' },
+  { id: 'letter-trade', name: 'Letter Trade', cost: 7, family: 'board', target: 'pair', turn: 1, text: 'Swap the letters of any two tiles, locked or not; the tiles keep their locks. One turn.' },
+  { id: 'fresh-line', name: 'Fresh Line', cost: 6, family: 'board', target: 'line', turn: 1, text: 'Every unlocked tile in one row or column gets a fresh letter from the bag. One turn.' },
   // letters
-  { id: 'big-nudge', name: 'Big Nudge', cost: 14, family: 'letters', target: 'tile', turn: 0, text: 'Nudge one tile up to three letters either way in one go. No turn.' },
-  { id: 'pick-letter', name: 'Pick a Letter', cost: 16, family: 'letters', target: 'tile', turn: 0, text: 'Set an unlocked tile to any letter still in the bag; its old letter goes into the bag. No turn.' },
-  { id: 'choice-draw', name: 'Choice Draw', cost: 14, family: 'letters', target: 'none', turn: 0, text: 'Your next Draw offers three letters and you keep one. The draw costs its usual turn.' },
-  { id: 'exchange', name: 'Exchange', cost: 16, family: 'letters', target: 'multi', turn: 1, text: 'Toss up to three unlocked tiles and draw replacements from the bag, all for one turn.' },
+  { id: 'big-nudge', name: 'Big Nudge', cost: 6, family: 'letters', target: 'tile', turn: 1, text: 'Nudge one tile up to three letters either way in one go. One turn.' },
+  { id: 'pick-letter', name: 'Pick a Letter', cost: 7, family: 'letters', target: 'tile', turn: 1, text: 'Set an unlocked tile to any letter still in the bag; the old letter goes back in. One turn.' },
+  { id: 'choice-draw', name: 'Choice Draw', cost: 5, family: 'letters', target: 'none', turn: 0, text: 'Your next Draw offers three letters and you keep one. The draw costs its usual turn.' },
+  { id: 'exchange', name: 'Exchange', cost: 6, family: 'letters', target: 'multi', turn: 1, text: 'Toss up to three unlocked tiles and draw replacements from the bag, all for one turn.' },
   // power tiles
-  { id: 'power-pair', name: 'Power Pair', cost: 16, family: 'power', target: 'none', turn: 0, text: 'Two random unlocked tiles get a Double Letter and a Triple Letter square, paid once when a word locks the cell.' },
-  { id: 'triple-up', name: 'Triple Up', cost: 16, family: 'power', target: 'tile', turn: 0, text: 'Choose an unlocked tile: a Triple Letter square, paid once when a word locks the cell.' },
-  { id: 'sticker', name: 'Gold Sticker', cost: 12, family: 'power', target: 'tile', turn: 0, text: 'Choose an unlocked tile: +5 when a word locks that cell. Better than Triple on a vowel.' },
-  { id: 'wild-card', name: 'Wild Card', cost: 18, family: 'power', target: 'tile', turn: 0, text: 'Any tile, locked or not, becomes wild at once. No turns, and it ignores the one wild per board.' },
+  { id: 'power-pair', name: 'Power Pair', cost: 8, family: 'power', target: 'none', turn: 0, text: 'Two random unlocked tiles get a Double Letter and a Triple Letter square, paid once when a word locks the cell.' },
+  { id: 'triple-up', name: 'Triple Up', cost: 8, family: 'power', target: 'tile', turn: 0, text: 'Choose an unlocked tile: a Triple Letter square, paid once when a word locks the cell.' },
+  { id: 'sticker', name: 'Gold Sticker', cost: 8, family: 'power', target: 'tile', turn: 0, text: 'Choose an unlocked tile: +5 for every word that uses that cell, on this board.' },
+  { id: 'wild-card', name: 'Wild Card', cost: 9, family: 'power', target: 'tile', turn: 1, text: 'Any tile, locked or not, becomes wild for one turn (a normal wild costs two). It ignores the one wild per board.' },
   // scoring
-  { id: 'next-plus10', name: 'Next Word +10', cost: 14, family: 'scoring', target: 'none', turn: 0, text: 'Your next locked word scores 10 more.' },
-  { id: 'long-word', name: 'Long Word Bonus', cost: 16, family: 'scoring', target: 'none', turn: 0, text: 'Your next 5- or 6-letter word gets its length bonus twice. Shorter words leave it waiting.' },
-  { id: 'encore', name: 'Encore', cost: 14, family: 'scoring', target: 'word', turn: 0, text: 'Pick one of your locked words: its letter points score again.' },
-  { id: 'head-start', name: 'Head Start', cost: 14, family: 'scoring', target: 'none', turn: 0, text: 'The tile bonus ladder starts one tile earlier on this board.' },
-  { id: 'double-down', name: 'Double Down', cost: 16, family: 'scoring', target: 'none', turn: 0, text: 'Your next locked word scores its letter values twice, up to 15 extra.' },
-  { id: 'stretch', name: 'Stretch Bonus', cost: 14, family: 'scoring', target: 'none', turn: 0, text: 'Your next word of 4+ letters gets the length bonus one rung up: +15 for 4 letters, +30 for 5, +45 for 6.' },
-  { id: 'crossroads', name: 'Crossroads', cost: 12, family: 'scoring', target: 'none', turn: 0, text: 'For the rest of this board, every word that reuses a locked tile scores +2.' },
-  { id: 'diagonal', name: 'Diagonal Dividend', cost: 12, family: 'scoring', target: 'none', turn: 0, text: 'For the rest of this board, every word on a diagonal scores +5.' },
+  { id: 'head-start', name: 'Head Start', cost: 6, family: 'scoring', target: 'none', turn: 0, text: 'The tile bonus ladder starts one tile earlier on this board.' },
+  { id: 'double-down', name: 'Double Down', cost: 7, family: 'scoring', target: 'none', turn: 0, text: 'Your next locked word scores its letter values twice, up to 15 extra.' },
+  { id: 'stretch', name: 'Stretch Bonus', cost: 7, family: 'scoring', target: 'none', turn: 0, text: 'Your next word of 4+ letters gets the length bonus one rung up: +15 for 4 letters, +30 for 5, +45 for 6.' },
+  { id: 'crossroads', name: 'Crossroads', cost: 6, family: 'scoring', target: 'none', turn: 0, text: 'For the rest of this board, every word that reuses a locked tile scores +2.' },
+  { id: 'diagonal', name: 'Diagonal Dividend', cost: 6, family: 'scoring', target: 'none', turn: 0, text: 'For the rest of this board, every word on a diagonal scores +5.' },
+  { id: 'open-field', name: 'Open Field', cost: 7, family: 'scoring', target: 'none', turn: 0, text: 'For the rest of this board, every word that uses no locked tile scores +4.' },
+  { id: 'short-stack', name: 'Short Stack', cost: 6, family: 'scoring', target: 'none', turn: 0, text: 'For the rest of this board, every 3-letter word scores +3.' },
   // tempo
-  { id: 'extra-turn', name: 'Extra Turn', cost: 16, family: 'tempo', target: 'none', turn: 0, text: 'This level has one more turn. Extra turns never earn gold.' },
-  { id: 'borrowed-time', name: 'Borrowed Time', cost: 18, family: 'tempo', target: 'none', turn: 0, text: 'This level has two more turns. Extra turns never earn gold.' },
-  { id: 'free-move', name: 'Free Move', cost: 12, family: 'tempo', target: 'none', turn: 0, text: 'Your next slide or swap costs no turn.' },
-  { id: 'rewind', name: 'Rewind', cost: 12, family: 'tempo', target: 'none', turn: 0, text: 'Take back your last move or lock, once, in a run where undo is otherwise off. Cannot go back past a Draw.' },
+  { id: 'extra-turn', name: 'Extra Turn', cost: 8, family: 'tempo', target: 'none', turn: 0, text: 'This level has one more turn. Extra turns never earn gold.' },
+  { id: 'borrowed-time', name: 'Borrowed Time', cost: 10, family: 'tempo', target: 'none', turn: 0, text: 'This level has two more turns. Extra turns never earn gold.' },
+  { id: 'free-move', name: 'Free Move', cost: 5, family: 'tempo', target: 'none', turn: 0, text: 'Your next slide or swap costs no turn.' },
+  { id: 'rewind', name: 'Rewind', cost: 4, family: 'tempo', target: 'none', turn: 0, text: 'Take back your last move or lock, once, in a run where undo is otherwise off. Not past a Draw.' },
   // information
-  { id: 'peek', name: 'Peek', cost: 12, family: 'info', target: 'none', turn: 0, text: 'For the rest of this level the Draw button shows the letter the next draw will bring.' },
-  { id: 'hint', name: 'Hint', cost: 12, family: 'info', target: 'none', turn: 0, text: 'Lights up the highest-scoring word that can be locked right now.' },
-  { id: 'scout-ahead', name: 'Scout Ahead', cost: 12, family: 'info', target: 'market', turn: 0, text: 'In the market: see the next board’s letters before buying anything else. Used at once; never takes a level’s perk.' },
+  { id: 'peek', name: 'Peek', cost: 3, family: 'info', target: 'none', turn: 0, text: 'For the rest of this level the Draw button shows the letter the next draw will bring.' },
+  { id: 'hint', name: 'Hint', cost: 4, family: 'info', target: 'none', turn: 0, text: 'Lights up the highest-scoring word that can be locked right now.' },
+  { id: 'scout-ahead', name: 'Scout Ahead', cost: 3, family: 'info', target: 'market', turn: 0, text: 'In the market: see the next board’s letters before buying anything else. Used at once; never takes a level’s perk.' },
   // economy
-  { id: 'gold-rush', name: 'Gold Rush', cost: 12, family: 'economy', target: 'none', turn: 0, text: 'This level’s spare turns pay double gold. It takes the level’s one perk, so no board boost this level.' },
+  { id: 'gold-rush', name: 'Gold Rush', cost: 3, family: 'economy', target: 'none', turn: 0, text: 'This level’s spare turns pay double gold. It takes the level’s one perk, so no board boost this level.' },
 ];
 
 export const CARD_BY_ID = Object.fromEntries(CARDS.map((c) => [c.id, c]));
@@ -65,7 +65,6 @@ export const CARD_BY_ID = Object.fromEntries(CARDS.map((c) => [c.id, c]));
 /** A card's text for a board size: the 6-letter words only a 6×6 board can hold are left out on 5×5. */
 export function cardText(card, size = 5) {
   if (size === 6) return card.text;
-  if (card.id === 'long-word') return 'Your next 5-letter word gets its length bonus twice. Shorter words leave it waiting.';
   if (card.id === 'stretch') return 'Your next word of 4+ letters gets the length bonus one rung up: +15 for 4 letters, +30 for 5.';
   return card.text;
 }
@@ -78,7 +77,7 @@ export function perkLabel(card) {
 
 /** The empty per-board perk record (state.perk). */
 export function emptyPerk() {
-  return { squares: {}, stickers: {}, next: null, crossroads: false, diagonal: false, headStart: false, extraTurns: 0, freeMove: false, choiceDraw: false, peek: false, log: [] };
+  return { squares: {}, stickers: {}, next: null, crossroads: false, diagonal: false, openField: false, shortStack: false, headStart: false, extraTurns: 0, freeMove: false, choiceDraw: false, peek: false, log: [] };
 }
 
 /** A new run's perk record: no gold, every card in a shuffled deck, an empty hand. */
@@ -236,19 +235,19 @@ export function playBlock(id, state, ctx = {}) {
       return free.some((i) => !p.stickers[i]) ? '' : 'No unlocked tile left';
     case 'wild-card':
       return state.board.some((ch) => ch !== WILD) ? '' : 'Every tile is wild';
-    case 'next-plus10':
-    case 'long-word':
     case 'double-down':
     case 'stretch':
       return p.next ? 'A word bonus is already waiting' : '';
-    case 'encore':
-      return state.words.length ? '' : 'No word locked yet';
     case 'head-start':
       return p.headStart ? 'Already in play' : '';
     case 'crossroads':
       return p.crossroads ? 'Already in play' : '';
     case 'diagonal':
       return p.diagonal ? 'Already in play' : '';
+    case 'open-field':
+      return p.openField ? 'Already in play' : '';
+    case 'short-stack':
+      return p.shortStack ? 'Already in play' : '';
     case 'extra-turn':
     case 'borrowed-time':
       return turnsLeft > 0 ? '' : 'The turns are spent';
@@ -323,24 +322,23 @@ export function peekDraws(state, n = 1) {
 // ---------------------------------------------------------------------------
 // Board actions
 
-const ACTION_COST = { pswap: 0, rotate: 0, setletter: 0, draw3: 1, unlock: 0, exchange: 1, freshline: 1, slide2: 1, trade: 1, wildcard: 0, squares: 0, sticker: 0, encore: 0, flag: 0, turns: 0 };
+const ACTION_COST = { pswap: 1, rotate: 1, setletter: 1, draw3: 1, unlock: 0, exchange: 1, freshline: 1, slideN: 1, trade: 1, wildcard: 1, squares: 0, sticker: 0, flag: 0, turns: 0 };
 
 /**
  * Apply a perk action; returns the new state (input untouched). Throws on an illegal target.
- *   { type: 'pswap', a, b }              swap two unlocked tiles (Long Swap; the UI keeps them in a line)
- *   { type: 'rotate', cell }             quarter-turn the 2×2 block whose top-left tile is cell
- *   { type: 'setletter', cell, letter, fromBag }   Big Nudge (fromBag false) or Pick a Letter (fromBag true)
- *   { type: 'draw3', cell, pick }        Choice Draw: the next three letters are drawn, pick (0..2) stays
- *   { type: 'unlock', cell }
- *   { type: 'exchange', cells }          up to three unlocked tiles redrawn
- *   { type: 'freshline', axis, index }   every unlocked tile in the line redrawn
- *   { type: 'slide2', axis, index, dir } the line slides two steps
- *   { type: 'trade', a, b }              the letters of any two tiles change places
- *   { type: 'wildcard', cell }
+ *   { type: 'pswap', a, b }              swap two unlocked tiles (Long Swap; the UI keeps them in a line), one turn
+ *   { type: 'rotate', cell }             quarter-turn the 2×2 block whose top-left tile is cell, one turn
+ *   { type: 'setletter', cell, letter, fromBag }   Big Nudge (fromBag false) or Pick a Letter (fromBag true), one turn
+ *   { type: 'draw3', cell, pick }        Choice Draw: the next three letters are drawn, pick (0..2) stays, one turn
+ *   { type: 'unlock', cell }             no turn
+ *   { type: 'exchange', cells }          up to three unlocked tiles redrawn, one turn
+ *   { type: 'freshline', axis, index }   every unlocked tile in the line redrawn, one turn
+ *   { type: 'slideN', axis, index, dir, steps }   the line slides steps (2 or more) steps, one turn
+ *   { type: 'trade', a, b }              the letters of any two tiles change places, one turn
+ *   { type: 'wildcard', cell }           one turn
  *   { type: 'squares', cells: [{ cell, mult }] }
- *   { type: 'sticker', cell }
- *   { type: 'encore', index }            the letter points of words[index] again
- *   { type: 'flag', key, value }         next | crossroads | diagonal | headStart | freeMove | choiceDraw | peek
+ *   { type: 'sticker', cell }            +5 for every word through the cell
+ *   { type: 'flag', key, value }         next | crossroads | diagonal | openField | shortStack | headStart | freeMove | choiceDraw | peek
  *   { type: 'turns', n }                 extra turns
  */
 export function applyPerkAction(state, action) {
@@ -462,13 +460,20 @@ export function applyPerkAction(state, action) {
       next.lastRedraw = redraw(cells);
       break;
     }
-    case 'slide2': {
+    case 'slideN': {
       if (!g.inRange(action.index) || (action.axis !== 'row' && action.axis !== 'col') || Math.abs(action.dir) !== 1) throw new Error('Pick a line to flick');
-      if (lineCellsFree(state, action.axis, action.index).length < 3) throw new Error('Needs three unlocked tiles in the line');
+      const free = lineCellsFree(state, action.axis, action.index).length;
+      const steps = action.steps;
+      if (!(Number.isInteger(steps) && steps >= 2)) throw new Error('Two steps or more');
+      if (free < steps + 1) throw new Error(`Needs ${steps + 1} unlocked tiles in the line`);
       const one = { type: 'slide', axis: action.axis, index: action.index, dir: action.dir };
-      const mid = { ...state, board: state.board.slice() };
-      for (const m of slideMoves(state, one)) mid.board[m.to] = state.board[m.from];
-      for (const m of slideMoves(mid, one)) next.board[m.to] = mid.board[m.from];
+      let cur = { ...state, board: state.board.slice() };
+      for (let k = 0; k < steps; k++) {
+        const after = { ...cur, board: cur.board.slice() };
+        for (const m of slideMoves(cur, one)) after.board[m.to] = cur.board[m.from];
+        cur = after;
+      }
+      next.board = cur.board;
       break;
     }
     case 'trade': {
@@ -498,17 +503,8 @@ export function applyPerkAction(state, action) {
       next.perk.stickers[action.cell] = (next.perk.stickers[action.cell] || 0) + 5;
       break;
     }
-    case 'encore': {
-      const wd = state.words[action.index];
-      if (!wd) throw new Error('Pick a locked word');
-      const pts = encorePoints(wd);
-      next.score = state.score + pts;
-      next.perkPoints = (state.perkPoints || 0) + pts;
-      next.perk.log.push({ card: 'encore', pts, word: wd.word });
-      break;
-    }
     case 'flag': {
-      if (!['next', 'crossroads', 'diagonal', 'headStart', 'freeMove', 'choiceDraw', 'peek'].includes(action.key)) throw new Error('Unknown perk flag');
+      if (!['next', 'crossroads', 'diagonal', 'openField', 'shortStack', 'headStart', 'freeMove', 'choiceDraw', 'peek'].includes(action.key)) throw new Error('Unknown perk flag');
       next.perk[action.key] = action.value;
       break;
     }
@@ -521,15 +517,6 @@ export function applyPerkAction(state, action) {
       break;
   }
   return next;
-}
-
-/** The letter points of a locked word as they were scored (a wild at 0), which is what Encore pays again. */
-export function encorePoints(entry) {
-  if (entry && typeof entry === 'object') {
-    if (typeof entry.letters === 'number') return entry.letters;
-    entry = entry.word;
-  }
-  return String(entry).split('').reduce((a, ch) => a + letterValue(ch), 0);
 }
 
 /** Two random unlocked, unpowered, non-wild cells for Power Pair: the first doubles, the second triples. */
