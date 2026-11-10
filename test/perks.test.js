@@ -6,7 +6,7 @@ import {
   coverageBonusFor, actionCost, perkExtras, scoreWord, finalScore, WILD, LETTERS,
 } from '../js/words.js';
 import {
-  CARDS, CARD_BY_ID, FAMILIES, MARKET_SIZE, emptyPerk, newPerkRun, beginLevel, goldForPass, pickOffer, openMarket, buyBlock, buyCard, closeMarket,
+  CARDS, CARD_BY_ID, FAMILIES, MARKET_SIZE, emptyPerk, newPerkRun, beginLevel, goldForPass, pickOffer, openMarket, buyBlock, buyCard, closeMarket, affordable, hasMarket,
   playBlock, rotateBlocks, bigNudgeOptions, peekDraws, applyPerkAction, powerPairCells, perkSummary, encorePoints, perkLabel,
 } from '../js/perks.js';
 
@@ -48,6 +48,28 @@ test('a new run: no gold, the whole deck shuffled by seed, empty hand; the offer
   assert.equal(offer.length, MARKET_SIZE);
   assert.equal(new Set(offer.map((id) => CARD_BY_ID[id].family)).size, 3, 'three different families');
   assert.deepEqual(pickOffer(['crossroads', 'diagonal', 'encore']), ['crossroads', 'diagonal', 'encore'], 'one family left: fill from it');
+});
+
+test('the offer is drawn from the cards the gold can buy: none below the cheapest card, fewer than three from a small pool', () => {
+  const run = newPerkRun(5);
+  assert.equal(hasMarket(run), false, 'no gold, no market');
+  assert.equal(openMarket(run, 1), null);
+  assert.equal(run.deck.length, 31, 'nothing left the deck');
+  assert.equal(run.market, null);
+  run.gold = 13;
+  assert.ok(affordable(run).every((id) => CARD_BY_ID[id].cost === 12));
+  assert.ok(hasMarket(run));
+  const m = openMarket(run, 1);
+  assert.ok(m.offer.length >= 1 && m.offer.length <= 3);
+  assert.ok(m.offer.every((id) => CARD_BY_ID[id].cost <= 13), m.offer.join());
+  assert.ok(m.offer.every((id) => buyBlock(run, id) === ''), 'everything on offer can be bought');
+  closeMarket(run);
+  run.deck = ['wild-card', 'hint', 'borrowed-time'];
+  run.gold = 12;
+  assert.deepEqual(openMarket(run, 2).offer, ['hint'], 'a pool of one gives a market of one');
+  closeMarket(run);
+  run.gold = 100;
+  assert.equal(pickOffer(run.deck, 3, 100).length, 3);
 });
 
 test('market: offer leaves the deck, buying costs gold and fills the hand, Scout Ahead resolves in place, closing returns the rest', () => {

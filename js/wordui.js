@@ -10,7 +10,7 @@ import { randomSeed, hashString } from './rng.js';
 import { openSheet, closeSheet } from './sheet.js';
 import { buildBoardSkeleton, tileIn, tileStep, animateAction, animateMoves, beginMoves, removeGhosts, clearTileEffects, wait, ANIM_MS } from './board.js';
 import {
-  CARD_BY_ID, FAMILIES, cardText, emptyPerk, newPerkRun, beginLevel, goldForPass, openMarket, buyBlock, buyCard, closeMarket, playBlock, rotateBlocks,
+  CARD_BY_ID, FAMILIES, cardText, emptyPerk, newPerkRun, beginLevel, goldForPass, openMarket, hasMarket, buyBlock, buyCard, closeMarket, playBlock, rotateBlocks,
   bigNudgeOptions, peekDraws, applyPerkAction, powerPairCells, perkSummary, encorePoints, perkLabel,
 } from './perks.js';
 import {
@@ -1194,8 +1194,20 @@ export function initWordMode(ctx) {
     return playBlock(id, g.state, { historyLength: g.history.length });
   }
 
-  function cardHtml(c, cost, why, button) {
-    return `<span class="mk-fam">${FAMILIES[c.family]}</span><span class="mk-name">${c.name}</span><span class="mk-cost">${cost}</span><p class="mk-text">${cardText(c, w.game ? w.game.size : 5)}</p><div class="mk-act"><span class="mk-why">${why}</span>${button}</div>`;
+  function cardHtml(c, cost, why, button, info = false) {
+    const infoBtn = info ? `<button type="button" class="btn mk-info" aria-label="What ${c.name} does">i</button>` : '';
+    return `<span class="mk-fam">${FAMILIES[c.family]}</span><span class="mk-name">${c.name}</span><span class="mk-cost">${cost}</span>${infoBtn}<p class="mk-text">${cardText(c, w.game ? w.game.size : 5)}</p><div class="mk-act"><span class="mk-why">${why}</span>${button}</div>`;
+  }
+
+  /** A card's full text in a popup above its info button (wide screens hide the text on the market cards). */
+  function toggleInfoPop(c, anchor) {
+    const pop = $('#w-tilepop');
+    if (!pop.hidden && tilePopAnchor === anchor) return closeTilePop();
+    openPopAt(`<div class="tp-info"><b>${c.name}</b><p>${cardText(c, w.game ? w.game.size : 5)}</p></div>`, anchor);
+    clearTimeout(w.infoPopTimer);
+    w.infoPopTimer = setTimeout(() => {
+      if (tilePopAnchor === anchor) closeTilePop();
+    }, 7000);
   }
 
   /** The hand sheet: every card bought so far, with Play where it can be played now. */
@@ -1776,7 +1788,7 @@ export function initWordMode(ctx) {
     const g = w.game;
     const run = perks();
     if (!g || !run) return;
-    openMarket(run, randomSeed());
+    if (!openMarket(run, randomSeed())) return; // nothing the gold can buy: no market this time
     persist();
     renderMarket();
     closeTilePop();
@@ -1802,12 +1814,13 @@ export function initWordMode(ctx) {
       const el = document.createElement('div');
       el.className = `mk-card${bought ? ' bought' : why ? ' cannot' : ''}`;
       const note = bought ? (c.target === 'market' ? 'Used now' : 'In your hand') : why;
-      el.innerHTML = cardHtml(c, bought ? 'Bought' : `◆ ${c.cost}`, note, bought ? '' : `<button type="button" class="btn btn-primary btn-small" ${why ? 'disabled' : ''}>Buy</button>`);
+      el.innerHTML = cardHtml(c, bought ? 'Bought' : `◆ ${c.cost}`, note, bought ? '' : `<button type="button" class="btn btn-primary btn-small mk-buy" ${why ? 'disabled' : ''}>Buy</button>`, true);
+      el.querySelector('.mk-info').addEventListener('click', (e) => toggleInfoPop(c, e.currentTarget));
       if (bought) {
         list.appendChild(el);
         continue;
       }
-      el.querySelector('button').addEventListener('click', () => {
+      el.querySelector('.mk-buy').addEventListener('click', () => {
         try {
           buyCard(run, id);
         } catch (e) {
@@ -2088,7 +2101,13 @@ export function initWordMode(ctx) {
       closeTilePop();
       return;
     }
-    pop.innerHTML = tilePopHtml(kind, st);
+    openPopAt(tilePopHtml(kind, st), anchor);
+  }
+
+  /** Show html in the popup, centred above an anchor element and kept on screen. */
+  function openPopAt(html, anchor) {
+    const pop = $('#w-tilepop');
+    pop.innerHTML = html;
     pop.hidden = false;
     tilePopAnchor = anchor;
     const a = anchor.getBoundingClientRect();
@@ -2269,8 +2288,8 @@ export function initWordMode(ctx) {
   $('#w-pop').addEventListener('click', () => ($('#w-pop').hidden = true));
   $('#w-share').addEventListener('click', copyShare);
   $('#w-next').addEventListener('click', () => {
-    // a perk run shops first; the goal reached mid-board is scored when the next level starts
-    if (perkRun()) openMarketSheet();
+    // a perk run shops first, when the gold buys anything; the goal reached mid-board is scored when the next level starts
+    if (perkRun() && hasMarket(w.game.perks)) openMarketSheet();
     else if (w.game && !w.over) advanceEarly();
     else startNextLevel(w.nextLevel || 1);
   });

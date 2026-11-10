@@ -24,9 +24,9 @@ export const CARDS = [
   { id: 'fresh-deal', name: 'Fresh Deal', cost: 14, family: 'board', target: 'none', turn: 0, text: 'Turn 1 only, before any move: a whole new board. The goal is worked out again for the new letters.' },
   { id: 'long-swap', name: 'Long Swap', cost: 14, family: 'board', target: 'pair', turn: 0, text: 'Swap two unlocked tiles in the same row or column, any distance apart. No turn.' },
   { id: 'rotate', name: 'Rotate', cost: 14, family: 'board', target: 'block', turn: 0, text: 'Turn a 2×2 block of unlocked tiles a quarter turn clockwise. No turn.' },
-  { id: 'unlock', name: 'Unlock', cost: 14, family: 'board', target: 'tile', turn: 0, text: 'A locked tile can move again. Its word keeps its points; it counts toward the tile bonus again once a new word locks it.' },
+  { id: 'unlock', name: 'Unlock', cost: 14, family: 'board', target: 'tile', turn: 0, text: 'A locked tile can move again. Its word keeps its points; it counts for the tile bonus again once re-locked.' },
   { id: 'long-flick', name: 'Long Flick', cost: 12, family: 'board', target: 'flick', turn: 1, text: 'Flick a row or column and it slides two steps for one turn.' },
-  { id: 'letter-trade', name: 'Letter Trade', cost: 16, family: 'board', target: 'pair', turn: 1, text: 'Swap the letters of any two tiles, locked or not. The tiles stay put and keep their locks. One turn.' },
+  { id: 'letter-trade', name: 'Letter Trade', cost: 16, family: 'board', target: 'pair', turn: 1, text: 'Swap the letters of any two tiles, locked or not; the tiles keep their locks. One turn.' },
   { id: 'fresh-line', name: 'Fresh Line', cost: 14, family: 'board', target: 'line', turn: 1, text: 'Every unlocked tile in one row or column gets a fresh letter from the bag. One turn.' },
   // letters
   { id: 'big-nudge', name: 'Big Nudge', cost: 14, family: 'letters', target: 'tile', turn: 0, text: 'Nudge one tile up to three letters either way in one go. No turn.' },
@@ -34,17 +34,17 @@ export const CARDS = [
   { id: 'choice-draw', name: 'Choice Draw', cost: 14, family: 'letters', target: 'none', turn: 0, text: 'Your next Draw offers three letters and you keep one. The draw costs its usual turn.' },
   { id: 'exchange', name: 'Exchange', cost: 16, family: 'letters', target: 'multi', turn: 1, text: 'Toss up to three unlocked tiles and draw replacements from the bag, all for one turn.' },
   // power tiles
-  { id: 'power-pair', name: 'Power Pair', cost: 16, family: 'power', target: 'none', turn: 0, text: 'Two random unlocked tiles get a Double Letter and a Triple Letter square. The square stays on its cell until a word locks it and pays once.' },
-  { id: 'triple-up', name: 'Triple Up', cost: 16, family: 'power', target: 'tile', turn: 0, text: 'Choose an unlocked tile: a Triple Letter square. It stays on the cell until a word locks it and pays once.' },
+  { id: 'power-pair', name: 'Power Pair', cost: 16, family: 'power', target: 'none', turn: 0, text: 'Two random unlocked tiles get a Double Letter and a Triple Letter square, paid once when a word locks the cell.' },
+  { id: 'triple-up', name: 'Triple Up', cost: 16, family: 'power', target: 'tile', turn: 0, text: 'Choose an unlocked tile: a Triple Letter square, paid once when a word locks the cell.' },
   { id: 'sticker', name: 'Gold Sticker', cost: 12, family: 'power', target: 'tile', turn: 0, text: 'Choose an unlocked tile: +5 when a word locks that cell. Better than Triple on a vowel.' },
-  { id: 'wild-card', name: 'Wild Card', cost: 18, family: 'power', target: 'tile', turn: 0, text: 'Any tile, locked or not, becomes wild at once. No turns, and it does not count against the one wild per board.' },
+  { id: 'wild-card', name: 'Wild Card', cost: 18, family: 'power', target: 'tile', turn: 0, text: 'Any tile, locked or not, becomes wild at once. No turns, and it ignores the one wild per board.' },
   // scoring
   { id: 'next-plus10', name: 'Next Word +10', cost: 14, family: 'scoring', target: 'none', turn: 0, text: 'Your next locked word scores 10 more.' },
   { id: 'long-word', name: 'Long Word Bonus', cost: 16, family: 'scoring', target: 'none', turn: 0, text: 'Your next 5- or 6-letter word gets its length bonus twice. Shorter words leave it waiting.' },
   { id: 'encore', name: 'Encore', cost: 14, family: 'scoring', target: 'word', turn: 0, text: 'Pick one of your locked words: its letter points score again.' },
   { id: 'head-start', name: 'Head Start', cost: 14, family: 'scoring', target: 'none', turn: 0, text: 'The tile bonus ladder starts one tile earlier on this board.' },
   { id: 'double-down', name: 'Double Down', cost: 16, family: 'scoring', target: 'none', turn: 0, text: 'Your next locked word scores its letter values twice, up to 15 extra.' },
-  { id: 'stretch', name: 'Stretch Bonus', cost: 14, family: 'scoring', target: 'none', turn: 0, text: 'Your next word of 4 or more letters gets the length bonus one rung up: +15 for 4 letters, +30 for 5, +45 for 6. Shorter words leave it waiting.' },
+  { id: 'stretch', name: 'Stretch Bonus', cost: 14, family: 'scoring', target: 'none', turn: 0, text: 'Your next word of 4+ letters gets the length bonus one rung up: +15 for 4 letters, +30 for 5, +45 for 6.' },
   { id: 'crossroads', name: 'Crossroads', cost: 12, family: 'scoring', target: 'none', turn: 0, text: 'For the rest of this board, every word that reuses a locked tile scores +2.' },
   { id: 'diagonal', name: 'Diagonal Dividend', cost: 12, family: 'scoring', target: 'none', turn: 0, text: 'For the rest of this board, every word on a diagonal scores +5.' },
   // tempo
@@ -55,7 +55,7 @@ export const CARDS = [
   // information
   { id: 'peek', name: 'Peek', cost: 12, family: 'info', target: 'none', turn: 0, text: 'For the rest of this level the Draw button shows the letter the next draw will bring.' },
   { id: 'hint', name: 'Hint', cost: 12, family: 'info', target: 'none', turn: 0, text: 'Lights up the highest-scoring word that can be locked right now.' },
-  { id: 'scout-ahead', name: 'Scout Ahead', cost: 12, family: 'info', target: 'market', turn: 0, text: 'In the market: see the next board’s letters before you buy anything else. Used up at once, so it never takes a level’s perk.' },
+  { id: 'scout-ahead', name: 'Scout Ahead', cost: 12, family: 'info', target: 'market', turn: 0, text: 'In the market: see the next board’s letters before buying anything else. Used at once; never takes a level’s perk.' },
   // economy
   { id: 'gold-rush', name: 'Gold Rush', cost: 12, family: 'economy', target: 'none', turn: 0, text: 'This level’s spare turns pay double gold. It takes the level’s one perk, so no board boost this level.' },
 ];
@@ -66,7 +66,7 @@ export const CARD_BY_ID = Object.fromEntries(CARDS.map((c) => [c.id, c]));
 export function cardText(card, size = 5) {
   if (size === 6) return card.text;
   if (card.id === 'long-word') return 'Your next 5-letter word gets its length bonus twice. Shorter words leave it waiting.';
-  if (card.id === 'stretch') return 'Your next word of 4 or more letters gets the length bonus one rung up: +15 for 4 letters, +30 for 5. Shorter words leave it waiting.';
+  if (card.id === 'stretch') return 'Your next word of 4+ letters gets the length bonus one rung up: +15 for 4 letters, +30 for 5.';
   return card.text;
 }
 
@@ -109,28 +109,47 @@ export function goldForPass(state, perks) {
   return perks && perks.goldRush ? spare * 2 : spare;
 }
 
-/** Up to MARKET_SIZE cards from the top of the deck, from different families where the deck allows. */
-export function pickOffer(deck, n = MARKET_SIZE) {
+/** The cards in the deck that the gold in hand can buy, in deck order. */
+export function affordable(perks) {
+  return perks.deck.filter((id) => CARD_BY_ID[id] && CARD_BY_ID[id].cost <= perks.gold);
+}
+
+/** Is there a market to show: one already open, or at least one card in the deck the gold can buy. */
+export function hasMarket(perks) {
+  return !!perks && (!!perks.market || affordable(perks).length > 0);
+}
+
+/**
+ * Up to MARKET_SIZE cards from the top of the deck that cost no more than gold, from different families
+ * where the pool allows. Fewer than MARKET_SIZE when the pool is small; none when nothing is affordable.
+ */
+export function pickOffer(deck, n = MARKET_SIZE, gold = Infinity) {
+  const pool = deck.filter((id) => CARD_BY_ID[id] && CARD_BY_ID[id].cost <= gold);
   const offer = [];
   const families = new Set();
-  for (const id of deck) {
+  for (const id of pool) {
     const c = CARD_BY_ID[id];
-    if (!c || families.has(c.family)) continue;
+    if (families.has(c.family)) continue;
     offer.push(id);
     families.add(c.family);
     if (offer.length === n) break;
   }
-  for (const id of deck) {
+  for (const id of pool) {
     if (offer.length === n) break;
-    if (!offer.includes(id) && CARD_BY_ID[id]) offer.push(id);
+    if (!offer.includes(id)) offer.push(id);
   }
   return offer;
 }
 
-/** Open the market: the offer leaves the deck while it is on show; nextSeed fixes the next board so Scout Ahead can show it. */
+/**
+ * Open the market with the cards the gold can buy: the offer leaves the deck while it is on show, and
+ * nextSeed fixes the next board so Scout Ahead can show it. Returns null, and changes nothing, when no
+ * card in the deck is affordable.
+ */
 export function openMarket(perks, nextSeed) {
   if (perks.market) return perks.market;
-  const offer = pickOffer(perks.deck);
+  const offer = pickOffer(perks.deck, MARKET_SIZE, perks.gold);
+  if (!offer.length) return null;
   perks.deck = perks.deck.filter((id) => !offer.includes(id));
   perks.market = { offer, bought: [], scouted: false };
   perks.nextSeed = nextSeed;
