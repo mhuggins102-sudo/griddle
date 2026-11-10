@@ -71,7 +71,7 @@ export function seedReached(word) {
 export function bestReachedBySize(word) {
   const out = { 5: word?.bestReached5 || 0, 6: word?.bestReached6 || 0 };
   for (const g of word?.history || []) {
-    if (g.mode !== 'levels') continue;
+    if (g.mode !== 'levels' || g.perks) continue; // a perk run keeps its own ladder
     const size = g.size === 6 ? 6 : 5;
     out[size] = Math.max(out[size], g.passed ? g.level + 1 : g.level);
   }

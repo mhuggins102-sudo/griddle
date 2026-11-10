@@ -45,16 +45,24 @@ export function sizeOf(state) {
   return state.size || sizeOfBoard(state.board);
 }
 
-export function turnLimit(state) {
+/** The board's own turn limit, 20 or 25: what gold and the spare-turn bonus are counted against. */
+export function baseTurnLimit(state) {
   return TURNS_BY_SIZE[sizeOf(state)] || WORD_TURNS;
+}
+
+/** Turns available on this board: the base limit plus any turns a perk card added. */
+export function turnLimit(state) {
+  return baseTurnLimit(state) + ((state.perk && state.perk.extraTurns) || 0);
 }
 
 export function coverageBonus(lockedCount, size = 5) {
   return (COVERAGE_LADDER[size] || {})[lockedCount] || 0;
 }
 
+/** The coverage bonus as it stands; Head Start (a perk) counts the ladder one tile earlier, never past the full board. */
 export function coverageBonusFor(state) {
-  return coverageBonus(state.locked.length, sizeOf(state));
+  const lift = state.perk && state.perk.headStart ? 1 : 0;
+  return coverageBonus(Math.min(state.board.length, state.locked.length + lift), sizeOf(state));
 }
 
 export function shortfallPenalty(lockedCount) {
@@ -66,7 +74,7 @@ export function isBoardFull(state) {
 }
 
 export function fullCoverTurnBonus(state) {
-  return isBoardFull(state) ? Math.max(0, turnLimit(state) - state.turns) * FULL_COVER_TURN_BONUS : 0;
+  return isBoardFull(state) ? Math.max(0, baseTurnLimit(state) - state.turns) * FULL_COVER_TURN_BONUS : 0; // perk turns never pay
 }
 
 /** The score as it stands now, bonuses included (no penalties, so never negative). */
@@ -79,8 +87,9 @@ export function finalScore(state) {
   return Math.max(0, projectedScore(state));
 }
 
-/** Turns an action will consume. */
-export function actionCost(action) {
+/** Turns an action will consume; Free Move (a perk) makes the next slide or swap free. */
+export function actionCost(action, state = null) {
+  if (state && state.perk && state.perk.freeMove && (action.type === 'slide' || action.type === 'swap')) return 0;
   return action.type === 'wild' ? WILD_COST : 1;
 }
 
@@ -145,7 +154,8 @@ export function validateWordAction(state, action) {
   const g = gridOfState(state);
   const { inRange, idx } = g;
   const limit = turnLimit(state);
-  if (state.turns + actionCost(action) > limit) throw new Error(actionCost(action) > 1 ? `That needs ${actionCost(action)} turns` : 'No turns left');
+  const cost = actionCost(action, state);
+  if (state.turns + cost > limit) throw new Error(cost > 1 ? `That needs ${cost} turns` : 'No turns left');
   switch (action.type) {
     case 'slide': {
       if (action.axis !== 'row' && action.axis !== 'col') throw new Error('Slide axis must be row or col');
@@ -188,8 +198,10 @@ export function nudgeLetter(ch, delta) {
 export function applyWordAction(state, action) {
   validateWordAction(state, action);
   const { idx } = gridOfState(state);
-  const next = { ...state, size: sizeOf(state), board: state.board.slice(), bag: { ...state.bag }, locked: state.locked.slice(), words: state.words.slice(), turns: state.turns + actionCost(action) };
+  const cost = actionCost(action, state);
+  const next = { ...state, size: sizeOf(state), board: state.board.slice(), bag: { ...state.bag }, locked: state.locked.slice(), words: state.words.slice(), turns: state.turns + cost };
   delete next.lastDraw;
+  if (state.perk && state.perk.freeMove && cost === 0) next.perk = { ...state.perk, freeMove: false }; // the free move is spent
   switch (action.type) {
     case 'slide': {
       for (const m of slideMoves(state, action)) next.board[m.to] = state.board[m.from];
@@ -302,7 +314,9 @@ export function lockConflict(state, word, cells, dict = null) {
 
 function makeCandidate(state, word, orderedCells, dict) {
   const reason = lockConflict(state, word, orderedCells, dict);
-  return { word, cells: orderedCells, score: scoreWord(state.board, orderedCells), key: cellKey(orderedCells), lockable: !reason, reason };
+  const extras = perkExtras(state, orderedCells);
+  const base = scoreWord(state.board, orderedCells);
+  return { word, cells: orderedCells, score: base + extrasTotal(extras), base, extras, key: cellKey(orderedCells), lockable: !reason, reason };
 }
 
 /**
@@ -341,6 +355,48 @@ export function scoreWord(board, cells) {
   let s = 0;
   for (const c of cells) s += letterValue(board[c]);
   return s + (LENGTH_BONUS[cells.length] || 0);
+}
+
+/** Do these cells run along a diagonal? */
+export function isDiagonal(cells, size) {
+  if (cells.length < 2) return false;
+  const { rowOf, colOf } = gridOf(size);
+  return rowOf(cells[0]) !== rowOf(cells[1]) && colOf(cells[0]) !== colOf(cells[1]);
+}
+
+export function extrasTotal(extras) {
+  return extras.reduce((a, x) => a + x.pts, 0);
+}
+
+/**
+ * What the perk cards in play add to a word locked on these cells, as [{ card, pts }]: letter squares
+ * and stickers on its cells, a bonus waiting for the next (qualifying) word, and the board-wide
+ * Crossroads and Diagonal Dividend. Empty without perks.
+ */
+export function perkExtras(state, cells) {
+  const p = state.perk;
+  if (!p) return [];
+  const out = [];
+  let squares = 0;
+  let stickers = 0;
+  let letters = 0;
+  for (const c of cells) {
+    const v = letterValue(state.board[c]);
+    letters += v;
+    const m = p.squares && p.squares[c];
+    if (m) squares += v * (m - 1);
+    if (p.stickers && p.stickers[c]) stickers += p.stickers[c];
+  }
+  if (squares) out.push({ card: 'squares', pts: squares });
+  if (stickers) out.push({ card: 'sticker', pts: stickers });
+  const len = cells.length;
+  if (p.next === 'plus10') out.push({ card: 'next-plus10', pts: 10 });
+  else if (p.next === 'double') out.push({ card: 'double-down', pts: Math.min(15, letters) });
+  else if (p.next === 'long' && len >= 5) out.push({ card: 'long-word', pts: LENGTH_BONUS[len] || 0 });
+  else if (p.next === 'stretch' && len >= 4) out.push({ card: 'stretch', pts: (LENGTH_BONUS[len + 1] ?? 45) - (LENGTH_BONUS[len] || 0) });
+  if (p.crossroads && cells.some((c) => state.locked.includes(c))) out.push({ card: 'crossroads', pts: 2 });
+  if (p.diagonal && isDiagonal(cells, sizeOf(state))) out.push({ card: 'diagonal', pts: 5 });
+  return out.filter((x) => x.pts > 0);
 }
 
 /** All dictionary words that can be read along a wildcard pattern (letters or WILD), most common first. */
@@ -404,9 +460,28 @@ export function lockWord(state, candidate) {
   if (!candidate.lockable) throw new Error(candidate.reason || 'Cannot lock this word');
   if (state.turns >= turnLimit(state)) throw new Error('No turns left');
   const next = { ...state, size: sizeOf(state), locked: state.locked.slice(), words: state.words.slice(), turns: state.turns + 1 };
+  // perks are read from the state as it is now, not from a candidate found earlier
+  const extras = perkExtras(state, candidate.cells);
+  const base = scoreWord(state.board, candidate.cells);
+  const score = base + extrasTotal(extras);
   for (const c of candidate.cells) if (!next.locked.includes(c)) next.locked.push(c);
-  next.words.push({ word: candidate.word, cells: candidate.cells.slice(), key: candidate.key, score: candidate.score });
-  next.score = state.score + candidate.score;
+  const entry = { word: candidate.word, cells: candidate.cells.slice(), key: candidate.key, score };
+  if (extras.length) entry.extras = extras;
+  if (state.perk) entry.letters = base - (LENGTH_BONUS[candidate.cells.length] || 0); // the letter points as scored (a wild at 0), for Encore
+  next.words.push(entry);
+  next.score = state.score + score;
+  if (state.perk) {
+    const p = { ...state.perk, squares: { ...(state.perk.squares || {}) }, stickers: { ...(state.perk.stickers || {}) }, log: (state.perk.log || []).slice() };
+    for (const c of candidate.cells) {
+      delete p.squares[c]; // paid once
+      delete p.stickers[c];
+    }
+    const len = candidate.cells.length;
+    if (p.next === 'plus10' || p.next === 'double' || (p.next === 'long' && len >= 5) || (p.next === 'stretch' && len >= 4)) p.next = null;
+    for (const x of extras) p.log.push({ card: x.card, pts: x.pts, word: candidate.word });
+    next.perk = p;
+    next.perkPoints = (state.perkPoints || 0) + extrasTotal(extras);
+  }
   return next;
 }
 

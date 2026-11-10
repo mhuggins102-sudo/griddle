@@ -950,7 +950,7 @@ svg { display: block; }
 
 @media (prefers-reduced-motion: reduce) {
   .tile { transition: none; }
-  .tile.bump, .tile.swap-arc, .tile.flip, .tile.flip-down, .tile.spin, .tile.lock-pop, .tile.wild-pop, .tile.shake, .goalbar.celebrate, .btn-advance, .goalbar.reached .goalbar-fill, .tilemenu, .strip-msg, .strip-action { animation: none; }
+  .tile.bump, .tile.swap-arc, .tile.flip, .tile.flip-down, .tile.spin, .tile.lock-pop, .tile.wild-pop, .tile.shake, .tile.hinted, .goalbar.celebrate, .btn-advance, .goalbar.reached .goalbar-fill, .tilemenu, .strip-msg, .strip-action { animation: none; }
   .float { animation: floatStill 1100ms linear forwards; }
 }
 
@@ -1141,3 +1141,69 @@ button.rs-tile:active { background: var(--line); }
     .result-sheet .rs-row .btn { padding: 0 8px; font-size: 14px; min-width: 0; flex: 1 1 auto; } /* three buttons across a 300px card, each as wide as its label needs */
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Perk cards: gold, the hand button, the market and hand sheets, targeting, power squares, pickers */
+:root { --gold: #7d5f0a; --gold-bg: #f6ecd0; --sq2: #2f6fb0; --sq3: #b3432f; --badge-ink: #fff; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --gold: #e2b84a; --gold-bg: #3a3222; }
+}
+:root[data-theme="dark"] { --gold: #e2b84a; --gold-bg: #3a3222; }
+/* the tiles stay cream in both themes, so the badges on them keep the light palette and the sticker badge the light gold */
+.tile .pbadge.sticker { background: #7d5f0a; }
+
+.goalbar-gold { position: relative; margin-left: 10px; font-size: 13px; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums; }
+.gold-chip { font-size: 18px; font-weight: 800; color: var(--gold); background: var(--gold-bg); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
+.hand-btn { position: relative; overflow: visible; }
+.hand-count { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; border-radius: 9px; padding: 0 4px; background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 800; line-height: 18px; text-align: center; }
+.hand-btn.spent { opacity: 0.55; }
+.hand-btn.spent .hand-count { background: var(--muted); }
+
+.market-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.market-head h2 { margin: 0; }
+.market-head .breakdown { font-size: 13px; color: var(--muted); }
+.mk-cards { display: flex; flex-direction: column; gap: 10px; }
+.mk-card { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: grid; grid-template-columns: 1fr auto; grid-template-areas: "fam cost" "name cost" "text text" "act act"; gap: 2px 12px; align-items: center; background: var(--panel); }
+.mk-card .mk-fam { grid-area: fam; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.mk-card .mk-name { grid-area: name; font-weight: 800; font-size: 17px; }
+.mk-card .mk-cost { grid-area: cost; font-weight: 800; font-size: 18px; color: var(--gold); white-space: nowrap; }
+.mk-card .mk-text { grid-area: text; color: var(--muted); font-size: 13.5px; line-height: 1.35; margin: 4px 0 8px; }
+.mk-card .mk-act { grid-area: act; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mk-card .mk-why { font-size: 12.5px; color: var(--muted); }
+.mk-card.cannot { opacity: 0.55; }
+.mk-card.bought { background: var(--ok-bg); border-color: var(--locked-edge); }
+.mk-card.bought .mk-cost { color: var(--ok); }
+.mk-card.used { opacity: 0.6; }
+.mk-empty { color: var(--muted); font-size: 14px; margin: 8px 0; }
+.mk-scout-wrap { margin: 12px 0 4px; text-align: center; }
+.mk-scout-wrap .hud-label { display: block; margin-bottom: 6px; }
+.mk-scout { display: grid; grid-template-columns: repeat(var(--n, 5), 1fr); gap: 3px; width: min(100%, 230px); margin: 0 auto; }
+.mk-scout span { aspect-ratio: 1; display: grid; place-items: center; background: var(--tile); border: 1px solid var(--tile-edge); border-radius: 6px; font-weight: 800; font-size: 15px; color: var(--tile-ink, #1f2430); }
+
+/* targeting: valid tiles ring, the rest dim; a picked tile; a hinted word */
+.board.targeting .tile:not(.perk-ok):not(.perk-picked) { opacity: 0.45; }
+.tile.perk-ok { box-shadow: 0 0 0 3px var(--accent), inset 0 calc(-1 * var(--tile-edge-h)) 0 rgba(0, 0, 0, 0.08); z-index: 2; cursor: pointer; }
+.tile.perk-picked { box-shadow: 0 0 0 3px var(--region), inset 0 calc(-1 * var(--tile-edge-h)) 0 rgba(0, 0, 0, 0.08); z-index: 2; }
+.tile.hinted { box-shadow: 0 0 0 3px var(--ok), inset 0 calc(-1 * var(--tile-edge-h)) 0 rgba(0, 0, 0, 0.08); animation: hintGlow 900ms ease-in-out infinite alternate; z-index: 2; }
+@keyframes hintGlow { from { filter: brightness(1); } to { filter: brightness(1.12); } }
+/* power squares and stickers: a badge in the top-right corner, in container units so it shrinks with the tile */
+.tile .pbadge { position: absolute; top: max(2px, 5cqw); right: max(2px, 5cqw); font-size: max(9px, 16cqw); line-height: 1; font-weight: 800; padding: max(1px, 2.5cqw) max(3px, 4.5cqw); border-radius: 999px; color: var(--badge-ink); pointer-events: none; z-index: 2; }
+.tile .pbadge.sq2 { background: var(--sq2); }
+.tile .pbadge.sq3 { background: var(--sq3); }
+.tile .pbadge.sticker { background: var(--gold); }
+
+/* the picker dialog */
+.perkpick { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(20, 18, 14, 0.35); padding: 16px; }
+.perkpick-card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3); padding: 16px; width: min(100%, 380px); max-height: calc(100dvh - 32px); overflow: auto; display: flex; flex-direction: column; gap: 10px; }
+.perkpick-card h3 { margin: 0; font-size: 18px; }
+.perkpick-options { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.perkpick-opt { min-width: 46px; min-height: 48px; padding: 4px 10px; font-weight: 800; font-size: 18px; display: grid; place-items: center; line-height: 1.1; }
+.perkpick-opt small { display: block; font-size: 10px; font-weight: 600; color: var(--muted); }
+.perkpick-opt.wide { min-width: 120px; }
+.perkpick-opt:disabled { opacity: 0.35; }
+.perk-list { padding-left: 18px; margin: 8px 0 0; }
+.perk-list li { margin: 4px 0; }
+.perk-list b { font-weight: 800; }
+.perk-list .perk-cost { color: var(--gold); font-weight: 800; }
+.rs-tile.perk b { color: var(--gold); }
+.tp-row .tp-extra { display: block; font-size: 11px; color: var(--muted); font-weight: 500; }
