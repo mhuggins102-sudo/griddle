@@ -371,7 +371,7 @@ export function extrasTotal(extras) {
 /**
  * What the perk cards in play add to a word locked on these cells, as [{ card, pts }]: letter squares
  * and stickers on its cells, a bonus waiting for the next (qualifying) word, and the board-wide
- * Crossroads and Diagonal Dividend. Empty without perks.
+ * Crossroads, Open Field, Short Stack and Diagonal Dividend. Empty without perks.
  */
 export function perkExtras(state, cells) {
   const p = state.perk;
@@ -390,11 +390,12 @@ export function perkExtras(state, cells) {
   if (squares) out.push({ card: 'squares', pts: squares });
   if (stickers) out.push({ card: 'sticker', pts: stickers });
   const len = cells.length;
-  if (p.next === 'plus10') out.push({ card: 'next-plus10', pts: 10 });
-  else if (p.next === 'double') out.push({ card: 'double-down', pts: Math.min(15, letters) });
-  else if (p.next === 'long' && len >= 5) out.push({ card: 'long-word', pts: LENGTH_BONUS[len] || 0 });
+  if (p.next === 'double') out.push({ card: 'double-down', pts: Math.min(15, letters) });
   else if (p.next === 'stretch' && len >= 4) out.push({ card: 'stretch', pts: (LENGTH_BONUS[len + 1] ?? 45) - (LENGTH_BONUS[len] || 0) });
-  if (p.crossroads && cells.some((c) => state.locked.includes(c))) out.push({ card: 'crossroads', pts: 2 });
+  const reuses = cells.some((c) => state.locked.includes(c));
+  if (p.crossroads && reuses) out.push({ card: 'crossroads', pts: 2 });
+  if (p.openField && !reuses) out.push({ card: 'open-field', pts: 4 });
+  if (p.shortStack && len === 3) out.push({ card: 'short-stack', pts: 3 });
   if (p.diagonal && isDiagonal(cells, sizeOf(state))) out.push({ card: 'diagonal', pts: 5 });
   return out.filter((x) => x.pts > 0);
 }
@@ -467,17 +468,13 @@ export function lockWord(state, candidate) {
   for (const c of candidate.cells) if (!next.locked.includes(c)) next.locked.push(c);
   const entry = { word: candidate.word, cells: candidate.cells.slice(), key: candidate.key, score };
   if (extras.length) entry.extras = extras;
-  if (state.perk) entry.letters = base - (LENGTH_BONUS[candidate.cells.length] || 0); // the letter points as scored (a wild at 0), for Encore
   next.words.push(entry);
   next.score = state.score + score;
   if (state.perk) {
-    const p = { ...state.perk, squares: { ...(state.perk.squares || {}) }, stickers: { ...(state.perk.stickers || {}) }, log: (state.perk.log || []).slice() };
-    for (const c of candidate.cells) {
-      delete p.squares[c]; // paid once
-      delete p.stickers[c];
-    }
+    const p = { ...state.perk, squares: { ...(state.perk.squares || {}) }, log: (state.perk.log || []).slice() };
+    for (const c of candidate.cells) delete p.squares[c]; // a square pays once; a sticker pays every word through its cell
     const len = candidate.cells.length;
-    if (p.next === 'plus10' || p.next === 'double' || (p.next === 'long' && len >= 5) || (p.next === 'stretch' && len >= 4)) p.next = null;
+    if (p.next === 'double' || (p.next === 'stretch' && len >= 4)) p.next = null;
     for (const x of extras) p.log.push({ card: x.card, pts: x.pts, word: candidate.word });
     next.perk = p;
     next.perkPoints = (state.perkPoints || 0) + extrasTotal(extras);

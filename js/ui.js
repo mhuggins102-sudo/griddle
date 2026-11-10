@@ -786,6 +786,6 @@ function wireEvents() {
 }
 
 // Expose a little for debugging and tests in the console.
-window.gridlock = { ui, deal, audioState };
+window.gridlock = { ui, deal, audioState, cardCost: (id) => (CARDS.find((c) => c.id === id) || { cost: 0 }).cost };
 
 boot();

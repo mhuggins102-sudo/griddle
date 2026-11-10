@@ -1162,23 +1162,50 @@ button.rs-tile:active { background: var(--line); }
 .market-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .market-head h2 { margin: 0; }
 .market-head .breakdown { font-size: 13px; color: var(--muted); }
-.mk-cards { display: flex; flex-direction: column; gap: 10px; }
-.mk-card { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: grid; grid-template-columns: 1fr auto; grid-template-areas: "fam cost" "name cost" "text text" "act act"; gap: 2px 12px; align-items: center; background: var(--panel); }
+.mk-cards { display: flex; flex-direction: column; gap: 8px; }
+/* a card: family and cost on the first line, the name, then the text in the left column with the action beside it */
+.mk-card { border: 1px solid var(--line); border-radius: 14px; padding: 8px 12px 9px; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "fam cost" "name act" "text act"; gap: 0 12px; align-items: start; background: var(--panel); }
 .mk-card .mk-fam { grid-area: fam; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
-.mk-card .mk-name { grid-area: name; font-weight: 800; font-size: 17px; }
-.mk-card .mk-cost { grid-area: cost; font-weight: 800; font-size: 18px; color: var(--gold); white-space: nowrap; }
-.mk-card .mk-text { grid-area: text; color: var(--muted); font-size: 13.5px; line-height: 1.35; margin: 4px 0 8px; }
-.mk-card .mk-act { grid-area: act; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.mk-card .mk-why { font-size: 12.5px; color: var(--muted); }
+.mk-card .mk-name { grid-area: name; font-weight: 800; font-size: 16px; line-height: 1.2; }
+.mk-card .mk-cost { grid-area: cost; justify-self: end; font-weight: 800; font-size: 16px; color: var(--gold); white-space: nowrap; }
+.mk-card .mk-text { grid-area: text; color: var(--muted); font-size: 12.5px; line-height: 1.28; margin: 2px 0 0; }
+.mk-card .mk-act { grid-area: act; align-self: end; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.mk-card .mk-why { font-size: 11.5px; color: var(--muted); text-align: right; max-width: 130px; line-height: 1.2; }
+.mk-card .mk-why:empty { display: none; }
+.mk-card .mk-info { grid-area: info; display: none; width: 30px; height: 30px; min-height: 30px; padding: 0; border-radius: 50%; font-weight: 800; font-size: 14px; place-items: center; box-shadow: none; }
 .mk-card.cannot { opacity: 0.55; }
 .mk-card.bought { background: var(--ok-bg); border-color: var(--locked-edge); }
 .mk-card.bought .mk-cost { color: var(--ok); }
 .mk-card.used { opacity: 0.6; }
 .mk-empty { color: var(--muted); font-size: 14px; margin: 8px 0; }
-.mk-scout-wrap { margin: 12px 0 4px; text-align: center; }
+.mk-row { display: flex; flex-direction: column; gap: 8px; }
+.mk-scout-wrap { margin: 6px 0 2px; text-align: center; }
 .mk-scout-wrap .hud-label { display: block; margin-bottom: 6px; }
-.mk-scout { display: grid; grid-template-columns: repeat(var(--n, 5), 1fr); gap: 3px; width: min(100%, 230px); margin: 0 auto; }
+.mk-scout { display: grid; grid-template-columns: repeat(var(--n, 5), 1fr); gap: 3px; width: min(100%, 200px); margin: 0 auto; }
 .mk-scout span { aspect-ratio: 1; display: grid; place-items: center; background: var(--tile); border: 1px solid var(--tile-edge); border-radius: 6px; font-weight: 800; font-size: 15px; color: var(--tile-ink, #1f2430); }
+.market-foot { display: flex; flex-direction: column; gap: 8px; }
+.market-note { margin: 8px 0 0; font-size: 12px; }
+.tp-info { max-width: 300px; }
+.tp-info b { display: block; font-size: 15px; margin-bottom: 4px; }
+.tp-info p { margin: 0; font-size: 13.5px; line-height: 1.35; color: var(--muted); }
+/* on a wide screen the market shows its cards side by side with the text behind an info button, so nothing scrolls */
+@media (orientation: landscape) and (min-width: 640px) {
+  #w-market .sheet-body { max-width: 780px; }
+  #w-market .mk-row { flex-direction: row; align-items: stretch; }
+  #w-market .mk-cards { flex: 1 1 auto; flex-direction: row; align-items: stretch; }
+  #w-market .mk-card { flex: 1 1 0; min-width: 0; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "fam cost" "name info" "act act"; gap: 2px 8px; align-content: start; }
+  #w-market .mk-card .mk-text { display: none; }
+  #w-market .mk-card .mk-info { display: grid; justify-self: end; align-self: start; }
+  #w-market .mk-card .mk-act { flex-direction: row; align-items: center; justify-content: space-between; margin-top: 6px; }
+  #w-market .mk-card .mk-why { text-align: left; max-width: none; }
+  #w-market .mk-scout-wrap { flex: 0 0 auto; margin: 0; }
+  #w-market .mk-scout { width: 118px; gap: 2px; }
+  #w-market .mk-scout span { font-size: 11px; border-radius: 4px; }
+  #w-market .market-note { display: none; }
+  #w-market .market-foot { flex-direction: row-reverse; }
+  #w-market .market-foot #w-market-continue { flex: 2 1 auto; }
+  #w-market .market-foot #w-market-home { flex: 1 1 auto; }
+}
 
 /* targeting: valid tiles ring, the rest dim; a picked tile; a hinted word */
 .board.targeting .tile:not(.perk-ok):not(.perk-picked) { opacity: 0.45; }
