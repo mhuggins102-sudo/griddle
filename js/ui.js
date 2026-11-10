@@ -11,6 +11,7 @@ import { initLeaderboard, bestReachedBySize, seedReached } from './leaderboard.j
 import { openSheet, closeSheet } from './sheet.js';
 import { setSoundEnabled, audioState } from './sound.js';
 import { TURNS_BY_SIZE } from './words.js';
+import { CARDS, FAMILIES, cardText } from './perks.js';
 import {
   loadStore, saveStore, newGame, currentRound, lockBid, playAction, giveUp, runningTotal, isGameOver, advanceRound,
   summarizeGame, shareLine, recordGame, findPuzzle, defaultStore,
@@ -42,6 +43,7 @@ async function boot() {
   wireEvents();
   $('#opt-numerals').checked = !!ui.store.settings.numerals;
   $('#opt-show-words').checked = !!ui.store.settings.showWords;
+  $('#opt-perks').checked = !!ui.store.settings.perks;
   $('#opt-sound').checked = ui.store.settings.sound !== false;
   setSoundEnabled(ui.store.settings.sound !== false);
   applyTheme(ui.store.settings.theme);
@@ -74,6 +76,15 @@ async function boot() {
     }
     saveStore(ui.store);
   });
+  $('#opt-perks').addEventListener('change', (e) => {
+    ui.store.settings.perks = e.target.checked; // new runs only: a run in progress keeps its mode
+    saveStore(ui.store);
+    showHome();
+  });
+  // the rules list every perk card from the catalogue, so the two never drift apart
+  const perkList = () => { $('#help-perk-cards').innerHTML = CARDS.map((c) => `<li><b>${escapeHtml(c.name)}</b> <span class="perk-cost">◆ ${c.cost}</span> · <small>${escapeHtml(FAMILIES[c.family])}</small><br>${escapeHtml(cardText(c, boardSize()))}</li>`).join(''); };
+  perkList();
+  for (const r of document.querySelectorAll('input[name="opt-size"]')) r.addEventListener('change', perkList);
   try {
     const res = await fetch('data/puzzles.json', { cache: 'no-cache' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -112,11 +123,13 @@ function showHome() {
   // a game in progress takes the primary slot; New game steps down to secondary
   $('#btn-word-continue').hidden = !g;
   $('#btn-word').classList.toggle('btn-primary', !g);
+  $('#btn-word .btn-sub').textContent = s.settings.perks ? 'Levels with a goal to beat · perk cards' : 'Levels with a goal to beat';
   if (g && g.state) {
     const size = g.size || Math.round(Math.sqrt(g.state.board.length));
-    const lim = TURNS_BY_SIZE[size] || 20;
+    const lim = (TURNS_BY_SIZE[size] || 20) + ((g.state.perk && g.state.perk.extraTurns) || 0);
     const turn = Math.min((g.state.turns || 0) + 1, lim);
-    $('#continue-sub').textContent = `${size === 6 ? '6×6 · ' : ''}${g.mode === 'levels' ? `Level ${g.level || 1}` : 'Free play'} · turn ${turn} of ${lim} · ${g.state.score || 0} points${g.practice ? ' · practice' : ''}`;
+    const perks = g.perks && !g.perks.retry ? ` · ◆ ${g.perks.gold}` : '';
+    $('#continue-sub').textContent = `${size === 6 ? '6×6 · ' : ''}${g.mode === 'levels' ? `Level ${g.level || 1}` : 'Free play'} · turn ${turn} of ${lim} · ${g.state.score || 0} points${perks}${g.practice ? ' · practice' : ''}`;
   }
   showScreen('screen-home'); // the figures live on the Stats screen
 }
@@ -543,7 +556,7 @@ function showStats() {
     const hist = w.history || [];
     const avg = hist.length ? Math.round(hist.reduce((a, g) => a + g.score, 0) / hist.length) : 0;
     const wordsPlayed = hist.reduce((a, g) => a + g.words.length, 0);
-    const bestWord = hist.flatMap((g) => g.words).sort((a, b) => b.score - a.score)[0];
+    const bestWord = hist.filter((g) => !g.perks).flatMap((g) => g.words).sort((a, b) => b.score - a.score)[0]; // card points never make a best word
     const reached = bestReachedBySize(w);
     body.innerHTML = `
       <div class="stat-summary">
@@ -556,10 +569,12 @@ function showStats() {
         <div><span class="hud-label">Best word</span><span class="hud-value">${bestWord ? `${escapeHtml(bestWord.word)} ${bestWord.score}` : '–'}</span></div>
         <div><span class="hud-label">${w.best6 != null ? 'Top level 5×5' : 'Top level'}</span><span class="hud-value">${reached[5] || '–'}</span></div>
         ${w.best6 != null ? `<div><span class="hud-label">Top level 6×6</span><span class="hud-value">${reached[6] || '–'}</span></div>` : ''}
+        ${w.bestReachedPerks5 ? `<div><span class="hud-label">Top level · perks${w.bestReachedPerks6 ? ' 5×5' : ''}</span><span class="hud-value">${w.bestReachedPerks5}</span></div>` : ''}
+        ${w.bestReachedPerks6 ? `<div><span class="hud-label">Top level · perks 6×6</span><span class="hud-value">${w.bestReachedPerks6}</span></div>` : ''}
       </div>
       <h3>Recent games</h3>
       <ul class="stat-list">${hist
-        .map((g) => `<li><span>${g.size === 6 ? '6×6 · ' : ''}${g.mode === 'levels' ? `L${g.level} ${g.passed ? '✓' : '✗'} ` : ''}${g.score}${g.goal ? ` / ${g.goal}` : ''} · ${g.words.length ? g.words.map((x) => escapeHtml(x.word)).join(', ') : 'no words'}</span><span>${new Date(g.at).toLocaleDateString()}</span></li>`)
+        .map((g) => `<li><span>${g.size === 6 ? '6×6 · ' : ''}${g.perks ? '◆ ' : ''}${g.mode === 'levels' ? `L${g.level} ${g.passed ? '✓' : '✗'} ` : ''}${g.score}${g.goal ? ` / ${g.goal}` : ''} · ${g.words.length ? g.words.map((x) => escapeHtml(x.word)).join(', ') : 'no words'}</span><span>${new Date(g.at).toLocaleDateString()}</span></li>`)
         .join('')}</ul>
     `;
   }
@@ -589,6 +604,7 @@ function resetData() {
   ui.leaderboard.flush();
   $('#opt-numerals').checked = false;
   $('#opt-show-words').checked = false;
+  $('#opt-perks').checked = false;
   $('#opt-sound').checked = true;
   $('#opt-size-5').checked = true;
   $('#opt-theme-system').checked = true;

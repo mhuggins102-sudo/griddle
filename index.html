@@ -146,6 +146,10 @@
           <div class="hud-item"><span class="hud-label">Turn</span><span id="w-turn" class="hud-value">1 / 20</span></div>
           <button class="hud-item hud-button" id="w-score-item" aria-label="Score; tap for the breakdown"><span class="hud-label">Score</span><span id="w-score" class="hud-value">0</span></button>
           <div class="hud-tools">
+            <button id="w-hand" class="btn btn-icon hand-btn" aria-label="Perk cards" hidden>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="3.5" width="9" height="13" rx="1.8"/><path d="M13.5 6.2l2.4.9a1.6 1.6 0 0 1 1 2l-2.6 7.3a1.6 1.6 0 0 1-2 1l-1.6-.6"/><path d="M7 7.5h3M7 10h3"/></svg>
+              <span class="hand-count" id="w-hand-count" hidden>0</span>
+            </button>
             <button id="w-undo" class="btn btn-icon" aria-label="Undo the last move (once per game)">
               <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 4 8l3.5 3.5M4.5 8H12a4 4 0 0 1 0 8H9"/></svg>
             </button>
@@ -162,6 +166,7 @@
         <div id="w-goalbar" class="goalbar" role="button" tabindex="0" aria-label="Level progress; tap for the score breakdown" hidden>
           <div class="goalbar-fill" id="w-goalbar-fill"></div>
           <span class="goalbar-level" id="w-goalbar-level">Level 1</span>
+          <span class="goalbar-gold" id="w-gold" aria-label="Gold" hidden>◆ 0</span>
           <span class="goalbar-text" id="w-goalbar-text">Goal …</span>
           <button id="w-advance" class="btn btn-primary btn-advance" hidden>Next level ▸</button>
         </div>
@@ -230,6 +235,49 @@
       </div>
     </div>
 
+    <!-- Perk picker: a letter, a line or a word for the card being played -->
+    <div id="w-perkpick" class="perkpick" role="dialog" aria-modal="true" aria-labelledby="w-perkpick-title" hidden>
+      <div class="perkpick-card">
+        <h3 id="w-perkpick-title">Pick a letter</h3>
+        <p id="w-perkpick-sub" class="hint"></p>
+        <div id="w-perkpick-options" class="perkpick-options"></div>
+        <button id="w-perkpick-cancel" class="btn btn-wide">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Market sheet: three perk cards for gold, between levels -->
+    <div id="w-market" class="sheet" hidden>
+      <div class="sheet-body">
+        <div class="sheet-head market-head">
+          <div><h2>Market</h2><span id="w-market-sub" class="breakdown">Before level 2</span></div>
+          <b id="w-market-gold" class="gold-chip">◆ 0</b>
+        </div>
+        <div class="sheet-scroll">
+          <div id="w-market-cards" class="mk-cards"></div>
+          <div id="w-market-scout" class="mk-scout-wrap" hidden></div>
+          <p class="footnote">Each card is one use. One card can be played per level. Cards you leave go back into the deck.</p>
+        </div>
+        <div class="sheet-foot">
+          <button id="w-market-continue" class="btn btn-primary btn-wide">Continue</button>
+          <div class="rs-row"><button id="w-market-home" class="btn">Home</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hand sheet: the perk cards bought so far -->
+    <div id="w-handsheet" class="sheet" hidden>
+      <div class="sheet-body">
+        <div class="sheet-head market-head">
+          <div><h2>Your cards</h2><span id="w-hand-sub" class="breakdown">One card per level</span></div>
+          <b id="w-hand-gold" class="gold-chip">◆ 0</b>
+        </div>
+        <div class="sheet-scroll">
+          <div id="w-hand-cards" class="mk-cards"></div>
+        </div>
+        <div class="sheet-foot"><button id="w-hand-close" class="btn btn-primary btn-wide">Close</button></div>
+      </div>
+    </div>
+
     <!-- Settings sheet -->
     <div id="settings" class="sheet" hidden>
       <div class="sheet-body">
@@ -245,6 +293,7 @@
               </div>
             </div>
             <label class="toggle"><span>Show the words on the board <small>Practice: no stats saved</small></span><input type="checkbox" class="switch" role="switch" id="opt-show-words"></label>
+            <label class="toggle"><span>Perk cards <small>Experimental: earn gold for spare turns and buy one-use cards between levels. New runs only; not posted to the leaderboard</small></span><input type="checkbox" class="switch" role="switch" id="opt-perks"></label>
             <label class="toggle" id="opt-numerals-row" hidden><span>Number game: numerals instead of dice pips</span><input type="checkbox" class="switch" role="switch" id="opt-numerals"></label>
           </div>
           <p class="footnote">Progress and settings stay on this device. Only the results you choose to post to the leaderboard leave it.</p>
@@ -408,6 +457,14 @@
             <summary><span class="chapter-num">8</span><span class="chapter-title">Leaderboard</span></summary>
             <div class="chapter-body">
               <p>The trophy button shows four public top tens: the best single-board scores and the highest level reached, for 5×5 and for 6×6. After your first finished board the game asks for a name; post under it, or stay anonymous and nothing leaves your device. Replays never count. You can change or remove your name from the leaderboard sheet, and Reset device data lets you keep or forget it.</p>
+            </div>
+          </details>
+          <details class="chapter">
+            <summary><span class="chapter-num">9</span><span class="chapter-title">Perk cards (experimental)</span></summary>
+            <div class="chapter-body">
+              <p>Switch <strong>Perk cards</strong> on in the settings and your next run of levels earns <strong>gold</strong>: every turn you have to spare when a level's goal is reached is one gold coin. After each passed level a <strong>market</strong> offers three cards from the deck. Buy any you can afford, or none; what you leave goes back into the deck. Cards you buy wait in your hand (the card button in the header) until you play them.</p>
+              <p>Every card is <strong>one use</strong>, and you may play <strong>one card per level</strong>. The goal is still set by the bot on the board as dealt. Extra turns from a card never earn gold, and a card's points show as their own line on the result card. Runs with perk cards keep their own best level in Stats and are not posted to the leaderboard.</p>
+              <ul id="help-perk-cards" class="perk-list"></ul>
             </div>
           </details>
         </div>
