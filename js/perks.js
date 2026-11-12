@@ -80,10 +80,14 @@ export function emptyPerk() {
   return { squares: {}, stickers: {}, next: null, crossroads: false, diagonal: false, openField: false, shortStack: false, headStart: false, extraTurns: 0, freeMove: false, choiceDraw: false, peek: false, log: [] };
 }
 
-/** A new run's perk record: no gold, every card in a shuffled deck, an empty hand. */
-export function newPerkRun(seed) {
+/**
+ * A new run's perk record: no gold, every card in a shuffled deck, an empty hand. A shop run (shop: true)
+ * sells the whole catalogue at any time instead of a market between levels, and a bought card plays at
+ * once, so its deck and hand stay unused.
+ */
+export function newPerkRun(seed, { shop = false } = {}) {
   const deck = shuffle(CARDS.map((c) => c.id), mulberry32(hashString(`perks:${seed}`)));
-  return { gold: 0, deck, hand: [], used: null, goldRush: false, market: null, nextSeed: null, gained: 0, rng: hashString(`perkrng:${seed}`), levelStart: { gold: 0, hand: [] } };
+  return { gold: 0, deck, hand: [], used: null, goldRush: false, market: null, nextSeed: null, gained: 0, rng: hashString(`perkrng:${seed}`), levelStart: { gold: 0, hand: [] }, shop, scouted: false };
 }
 
 function nextRand(perks) {
@@ -98,6 +102,7 @@ export function beginLevel(perks) {
   perks.goldRush = false;
   perks.market = null;
   perks.nextSeed = null;
+  perks.scouted = false;
   perks.gained = 0;
   perks.levelStart = { gold: perks.gold, hand: perks.hand.slice() };
 }
@@ -113,9 +118,16 @@ export function affordable(perks) {
   return perks.deck.filter((id) => CARD_BY_ID[id] && CARD_BY_ID[id].cost <= perks.gold);
 }
 
-/** Is there a market to show: one already open, or at least one card in the deck the gold can buy. */
+/** Is there a market to show: one already open, or at least one card in the deck the gold can buy (never in a shop run). */
 export function hasMarket(perks) {
-  return !!perks && (!!perks.market || affordable(perks).length > 0);
+  return !!perks && !perks.shop && (!!perks.market || affordable(perks).length > 0);
+}
+
+/** The catalogue as the shop lists it: in family order, or by price then name. */
+export function shopOrder(sort = 'type') {
+  const cards = CARDS.slice();
+  if (sort === 'price') cards.sort((a, b) => a.cost - b.cost || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  return cards;
 }
 
 /**

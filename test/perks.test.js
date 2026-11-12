@@ -6,7 +6,7 @@ import {
   coverageBonusFor, actionCost, perkExtras, scoreWord, finalScore, WILD, LETTERS,
 } from '../js/words.js';
 import {
-  CARDS, CARD_BY_ID, FAMILIES, MARKET_SIZE, emptyPerk, newPerkRun, beginLevel, goldForPass, pickOffer, openMarket, buyBlock, buyCard, closeMarket, affordable, hasMarket,
+  CARDS, CARD_BY_ID, FAMILIES, MARKET_SIZE, emptyPerk, newPerkRun, beginLevel, goldForPass, pickOffer, openMarket, buyBlock, buyCard, closeMarket, affordable, hasMarket, shopOrder,
   playBlock, rotateBlocks, bigNudgeOptions, peekDraws, applyPerkAction, powerPairCells, perkSummary, perkLabel,
 } from '../js/perks.js';
 
@@ -307,4 +307,21 @@ test('playability reasons and power pair picks', () => {
   const full = stateWith(['CATXX', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX'], { locked: Array.from({ length: 24 }, (_, i) => i) });
   assert.equal(powerPairCells(full), null);
   assert.equal(finalScore(st), 0);
+});
+
+test('a shop run never has a market; the shop lists the catalogue by family or by price', () => {
+  const run = newPerkRun(9, { shop: true });
+  assert.equal(run.shop, true);
+  run.gold = 50;
+  assert.equal(hasMarket(run), false, 'the whole catalogue is on sale instead');
+  assert.equal(newPerkRun(9).shop, false);
+  const byType = shopOrder('type');
+  assert.deepEqual(byType.map((c) => c.id), CARDS.map((c) => c.id), 'family order is the catalogue order');
+  const byPrice = shopOrder('price');
+  for (let i = 1; i < byPrice.length; i++) assert.ok(byPrice[i - 1].cost < byPrice[i].cost || (byPrice[i - 1].cost === byPrice[i].cost && byPrice[i - 1].name <= byPrice[i].name));
+  assert.equal(byPrice[0].cost, 3);
+  assert.equal(byPrice[byPrice.length - 1].cost, 10);
+  run.scouted = true;
+  beginLevel(run);
+  assert.equal(run.scouted, false, 'a new level forgets the scouted board');
 });

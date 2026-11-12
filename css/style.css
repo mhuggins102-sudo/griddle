@@ -1234,3 +1234,29 @@ button.rs-tile:active { background: var(--line); }
 .perk-list .perk-cost { color: var(--gold); font-weight: 800; }
 .rs-tile.perk b { color: var(--gold); }
 .tp-row .tp-extra { display: block; font-size: 11px; color: var(--muted); font-weight: 500; }
+
+/* Shop: the whole catalogue behind the gold button; grouped under family headings, two columns on a wide screen */
+.hand-btn .hand-gold { font-size: 14px; font-weight: 800; color: var(--gold); white-space: nowrap; }
+.hand-btn.shop { width: auto; padding: 0 10px; border-radius: 19px; }
+.hand-btn.shop .hand-cards { display: none; }
+.shop-controls { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 16px 0; }
+.shop-controls .seg { flex: 0 0 auto; }
+.shop-controls .seg span { white-space: nowrap; }
+.shop-cards.by-type .mk-card .mk-fam { display: none; } /* the family heading above the group says it */
+.shop-controls .mk-scout-wrap { margin: 0; }
+.shop-controls .mk-scout { width: 100px; gap: 2px; }
+.shop-controls .mk-scout span { font-size: 10px; border-radius: 3px; }
+.shop-controls .mk-scout-wrap .hud-label { margin-bottom: 2px; font-size: 10px; }
+.shop-cards .mk-group { grid-column: 1 / -1; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 6px 0 -2px; }
+.shop-cards .mk-group:first-child { margin-top: 0; }
+.shop-cards .mk-card.cannot .mk-cost { color: var(--muted); }
+.shop-cards .mk-card.bought { opacity: 0.7; }
+@media (orientation: landscape) and (min-width: 640px) {
+  #w-shop .sheet-body { max-width: 780px; }
+  #w-shop .shop-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #w-shop .mk-card { grid-template-areas: "fam cost" "name info" "act act"; align-content: start; }
+  #w-shop .mk-card .mk-text { display: none; }
+  #w-shop .mk-card .mk-info { display: grid; justify-self: end; align-self: start; }
+  #w-shop .mk-card .mk-act { flex-direction: row; align-items: center; justify-content: space-between; margin-top: 4px; }
+  #w-shop .mk-card .mk-why { text-align: left; max-width: none; }
+}
