@@ -246,6 +246,20 @@
       </div>
     </div>
 
+    <!-- Card dialog: a shop card opened on a wide screen, with its full text and its Buy -->
+    <div id="w-carddialog" class="perkpick" role="dialog" aria-modal="true" aria-labelledby="w-carddialog-title" hidden>
+      <div class="perkpick-card card-dialog">
+        <button id="w-carddialog-close" class="btn btn-icon card-dialog-close" aria-label="Close">✕</button>
+        <span id="w-carddialog-fam" class="mk-fam"></span>
+        <h3 id="w-carddialog-title">Card</h3>
+        <p id="w-carddialog-text" class="card-dialog-text"></p>
+        <div class="card-dialog-foot">
+          <span id="w-carddialog-why" class="mk-why"></span>
+          <button id="w-carddialog-buy" class="btn btn-primary">Buy</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Market sheet: three perk cards for gold, between levels -->
     <div id="w-market" class="sheet" hidden>
       <div class="sheet-body">
@@ -287,8 +301,8 @@
         </div>
         <div class="shop-controls">
           <div class="seg seg-small" role="radiogroup" aria-label="Sort the cards">
-            <label><input type="radio" name="shop-sort" id="shop-sort-type" value="type" checked><span>By type</span></label>
-            <label><input type="radio" name="shop-sort" id="shop-sort-price" value="price"><span>By price</span></label>
+            <label><input type="radio" name="shop-sort" id="shop-sort-price" value="price" checked><span>By price</span></label>
+            <label><input type="radio" name="shop-sort" id="shop-sort-type" value="type"><span>By type</span></label>
           </div>
         </div>
         <div class="sheet-scroll shop-scroll">

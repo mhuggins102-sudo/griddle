@@ -285,6 +285,7 @@ export function initWordMode(ctx) {
     closePerkPick();
     closeSheet($('#w-market'));
     closeSheet($('#w-handsheet'));
+    closeCardDialog();
     closeSheet($('#w-shop'));
     ctx.showScreen('screen-word');
     ensureBoard(w.game.size);
@@ -1563,6 +1564,7 @@ export function initWordMode(ctx) {
     if (!run) return;
     closeMenu();
     cancelGesture();
+    w.shopGroup = null; // by type starts with every family closed
     renderShop();
     openSheet($('#w-shop'));
   }
@@ -1570,8 +1572,9 @@ export function initWordMode(ctx) {
   const wideShop = () => matchMedia('(orientation: landscape) and (min-width: 640px)').matches;
 
   /**
-   * The shop. In portrait the cards sit under family headings that open one at a time, or in one list by
-   * price; on a wide screen they are always by price, four to a row. A card the gold cannot buy is only
+   * The shop. In portrait the cards sit under family headings that open one at a time (the opened one
+   * scrolls to the top), or in one list by price; on a wide screen they are always by price, four to a
+   * row, and a tap on a card opens its dialog with the text and Buy. A card the gold cannot buy is only
    * dimmed; one the board cannot take says why; one bought earlier in the run is marked used.
    */
   function renderShop() {
@@ -1582,17 +1585,29 @@ export function initWordMode(ctx) {
     $('#w-shop-sub').textContent = run.retry ? 'Retry: nothing is counted' : 'Each card is one use · plays at once';
     const list = $('#w-shop-cards');
     list.innerHTML = '';
-    const byType = !wideShop() && w.shopSort !== 'price';
+    const wide = wideShop();
+    const byType = !wide && w.shopSort !== 'price';
     list.classList.toggle('by-type', byType);
     const cardEl = (c) => {
-      const used = !run.deck.includes(c.id);
-      const why = used ? '' : cardBlock(c.id);
-      const afford = run.gold >= c.cost;
-      const blocked = used || !!why || !afford;
+      const { used, why, blocked } = shopState(c);
       const el = document.createElement('div');
-      el.className = `mk-card${blocked ? ' cannot' : ''}${used ? ' bought' : ''}`;
-      el.innerHTML = cardHtml(c, `◆ ${c.cost}`, used ? 'Used' : why, `<button type="button" class="btn btn-primary btn-small mk-buy" ${blocked ? 'disabled' : ''}>Buy</button>`, true);
-      el.querySelector('.mk-info').addEventListener('click', (e) => toggleInfoPop(c, e.currentTarget));
+      el.className = `mk-card${blocked ? ' cannot' : ''}${used ? ' bought' : ''}${wide ? ' tappable' : ''}`;
+      if (wide) {
+        // the card itself opens the dialog that holds the text and the Buy
+        el.innerHTML = cardHtml(c, `◆ ${c.cost}`, used ? 'Used' : why, '');
+        el.tabIndex = 0;
+        el.setAttribute('role', 'button');
+        el.setAttribute('aria-label', `${c.name}, ${c.cost} gold${used ? ', used' : why ? `, ${why}` : ''}`);
+        el.addEventListener('click', () => openCardDialog(c));
+        el.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openCardDialog(c);
+          }
+        });
+        return el;
+      }
+      el.innerHTML = cardHtml(c, `◆ ${c.cost}`, used ? 'Used' : why, `<button type="button" class="btn btn-primary btn-small mk-buy" ${blocked ? 'disabled' : ''}>Buy</button>`);
       el.querySelector('.mk-buy').addEventListener('click', () => shopBuy(c.id));
       return el;
     };
@@ -1605,7 +1620,6 @@ export function initWordMode(ctx) {
       if (!groups.has(c.family)) groups.set(c.family, []);
       groups.get(c.family).push(c);
     }
-    if (!groups.has(w.shopGroup)) w.shopGroup = groups.keys().next().value;
     for (const [family, cards] of groups) {
       const d = document.createElement('details');
       d.className = 'shop-group';
@@ -1615,12 +1629,60 @@ export function initWordMode(ctx) {
       const box = d.querySelector('.mk-cards');
       for (const c of cards) box.appendChild(cardEl(c));
       d.addEventListener('toggle', () => {
-        if (!d.open) return;
-        w.shopGroup = family; // one group open at a time, remembered
+        if (!d.open) {
+          if (w.shopGroup === family) w.shopGroup = null;
+          return;
+        }
+        w.shopGroup = family; // one group open at a time
         for (const o of list.querySelectorAll('.shop-group')) if (o !== d) o.open = false;
+        // the heading snaps to the top of the list, so the family is read first and its cards follow
+        requestAnimationFrame(() => {
+          const sc = $('#w-shop .sheet-scroll');
+          const top = d.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 10;
+          sc.scrollTo({ top: Math.max(0, top), behavior: reduceMotion() ? 'auto' : 'smooth' });
+        });
       });
       list.appendChild(d);
     }
+  }
+
+  /** Whether a shop card is used, blocked by the board (why) or short of gold; blocked covers all three. */
+  function shopState(c) {
+    const run = perks();
+    const used = !run.deck.includes(c.id);
+    const why = used ? '' : cardBlock(c.id);
+    return { used, why, blocked: used || !!why || run.gold < c.cost };
+  }
+
+  // ---- the card dialog (wide-screen shop) --------------------------------------------------------------
+  let cardDialogReturn = null;
+  function openCardDialog(c) {
+    const run = perks();
+    if (!run) return;
+    const { used, why, blocked } = shopState(c);
+    const dlg = $('#w-carddialog');
+    $('#w-carddialog-fam').textContent = FAMILIES[c.family];
+    $('#w-carddialog-title').textContent = c.name;
+    $('#w-carddialog-text').textContent = cardText(c, w.game ? w.game.size : 5);
+    $('#w-carddialog-why').textContent = used ? 'Used this run' : why || (run.gold < c.cost ? `${c.cost - run.gold} more gold needed` : '');
+    const buy = $('#w-carddialog-buy');
+    buy.textContent = `Buy · ◆ ${c.cost}`;
+    buy.disabled = blocked;
+    buy.onclick = () => {
+      closeCardDialog();
+      shopBuy(c.id);
+    };
+    cardDialogReturn = document.activeElement;
+    dlg.hidden = false;
+    (blocked ? $('#w-carddialog-close') : buy).focus();
+  }
+
+  function closeCardDialog() {
+    const dlg = $('#w-carddialog');
+    if (dlg.hidden) return;
+    dlg.hidden = true;
+    if (cardDialogReturn && cardDialogReturn.isConnected) cardDialogReturn.focus();
+    cardDialogReturn = null;
   }
 
   /** Buy a card in the shop: the gold goes and the card leaves the deck for the run; it plays at once. */
@@ -2377,7 +2439,8 @@ export function initWordMode(ctx) {
   for (const b of document.querySelectorAll('#w-tilemenu .tm-btn')) b.addEventListener('click', () => onMenuAction(b.dataset.act));
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || $('#screen-word').hidden) return;
-    if (!$('#w-perkpick').hidden) {
+    if (!$('#w-carddialog').hidden) closeCardDialog();
+    else if (!$('#w-perkpick').hidden) {
       closePerkPick();
       renderStrip();
     } else if (w.perk) cancelPerk();
@@ -2421,17 +2484,26 @@ export function initWordMode(ctx) {
     ctx.showHome(); // the passed board stays saved with its market; Continue brings it back
   });
   $('#w-hand').addEventListener('click', openHand);
-  $('#w-shop-close').addEventListener('click', () => closeSheet($('#w-shop')));
+  $('#w-shop-close').addEventListener('click', () => {
+    closeCardDialog();
+    closeSheet($('#w-shop'));
+  });
   $('#w-shop').addEventListener('click', (e) => {
     if (e.target === $('#w-shop')) closeSheet($('#w-shop'));
   });
-  w.shopSort = 'type';
+  w.shopSort = 'price';
   for (const r of document.querySelectorAll('input[name="shop-sort"]')) {
     r.addEventListener('change', () => {
       w.shopSort = document.querySelector('input[name="shop-sort"]:checked').value;
+      w.shopGroup = null; // by type starts closed
       renderShop();
+      $('#w-shop .sheet-scroll').scrollTop = 0;
     });
   }
+  $('#w-carddialog-close').addEventListener('click', closeCardDialog);
+  $('#w-carddialog').addEventListener('click', (e) => {
+    if (e.target === $('#w-carddialog')) closeCardDialog();
+  });
   $('#w-hand-close').addEventListener('click', () => closeSheet($('#w-handsheet')));
   $('#w-handsheet').addEventListener('click', (e) => {
     if (e.target === $('#w-handsheet')) closeSheet($('#w-handsheet'));
@@ -2456,7 +2528,9 @@ export function initWordMode(ctx) {
   }
   window.addEventListener('resize', refit);
   window.addEventListener('resize', () => {
-    if (!$('#w-shop').hidden) renderShop();
+    if ($('#w-shop').hidden) return;
+    closeCardDialog();
+    renderShop();
   });
   window.addEventListener('orientationchange', refit);
   window.addEventListener('pageshow', refit);
@@ -2503,6 +2577,7 @@ export function initWordMode(ctx) {
     cancelPerk();
     closePerkPick();
     closeSheet($('#w-handsheet'));
+    closeCardDialog();
     closeSheet($('#w-shop'));
     closeTilePop();
     closeSheet($('#w-result'));
