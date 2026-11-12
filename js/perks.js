@@ -25,7 +25,7 @@ export const CARDS = [
   { id: 'fresh-deal', name: 'Fresh Deal', cost: 3, family: 'board', target: 'none', turn: 0, text: 'Before your first move: a new board. The goal is set again for the new letters.' },
   { id: 'long-swap', name: 'Long Swap', cost: 5, family: 'board', target: 'pair', turn: 1, text: 'Swap two unlocked tiles in the same row or column, any distance apart. One turn.' },
   { id: 'rotate', name: 'Rotate', cost: 5, family: 'board', target: 'block', turn: 1, text: 'Turn a 2×2 block of unlocked tiles a quarter, half or three-quarter turn. One turn.' },
-  { id: 'unlock', name: 'Unlock', cost: 6, family: 'board', target: 'tile', turn: 0, text: 'Free a locked tile so it can move again. Its word keeps its points. No turn.' },
+  { id: 'unlock', name: 'Unlock', cost: 3, family: 'board', target: 'tile', turn: 0, text: 'Free a locked tile so it can move again. Its word keeps its points. No turn.' },
   { id: 'long-flick', name: 'Long Flick', cost: 5, family: 'board', target: 'flick', turn: 1, text: 'Flick a row or column and choose how far it slides, two steps or more. One turn.' },
   { id: 'letter-trade', name: 'Letter Trade', cost: 7, family: 'board', target: 'pair', turn: 1, text: 'Swap the letters of any two tiles, locked or not. Locks stay where they are. One turn.' },
   { id: 'fresh-line', name: 'Fresh Line', cost: 6, family: 'board', target: 'line', turn: 1, text: 'Redraw every unlocked tile in one row or column from the bag. One turn.' },
@@ -120,11 +120,13 @@ export function hasMarket(perks) {
   return !!perks && !perks.shop && (!!perks.market || affordable(perks).length > 0);
 }
 
-/** The catalogue as the shop lists it: in family order, or by price then name. */
+/** The catalogue as the shop lists it: by price then name, either across the board or within each family (families in catalogue order). */
 export function shopOrder(sort = 'type') {
+  const byPrice = (a, b) => a.cost - b.cost || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
   const cards = CARDS.slice();
-  if (sort === 'price') cards.sort((a, b) => a.cost - b.cost || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
-  return cards;
+  if (sort === 'price') return cards.sort(byPrice);
+  const families = Object.keys(FAMILIES);
+  return cards.sort((a, b) => families.indexOf(a.family) - families.indexOf(b.family) || byPrice(a, b));
 }
 
 /**

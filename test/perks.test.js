@@ -316,7 +316,16 @@ test('a shop run never has a market; the shop lists the catalogue by family or b
   assert.equal(hasMarket(run), false, 'the whole catalogue is on sale instead');
   assert.equal(newPerkRun(9).shop, false);
   const byType = shopOrder('type');
-  assert.deepEqual(byType.map((c) => c.id), CARDS.map((c) => c.id), 'family order is the catalogue order');
+  const families = Object.keys(FAMILIES);
+  for (let i = 1; i < byType.length; i++) {
+    const a = byType[i - 1];
+    const b = byType[i];
+    const fa = families.indexOf(a.family);
+    const fb = families.indexOf(b.family);
+    assert.ok(fa < fb || (fa === fb && (a.cost < b.cost || (a.cost === b.cost && a.name <= b.name))), `${a.id} before ${b.id}`);
+  }
+  assert.deepEqual(byType.slice(0, 3).map((c) => c.id), ['fresh-deal', 'unlock', 'long-flick'], 'within a family: price, then name');
+  assert.equal(CARD_BY_ID.unlock.cost, 3);
   const byPrice = shopOrder('price');
   for (let i = 1; i < byPrice.length; i++) assert.ok(byPrice[i - 1].cost < byPrice[i].cost || (byPrice[i - 1].cost === byPrice[i].cost && byPrice[i - 1].name <= byPrice[i].name));
   assert.equal(byPrice[0].cost, 3);
