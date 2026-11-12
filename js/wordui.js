@@ -1588,12 +1588,16 @@ export function initWordMode(ctx) {
     }
   }
 
-  /** Whether a shop card is used, blocked by the board (why) or short of gold; blocked covers all three. */
+  /** Cards whose timing rule is plain enough that the shop only dims them, with no note. */
+  const QUIET_REASONS = new Set(['fresh-deal', 'unlock']);
+
+  /** Whether a shop card is used, blocked by the board (why, or '' when the card is only dimmed) or short of gold; blocked covers all three. */
   function shopState(c) {
     const run = perks();
     const used = !run.deck.includes(c.id);
-    const why = used ? '' : cardBlock(c.id);
-    return { used, why, blocked: used || !!why || run.gold < c.cost };
+    const block = used ? '' : cardBlock(c.id);
+    const why = block && QUIET_REASONS.has(c.id) && !w.perk ? '' : block;
+    return { used, why, blocked: used || !!block || run.gold < c.cost };
   }
 
   // ---- the card dialog (wide-screen shop) --------------------------------------------------------------
