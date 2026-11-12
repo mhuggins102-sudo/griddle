@@ -1153,9 +1153,8 @@ button.rs-tile:active { background: var(--line); }
 .tile .pbadge.sticker { background: #7d5f0a; }
 
 .gold-chip { font-size: 18px; font-weight: 800; color: var(--gold); background: var(--gold-bg); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
-/* the shop button stays a circle like its neighbours; the gold figure inside shrinks to fit three digits */
-.hand-btn .hand-gold { font-size: 12px; font-weight: 800; color: var(--gold); white-space: nowrap; letter-spacing: -0.02em; }
-.hand-btn .hand-gold.wide { font-size: 10.5px; }
+.hud-tools .hand-btn { width: auto; padding: 0 10px; border-radius: 19px; } /* wider than an icon button, the gold centred */
+.hand-btn .hand-gold { font-size: 14px; font-weight: 800; color: var(--gold); white-space: nowrap; }
 
 .shop-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .shop-head h2 { margin: 0; }

@@ -355,16 +355,9 @@ export function initWordMode(ctx) {
     const run = perks();
     shopBtn.hidden = !run || w.over;
     if (run && !shopBtn.hidden) {
-      goldFace(run.gold);
+      $('#w-hand-goldface').textContent = `◆ ${run.gold}`;
       shopBtn.setAttribute('aria-label', `Shop: ${run.gold} gold`);
     }
-  }
-
-  /** The gold figure on the shop button, tight enough for the circle (smaller still past two digits). */
-  function goldFace(gold) {
-    const face = $('#w-hand-goldface');
-    face.textContent = `◆${gold}`;
-    face.classList.toggle('wide', gold >= 100);
   }
 
   /** The small badge on a tile with a letter square (×2, ×3) or a sticker (+5); none clears it. */
@@ -509,7 +502,7 @@ export function initWordMode(ctx) {
         // the level is passed: the turns to spare are banked as gold, once
         g.perks.gained = goldForPass(g.state, g.perks);
         g.perks.gold += g.perks.gained;
-        goldFace(g.perks.gold);
+        $('#w-hand-goldface').textContent = `◆ ${g.perks.gold}`;
       }
       persist();
       bar.classList.add('celebrate');
