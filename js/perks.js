@@ -1,18 +1,18 @@
-// Perk cards (an experimental levels mode): the card catalogue, the gold market between levels and the
-// one-use actions the cards play on a board. Pure functions over the word state and the run's perk
-// record; the UI chooses targets, shows the pickers and plays the few cards that act on the game
-// rather than the board (Fresh Deal, Rewind, Hint, Scout Ahead).
+// Perk cards (an experimental levels mode): the card catalogue, the shop that sells them for gold at any
+// time, and the one-use actions the cards play on a board. Pure functions over the word state and the
+// run's perk record; the UI chooses targets, shows the pickers and plays the few cards that act on the
+// game rather than the board (Fresh Deal, Rewind, Hint).
 //
 // Gold is the turns to spare when a level's goal is reached (Gold Rush doubles it). Each card can be
-// bought once per run and costs 3 to 10 gold (about 6 on average); any number may be played in a level.
-// A card that enhances a turn still costs that turn; only the Tempo cards lengthen the game. Board
-// effects live in state.perk so the engine scores them and undo snapshots carry them.
+// bought once per run and costs 3 to 10 gold (about 6 on average), plays the moment it is bought, and
+// any number may be played in a level. A card that enhances a turn still costs that turn; only the
+// Tempo cards lengthen the game. Board effects live in state.perk so the engine scores them and undo
+// snapshots carry them.
 
-import { mulberry32, shuffle, hashString, rngNext } from './rng.js';
+import { rngNext } from './rng.js';
 import { LETTERS, WILD, bagTotal, isLocked, lineCellsFree, slideMoves, turnLimit, gridOfState, sizeOf } from './words.js';
 
 export const FAMILIES = { board: 'Board', letters: 'Letters', power: 'Power tiles', scoring: 'Scoring', tempo: 'Tempo', info: 'Information', economy: 'Economy' };
-export const MARKET_SIZE = 3;
 
 /**
  * The deck. target tells the UI what the card needs: none (plays at once), tile, pair (two tiles),
@@ -80,44 +80,23 @@ export function emptyPerk() {
   return { squares: {}, stickers: {}, double: false, stretch: false, crossroads: false, diagonal: false, openField: false, shortStack: false, longHaul: false, headStart: false, extraTurns: 0, choiceDraw: false, peek: false, log: [] };
 }
 
-/**
- * A new run's perk record: no gold, every card in a shuffled deck (the cards not bought yet), an empty
- * hand. A shop run (shop: true) sells the whole deck at any time instead of a market between levels,
- * and a bought card plays at once, so its hand stays empty.
- */
-export function newPerkRun(seed, { shop = false } = {}) {
-  const deck = shuffle(CARDS.map((c) => c.id), mulberry32(hashString(`perks:${seed}`)));
-  return { gold: 0, deck, hand: [], goldRush: false, market: null, gained: 0, rng: hashString(`perkrng:${seed}`), levelStart: { gold: 0, hand: [] }, shop };
+/** A new run's perk record: no gold, every card still on sale (the deck is what has not been bought). */
+export function newPerkRun() {
+  const deck = CARDS.map((c) => c.id);
+  return { gold: 0, deck, goldRush: false, gained: 0, levelStart: { gold: 0, deck: deck.slice() } };
 }
 
-function nextRand(perks) {
-  const r = rngNext(perks.rng >>> 0);
-  perks.rng = r.state;
-  return r.value;
-}
-
-/** A level begins: the gold and hand are remembered for a retry of this board. */
+/** A level begins: the gold and the cards still on sale are remembered for a retry of this board. */
 export function beginLevel(perks) {
   perks.goldRush = false;
-  perks.market = null;
   perks.gained = 0;
-  perks.levelStart = { gold: perks.gold, hand: perks.hand.slice() };
+  perks.levelStart = { gold: perks.gold, deck: perks.deck.slice() };
 }
 
 /** Gold for passing a level: the turns to spare (turns a card added count too), doubled by Gold Rush. */
 export function goldForPass(state, perks) {
   const spare = Math.max(0, turnLimit(state) - state.turns);
   return perks && perks.goldRush ? spare * 2 : spare;
-}
-
-/** The cards in the deck that the gold in hand can buy, in deck order. */
-export function affordable(perks) {
-  return perks.deck.filter((id) => CARD_BY_ID[id] && CARD_BY_ID[id].cost <= perks.gold);
-}
-
-/** Is there a market to show: one already open, or at least one card in the deck the gold can buy (never in a shop run). */
-export function hasMarket(perks) {
-  return !!perks && !perks.shop && (!!perks.market || affordable(perks).length > 0);
 }
 
 /** The catalogue as the shop lists it: by price then name, either across the board or within each family (families in catalogue order). */
@@ -129,61 +108,7 @@ export function shopOrder(sort = 'type') {
   return cards.sort((a, b) => families.indexOf(a.family) - families.indexOf(b.family) || byPrice(a, b));
 }
 
-/**
- * Up to MARKET_SIZE cards from the top of the deck that cost no more than gold, from different families
- * where the pool allows. Fewer than MARKET_SIZE when the pool is small; none when nothing is affordable.
- */
-export function pickOffer(deck, n = MARKET_SIZE, gold = Infinity) {
-  const pool = deck.filter((id) => CARD_BY_ID[id] && CARD_BY_ID[id].cost <= gold);
-  const offer = [];
-  const families = new Set();
-  for (const id of pool) {
-    const c = CARD_BY_ID[id];
-    if (families.has(c.family)) continue;
-    offer.push(id);
-    families.add(c.family);
-    if (offer.length === n) break;
-  }
-  for (const id of pool) {
-    if (offer.length === n) break;
-    if (!offer.includes(id)) offer.push(id);
-  }
-  return offer;
-}
-
-/**
- * Open the market with the cards the gold can buy: the offer leaves the deck while it is on show.
- * Returns null, and changes nothing, when no card in the deck is affordable.
- */
-export function openMarket(perks) {
-  if (perks.market) return perks.market;
-  const offer = pickOffer(perks.deck, MARKET_SIZE, perks.gold);
-  if (!offer.length) return null;
-  perks.deck = perks.deck.filter((id) => !offer.includes(id));
-  perks.market = { offer, bought: [] };
-  return perks.market;
-}
-
-/** Why a card on offer cannot be bought right now, or '' when it can. */
-export function buyBlock(perks, id) {
-  const m = perks.market;
-  const c = CARD_BY_ID[id];
-  if (!m || !c) return 'Not on offer';
-  if (m.bought.includes(id)) return 'Bought';
-  if (perks.gold < c.cost) return `Needs ${c.cost - perks.gold} more gold`;
-  return '';
-}
-
-/** Buy a card from the offer: gold goes down, the card joins the hand. */
-export function buyCard(perks, id) {
-  const block = buyBlock(perks, id);
-  if (block) throw new Error(block);
-  perks.gold -= CARD_BY_ID[id].cost;
-  perks.market.bought.push(id);
-  perks.hand.push(id);
-}
-
-/** Buy a card in the shop: gold goes down and the card leaves the deck for good; the caller plays it at once. */
+/** Why a card cannot be bought in the shop, or '' when it can: already bought this run, or short of gold. */
 export function shopBuyBlock(perks, id) {
   const c = CARD_BY_ID[id];
   if (!c) return 'Unknown card';
@@ -192,20 +117,12 @@ export function shopBuyBlock(perks, id) {
   return '';
 }
 
+/** Buy a card in the shop: gold goes down and the card leaves the deck for good; the caller plays it at once. */
 export function shopTake(perks, id) {
   const block = shopBuyBlock(perks, id);
   if (block) throw new Error(block);
   perks.gold -= CARD_BY_ID[id].cost;
   perks.deck = perks.deck.filter((x) => x !== id);
-}
-
-/** Close the market: what was not bought returns to the deck, which is shuffled again. */
-export function closeMarket(perks) {
-  const m = perks.market;
-  if (!m) return;
-  for (const id of m.offer) if (!m.bought.includes(id)) perks.deck.push(id);
-  shuffle(perks.deck, () => nextRand(perks));
-  perks.market = null;
 }
 
 // ---------------------------------------------------------------------------

@@ -6,7 +6,7 @@ import {
   coverageBonusFor, perkExtras, scoreWord, finalScore, WILD, LETTERS,
 } from '../js/words.js';
 import {
-  CARDS, CARD_BY_ID, FAMILIES, MARKET_SIZE, emptyPerk, newPerkRun, beginLevel, goldForPass, pickOffer, openMarket, buyBlock, buyCard, closeMarket, affordable, hasMarket, shopOrder,
+  CARDS, CARD_BY_ID, FAMILIES, emptyPerk, newPerkRun, beginLevel, goldForPass, shopOrder,
   playBlock, rotateBlocks, bigNudgeOptions, peekDraws, applyPerkAction, powerPairCells, perkSummary, perkLabel, shopBuyBlock, shopTake,
 } from '../js/perks.js';
 
@@ -41,66 +41,15 @@ test('catalogue: 29 unique cards priced 3 to 10 averaging about 6, every family 
   assert.equal(perkLabel('open-field'), 'Open Field');
 });
 
-test('a new run: no gold, the whole deck shuffled by seed, empty hand; the offer mixes families', () => {
-  const a = newPerkRun(42);
-  const b = newPerkRun(42);
-  assert.deepEqual(a.deck, b.deck);
-  assert.equal(a.deck.length, 29);
-  assert.notDeepEqual(newPerkRun(43).deck, a.deck);
-  assert.equal(a.gold, 0);
-  assert.deepEqual(a.hand, []);
-  const offer = pickOffer(a.deck);
-  assert.equal(offer.length, MARKET_SIZE);
-  assert.equal(new Set(offer.map((id) => CARD_BY_ID[id].family)).size, 3, 'three different families');
-  assert.deepEqual(pickOffer(['crossroads', 'diagonal', 'short-stack']), ['crossroads', 'diagonal', 'short-stack'], 'one family left: fill from it');
-});
-
-test('the offer is drawn from the cards the gold can buy: none below the cheapest card, fewer than three from a small pool', () => {
-  const run = newPerkRun(5);
-  assert.equal(hasMarket(run), false, 'no gold, no market');
-  assert.equal(openMarket(run), null);
-  assert.equal(run.deck.length, 29, 'nothing left the deck');
-  assert.equal(run.market, null);
-  run.gold = 4;
-  assert.ok(affordable(run).every((id) => CARD_BY_ID[id].cost <= 4));
-  assert.ok(hasMarket(run));
-  const m = openMarket(run);
-  assert.ok(m.offer.length >= 1 && m.offer.length <= 3);
-  assert.ok(m.offer.every((id) => CARD_BY_ID[id].cost <= 4), m.offer.join());
-  assert.ok(m.offer.every((id) => buyBlock(run, id) === ''), 'everything on offer can be bought');
-  closeMarket(run);
-  run.deck = ['wild-card', 'hint', 'borrowed-time'];
-  run.gold = 4;
-  assert.deepEqual(openMarket(run).offer, ['hint'], 'a pool of one gives a market of one');
-  closeMarket(run);
-  run.gold = 100;
-  assert.equal(pickOffer(run.deck, 3, 100).length, 3);
-});
-
-test('market: offer leaves the deck, buying costs gold and fills the hand, closing returns the rest', () => {
-  const run = newPerkRun(1);
-  run.gold = 30;
-  const market = openMarket(run);
-  assert.equal(run.deck.length, 29 - 3);
-  for (const id of market.offer) assert.ok(!run.deck.includes(id));
-  assert.equal(openMarket(run), market, 'opening again keeps the same offer');
-  const [first, second] = market.offer;
-  assert.equal(buyBlock(run, first), '');
-  buyCard(run, first);
-  assert.equal(run.gold, 30 - CARD_BY_ID[first].cost);
-  assert.equal(buyBlock(run, first), 'Bought');
-  assert.deepEqual(run.hand, [first]);
-  run.gold = 2;
-  assert.match(buyBlock(run, second), /more gold/);
-  assert.throws(() => buyCard(run, second), /more gold/);
-  closeMarket(run);
-  assert.equal(run.market, null);
-  assert.equal(run.deck.length + run.hand.length, 29);
-  assert.ok(run.deck.includes(second), 'the unbought card is back in the deck');
+test('a new run: no gold, every card on sale', () => {
+  const run = newPerkRun();
+  assert.equal(run.gold, 0);
+  assert.equal(run.deck.length, 29);
+  assert.deepEqual(run.levelStart, { gold: 0, deck: run.deck });
 });
 
 test('shop: a card is bought once per run, for its price, and leaves the deck', () => {
-  const run = newPerkRun(4, { shop: true });
+  const run = newPerkRun();
   assert.match(shopBuyBlock(run, 'fresh-deal'), /Needs 3 more gold/);
   run.gold = 10;
   assert.equal(shopBuyBlock(run, 'fresh-deal'), '');
@@ -112,14 +61,14 @@ test('shop: a card is bought once per run, for its price, and leaves the deck', 
   assert.equal(shopBuyBlock(run, 'nope'), 'Unknown card');
 });
 
-test('beginLevel remembers the hand; gold is the spare turns, extra turns included, doubled by Gold Rush', () => {
-  const run = newPerkRun(3);
+test('beginLevel remembers the gold and the shop; gold is the spare turns, extra turns included, doubled by Gold Rush', () => {
+  const run = newPerkRun();
   run.gold = 20;
-  run.hand = ['hint'];
+  run.deck = ['hint'];
   run.goldRush = true;
   beginLevel(run);
   assert.equal(run.goldRush, false);
-  assert.deepEqual(run.levelStart, { gold: 20, hand: ['hint'] });
+  assert.deepEqual(run.levelStart, { gold: 20, deck: ['hint'] });
   const st = stateWith(['ABCDE', 'FGHIJ', 'KLMNO', 'PQRST', 'UVWXY'], { turns: 14 });
   assert.equal(goldForPass(st, run), 6);
   run.goldRush = true;
@@ -309,12 +258,7 @@ test('playability reasons and power pair picks', () => {
   assert.equal(finalScore(st), 0);
 });
 
-test('a shop run never has a market; the shop lists the catalogue by family or by price', () => {
-  const run = newPerkRun(9, { shop: true });
-  assert.equal(run.shop, true);
-  run.gold = 50;
-  assert.equal(hasMarket(run), false, 'the whole catalogue is on sale instead');
-  assert.equal(newPerkRun(9).shop, false);
+test('the shop lists the catalogue by family or by price', () => {
   const byType = shopOrder('type');
   const families = Object.keys(FAMILIES);
   for (let i = 1; i < byType.length; i++) {
