@@ -147,7 +147,8 @@
           <button class="hud-item hud-button" id="w-score-item" aria-label="Score; tap for the breakdown"><span class="hud-label">Score</span><span id="w-score" class="hud-value">0</span></button>
           <div class="hud-tools">
             <button id="w-hand" class="btn btn-icon hand-btn" aria-label="Perk cards" hidden>
-              <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="3.5" width="9" height="13" rx="1.8"/><path d="M13.5 6.2l2.4.9a1.6 1.6 0 0 1 1 2l-2.6 7.3a1.6 1.6 0 0 1-2 1l-1.6-.6"/><path d="M7 7.5h3M7 10h3"/></svg>
+              <svg class="hand-cards" viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="3.5" width="9" height="13" rx="1.8"/><path d="M13.5 6.2l2.4.9a1.6 1.6 0 0 1 1 2l-2.6 7.3a1.6 1.6 0 0 1-2 1l-1.6-.6"/><path d="M7 7.5h3M7 10h3"/></svg>
+              <span class="hand-gold" id="w-hand-goldface" hidden>◆ 0</span>
               <span class="hand-count" id="w-hand-count" hidden>0</span>
             </button>
             <button id="w-undo" class="btn btn-icon" aria-label="Undo the last move (once per game)">
@@ -280,6 +281,27 @@
       </div>
     </div>
 
+    <!-- Shop sheet: the whole catalogue, any time, bought and played at once -->
+    <div id="w-shop" class="sheet" hidden>
+      <div class="sheet-body shop-body">
+        <div class="sheet-head market-head">
+          <div><h2>Shop</h2><span id="w-shop-sub" class="breakdown">One card per level · plays at once</span></div>
+          <b id="w-shop-gold" class="gold-chip">◆ 0</b>
+        </div>
+        <div class="shop-controls">
+          <div class="seg seg-small" role="radiogroup" aria-label="Sort the cards">
+            <label><input type="radio" name="shop-sort" id="shop-sort-type" value="type" checked><span>By type</span></label>
+            <label><input type="radio" name="shop-sort" id="shop-sort-price" value="price"><span>By price</span></label>
+          </div>
+          <div id="w-shop-scout" class="mk-scout-wrap" hidden></div>
+        </div>
+        <div class="sheet-scroll shop-scroll">
+          <div id="w-shop-cards" class="mk-cards shop-cards"></div>
+        </div>
+        <div class="sheet-foot"><button id="w-shop-close" class="btn btn-primary btn-wide">Close</button></div>
+      </div>
+    </div>
+
     <!-- Settings sheet -->
     <div id="settings" class="sheet" hidden>
       <div class="sheet-body">
@@ -295,7 +317,13 @@
               </div>
             </div>
             <label class="toggle"><span>Show the words on the board <small>Practice: no stats saved</small></span><input type="checkbox" class="switch" role="switch" id="opt-show-words"></label>
-            <label class="toggle"><span>Perk cards <small>Experimental: earn gold for spare turns and buy one-use cards between levels. New runs only; not posted to the leaderboard</small></span><input type="checkbox" class="switch" role="switch" id="opt-perks"></label>
+            <label class="toggle"><span>Perk cards <small>Experimental: earn gold for spare turns and buy one-use cards. New runs only; not posted to the leaderboard</small></span><input type="checkbox" class="switch" role="switch" id="opt-perks"></label>
+            <div class="toggle" id="opt-perk-mode-row"><span>Where cards are bought <small id="opt-perk-mode-sub">Market: three cards offered after each level, kept in a hand</small></span>
+              <div class="seg seg-small" role="radiogroup" aria-label="Where perk cards are bought">
+                <label><input type="radio" name="opt-perk-mode" id="opt-perk-market" value="market" checked><span>Market</span></label>
+                <label><input type="radio" name="opt-perk-mode" id="opt-perk-shop" value="shop"><span>Shop</span></label>
+              </div>
+            </div>
             <label class="toggle" id="opt-numerals-row" hidden><span>Number game: numerals instead of dice pips</span><input type="checkbox" class="switch" role="switch" id="opt-numerals"></label>
           </div>
           <p class="footnote">Progress and settings stay on this device. Only the results you choose to post to the leaderboard leave it.</p>
@@ -464,7 +492,7 @@
           <details class="chapter">
             <summary><span class="chapter-num">9</span><span class="chapter-title">Perk cards (experimental)</span></summary>
             <div class="chapter-body">
-              <p>Switch <strong>Perk cards</strong> on in the settings and your next run of levels earns <strong>gold</strong>: every turn you have to spare when a level's goal is reached is one gold coin. After each passed level a <strong>market</strong> offers three cards from the deck. Buy any you can afford, or none; what you leave goes back into the deck. Cards you buy wait in your hand (the card button in the header) until you play them.</p>
+              <p>Switch <strong>Perk cards</strong> on in the settings and your next run of levels earns <strong>gold</strong>: every turn you have to spare when a level's goal is reached is one gold coin. The settings also choose where cards are bought. In the <strong>market</strong> a passed level is followed by an offer of up to three cards you can afford, drawn from the deck; what you leave goes back. Cards you buy wait in your hand (the card button in the header) until you play them. In the <strong>shop</strong> the whole catalogue is on sale at any time behind the gold button in the header, sorted by type or price, and a card you buy is played at once.</p>
               <p>Every card is <strong>one use</strong>, and you may play <strong>one card per level</strong>. The goal is still set by the bot on the board as dealt. Extra turns from a card never earn gold, and a card's points show as their own line on the result card. Runs with perk cards keep their own best level in Stats and are not posted to the leaderboard.</p>
               <ul id="help-perk-cards" class="perk-list"></ul>
             </div>
