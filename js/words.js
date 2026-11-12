@@ -45,14 +45,9 @@ export function sizeOf(state) {
   return state.size || sizeOfBoard(state.board);
 }
 
-/** The board's own turn limit, 20 or 25: what gold and the spare-turn bonus are counted against. */
-export function baseTurnLimit(state) {
-  return TURNS_BY_SIZE[sizeOf(state)] || WORD_TURNS;
-}
-
-/** Turns available on this board: the base limit plus any turns a perk card added. */
+/** Turns available on this board: 20 or 25, plus any turns a perk card added (which count like any other). */
 export function turnLimit(state) {
-  return baseTurnLimit(state) + ((state.perk && state.perk.extraTurns) || 0);
+  return (TURNS_BY_SIZE[sizeOf(state)] || WORD_TURNS) + ((state.perk && state.perk.extraTurns) || 0);
 }
 
 export function coverageBonus(lockedCount, size = 5) {
@@ -74,7 +69,7 @@ export function isBoardFull(state) {
 }
 
 export function fullCoverTurnBonus(state) {
-  return isBoardFull(state) ? Math.max(0, baseTurnLimit(state) - state.turns) * FULL_COVER_TURN_BONUS : 0; // perk turns never pay
+  return isBoardFull(state) ? Math.max(0, turnLimit(state) - state.turns) * FULL_COVER_TURN_BONUS : 0;
 }
 
 /** The score as it stands now, bonuses included (no penalties, so never negative). */
@@ -87,9 +82,8 @@ export function finalScore(state) {
   return Math.max(0, projectedScore(state));
 }
 
-/** Turns an action will consume; Free Move (a perk) makes the next slide or swap free. */
-export function actionCost(action, state = null) {
-  if (state && state.perk && state.perk.freeMove && (action.type === 'slide' || action.type === 'swap')) return 0;
+/** Turns an action will consume. */
+export function actionCost(action) {
   return action.type === 'wild' ? WILD_COST : 1;
 }
 
@@ -154,7 +148,7 @@ export function validateWordAction(state, action) {
   const g = gridOfState(state);
   const { inRange, idx } = g;
   const limit = turnLimit(state);
-  const cost = actionCost(action, state);
+  const cost = actionCost(action);
   if (state.turns + cost > limit) throw new Error(cost > 1 ? `That needs ${cost} turns` : 'No turns left');
   switch (action.type) {
     case 'slide': {
@@ -198,10 +192,8 @@ export function nudgeLetter(ch, delta) {
 export function applyWordAction(state, action) {
   validateWordAction(state, action);
   const { idx } = gridOfState(state);
-  const cost = actionCost(action, state);
-  const next = { ...state, size: sizeOf(state), board: state.board.slice(), bag: { ...state.bag }, locked: state.locked.slice(), words: state.words.slice(), turns: state.turns + cost };
+  const next = { ...state, size: sizeOf(state), board: state.board.slice(), bag: { ...state.bag }, locked: state.locked.slice(), words: state.words.slice(), turns: state.turns + actionCost(action) };
   delete next.lastDraw;
-  if (state.perk && state.perk.freeMove && cost === 0) next.perk = { ...state.perk, freeMove: false }; // the free move is spent
   switch (action.type) {
     case 'slide': {
       for (const m of slideMoves(state, action)) next.board[m.to] = state.board[m.from];
@@ -364,14 +356,17 @@ export function isDiagonal(cells, size) {
   return rowOf(cells[0]) !== rowOf(cells[1]) && colOf(cells[0]) !== colOf(cells[1]);
 }
 
+/** Stretch Bonus pays the length bonus one rung up: a 4-letter word gets the 5-letter bonus, and so on; a 6-letter word gets 45. */
+export const STRETCH_BONUS = { 4: LENGTH_BONUS[5], 5: LENGTH_BONUS[6], 6: 45 };
+
 export function extrasTotal(extras) {
   return extras.reduce((a, x) => a + x.pts, 0);
 }
 
 /**
  * What the perk cards in play add to a word locked on these cells, as [{ card, pts }]: letter squares
- * and stickers on its cells, a bonus waiting for the next (qualifying) word, and the board-wide
- * Crossroads, Open Field, Short Stack and Diagonal Dividend. Empty without perks.
+ * and stickers on its cells, the bonuses waiting for the next (qualifying) word, and the board-wide
+ * Crossroads, Open Field, Short Stack, Long Haul and Diagonal Dividend. Empty without perks.
  */
 export function perkExtras(state, cells) {
   const p = state.perk;
@@ -390,12 +385,13 @@ export function perkExtras(state, cells) {
   if (squares) out.push({ card: 'squares', pts: squares });
   if (stickers) out.push({ card: 'sticker', pts: stickers });
   const len = cells.length;
-  if (p.next === 'double') out.push({ card: 'double-down', pts: Math.min(15, letters) });
-  else if (p.next === 'stretch' && len >= 4) out.push({ card: 'stretch', pts: (LENGTH_BONUS[len + 1] ?? 45) - (LENGTH_BONUS[len] || 0) });
+  if (p.double) out.push({ card: 'double-down', pts: letters });
+  if (p.stretch && len >= 4) out.push({ card: 'stretch', pts: STRETCH_BONUS[len] - (LENGTH_BONUS[len] || 0) });
   const reuses = cells.some((c) => state.locked.includes(c));
   if (p.crossroads && reuses) out.push({ card: 'crossroads', pts: 2 });
   if (p.openField && !reuses) out.push({ card: 'open-field', pts: 4 });
   if (p.shortStack && len === 3) out.push({ card: 'short-stack', pts: 3 });
+  if (p.longHaul && len === sizeOf(state)) out.push({ card: 'long-haul', pts: 8 });
   if (p.diagonal && isDiagonal(cells, sizeOf(state))) out.push({ card: 'diagonal', pts: 5 });
   return out.filter((x) => x.pts > 0);
 }
@@ -474,7 +470,8 @@ export function lockWord(state, candidate) {
     const p = { ...state.perk, squares: { ...(state.perk.squares || {}) }, log: (state.perk.log || []).slice() };
     for (const c of candidate.cells) delete p.squares[c]; // a square pays once; a sticker pays every word through its cell
     const len = candidate.cells.length;
-    if (p.next === 'double' || (p.next === 'stretch' && len >= 4)) p.next = null;
+    if (p.double) p.double = false; // the next lock, whatever its length
+    if (p.stretch && len >= 4) p.stretch = false; // waits for a word long enough
     for (const x of extras) p.log.push({ card: x.card, pts: x.pts, word: candidate.word });
     next.perk = p;
     next.perkPoints = (state.perkPoints || 0) + extrasTotal(extras);

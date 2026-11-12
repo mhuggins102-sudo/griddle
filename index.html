@@ -254,11 +254,8 @@
           <b id="w-market-gold" class="gold-chip">◆ 0</b>
         </div>
         <div class="sheet-scroll market-scroll">
-          <div class="mk-row">
-            <div id="w-market-cards" class="mk-cards"></div>
-            <div id="w-market-scout" class="mk-scout-wrap" hidden></div>
-          </div>
-          <p class="footnote market-note">One use each · one card per level · what you leave goes back into the deck</p>
+          <div id="w-market-cards" class="mk-cards"></div>
+          <p class="footnote market-note">Each card is one use · what you leave goes back into the deck</p>
         </div>
         <div class="sheet-foot market-foot">
           <button id="w-market-continue" class="btn btn-primary btn-wide">Continue</button>
@@ -285,7 +282,7 @@
     <div id="w-shop" class="sheet" hidden>
       <div class="sheet-body shop-body">
         <div class="sheet-head market-head">
-          <div><h2>Shop</h2><span id="w-shop-sub" class="breakdown">One card per level · plays at once</span></div>
+          <div><h2>Shop</h2><span id="w-shop-sub" class="breakdown">Each card is one use · plays at once</span></div>
           <b id="w-shop-gold" class="gold-chip">◆ 0</b>
         </div>
         <div class="shop-controls">
@@ -293,7 +290,6 @@
             <label><input type="radio" name="shop-sort" id="shop-sort-type" value="type" checked><span>By type</span></label>
             <label><input type="radio" name="shop-sort" id="shop-sort-price" value="price"><span>By price</span></label>
           </div>
-          <div id="w-shop-scout" class="mk-scout-wrap" hidden></div>
         </div>
         <div class="sheet-scroll shop-scroll">
           <div id="w-shop-cards" class="mk-cards shop-cards"></div>
@@ -492,8 +488,8 @@
           <details class="chapter">
             <summary><span class="chapter-num">9</span><span class="chapter-title">Perk cards (experimental)</span></summary>
             <div class="chapter-body">
-              <p>Switch <strong>Perk cards</strong> on in the settings and your next run of levels earns <strong>gold</strong>: every turn you have to spare when a level's goal is reached is one gold coin. The settings also choose where cards are bought. In the <strong>market</strong> a passed level is followed by an offer of up to three cards you can afford, drawn from the deck; what you leave goes back. Cards you buy wait in your hand (the card button in the header) until you play them. In the <strong>shop</strong> the whole catalogue is on sale at any time behind the gold button in the header, sorted by type or price, and a card you buy is played at once.</p>
-              <p>Every card is <strong>one use</strong>, and you may play <strong>one card per level</strong>. The goal is still set by the bot on the board as dealt. Extra turns from a card never earn gold, and a card's points show as their own line on the result card. Runs with perk cards keep their own best level in Stats and are not posted to the leaderboard.</p>
+              <p>Switch <strong>Perk cards</strong> on in the settings and your next run of levels earns <strong>gold</strong>: every turn you have to spare when a level's goal is reached is one gold coin. The settings also choose where cards are bought. In the <strong>market</strong> a passed level is followed by an offer of up to three cards you can afford, drawn from the deck; what you leave goes back. Cards you buy wait in your hand (the card button in the header) until you play them. In the <strong>shop</strong> every card not yet bought is on sale at any time behind the gold button in the header, by type or by price, and a card you buy is played at once.</p>
+              <p>Every card can be bought <strong>once per run</strong> and is <strong>one use</strong>; play as many as you like in a level. The goal is still set by the bot on the board as dealt. A card's points show as their own line on the result card. Runs with perk cards keep their own best level in Stats and are not posted to the leaderboard.</p>
               <ul id="help-perk-cards" class="perk-list"></ul>
             </div>
           </details>

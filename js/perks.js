@@ -3,61 +3,60 @@
 // record; the UI chooses targets, shows the pickers and plays the few cards that act on the game
 // rather than the board (Fresh Deal, Rewind, Hint, Scout Ahead).
 //
-// Gold is the turns to spare when a level's goal is reached (Gold Rush doubles it). Each card exists
-// once per run, costs 3 to 10 gold (about 6 on average), and one card may be played per level. A card
-// that enhances a turn still costs that turn; only the Tempo cards lengthen the game. Board effects
-// live in state.perk so the engine scores them and undo snapshots carry them.
+// Gold is the turns to spare when a level's goal is reached (Gold Rush doubles it). Each card can be
+// bought once per run and costs 3 to 10 gold (about 6 on average); any number may be played in a level.
+// A card that enhances a turn still costs that turn; only the Tempo cards lengthen the game. Board
+// effects live in state.perk so the engine scores them and undo snapshots carry them.
 
 import { mulberry32, shuffle, hashString, rngNext } from './rng.js';
-import { LETTERS, WILD, bagTotal, isLocked, lineCellsFree, slideMoves, turnLimit, baseTurnLimit, gridOfState, sizeOf } from './words.js';
+import { LETTERS, WILD, bagTotal, isLocked, lineCellsFree, slideMoves, turnLimit, gridOfState, sizeOf } from './words.js';
 
 export const FAMILIES = { board: 'Board', letters: 'Letters', power: 'Power tiles', scoring: 'Scoring', tempo: 'Tempo', info: 'Information', economy: 'Economy' };
 export const MARKET_SIZE = 3;
 
 /**
  * The deck. target tells the UI what the card needs: none (plays at once), tile, pair (two tiles),
- * block (the top-left tile of a 2×2 block), multi (up to three tiles, then Done), line (a tile, then
- * row or column), flick (a flick on a line), word (one of the locked words), market (bought and
- * resolved in the market). turn is the turns the card's action costs on top of the card itself.
+ * block (the top-left tile of a 2×2 block, then how far to turn it), multi (up to three tiles, then
+ * Done), line (a tile, then row or column), flick (a flick on a line). turn is the turns the card's
+ * action costs.
  */
 export const CARDS = [
   // board
-  { id: 'fresh-deal', name: 'Fresh Deal', cost: 3, family: 'board', target: 'none', turn: 0, text: 'Turn 1 only, before any move: a whole new board. The goal is worked out again for the new letters.' },
+  { id: 'fresh-deal', name: 'Fresh Deal', cost: 3, family: 'board', target: 'none', turn: 0, text: 'Before your first move: a new board. The goal is set again for the new letters.' },
   { id: 'long-swap', name: 'Long Swap', cost: 5, family: 'board', target: 'pair', turn: 1, text: 'Swap two unlocked tiles in the same row or column, any distance apart. One turn.' },
-  { id: 'rotate', name: 'Rotate', cost: 5, family: 'board', target: 'block', turn: 1, text: 'Turn a 2×2 block of unlocked tiles a quarter turn clockwise. One turn.' },
-  { id: 'unlock', name: 'Unlock', cost: 6, family: 'board', target: 'tile', turn: 0, text: 'A locked tile can move again. Its word keeps its points; it counts for the tile bonus again once re-locked. No turn.' },
-  { id: 'long-flick', name: 'Long Flick', cost: 5, family: 'board', target: 'flick', turn: 1, text: 'Flick a row or column and choose how far it slides: two steps or more. One turn.' },
-  { id: 'letter-trade', name: 'Letter Trade', cost: 7, family: 'board', target: 'pair', turn: 1, text: 'Swap the letters of any two tiles, locked or not; the tiles keep their locks. One turn.' },
-  { id: 'fresh-line', name: 'Fresh Line', cost: 6, family: 'board', target: 'line', turn: 1, text: 'Every unlocked tile in one row or column gets a fresh letter from the bag. One turn.' },
+  { id: 'rotate', name: 'Rotate', cost: 5, family: 'board', target: 'block', turn: 1, text: 'Turn a 2×2 block of unlocked tiles a quarter, half or three-quarter turn. One turn.' },
+  { id: 'unlock', name: 'Unlock', cost: 6, family: 'board', target: 'tile', turn: 0, text: 'Free a locked tile so it can move again. Its word keeps its points. No turn.' },
+  { id: 'long-flick', name: 'Long Flick', cost: 5, family: 'board', target: 'flick', turn: 1, text: 'Flick a row or column and choose how far it slides, two steps or more. One turn.' },
+  { id: 'letter-trade', name: 'Letter Trade', cost: 7, family: 'board', target: 'pair', turn: 1, text: 'Swap the letters of any two tiles, locked or not. Locks stay where they are. One turn.' },
+  { id: 'fresh-line', name: 'Fresh Line', cost: 6, family: 'board', target: 'line', turn: 1, text: 'Redraw every unlocked tile in one row or column from the bag. One turn.' },
   // letters
-  { id: 'big-nudge', name: 'Big Nudge', cost: 6, family: 'letters', target: 'tile', turn: 1, text: 'Nudge one tile up to three letters either way in one go. One turn.' },
-  { id: 'pick-letter', name: 'Pick a Letter', cost: 7, family: 'letters', target: 'tile', turn: 1, text: 'Set an unlocked tile to any letter still in the bag; the old letter goes back in. One turn.' },
-  { id: 'choice-draw', name: 'Choice Draw', cost: 5, family: 'letters', target: 'none', turn: 0, text: 'Your next Draw offers three letters and you keep one. The draw costs its usual turn.' },
-  { id: 'exchange', name: 'Exchange', cost: 6, family: 'letters', target: 'multi', turn: 1, text: 'Toss up to three unlocked tiles and draw replacements from the bag, all for one turn.' },
+  { id: 'big-nudge', name: 'Big Nudge', cost: 6, family: 'letters', target: 'tile', turn: 1, text: 'Nudge one tile up to three letters either way. One turn.' },
+  { id: 'pick-letter', name: 'Pick a Letter', cost: 7, family: 'letters', target: 'tile', turn: 1, text: 'Set an unlocked tile to any letter left in the bag. The old letter goes back. One turn.' },
+  { id: 'choice-draw', name: 'Choice Draw', cost: 5, family: 'letters', target: 'none', turn: 0, text: 'Your next Draw offers three letters; keep one. The draw costs its usual turn.' },
+  { id: 'exchange', name: 'Exchange', cost: 6, family: 'letters', target: 'multi', turn: 1, text: 'Toss up to three unlocked tiles and draw replacements. One turn for all of them.' },
   // power tiles
-  { id: 'power-pair', name: 'Power Pair', cost: 8, family: 'power', target: 'none', turn: 0, text: 'Two random unlocked tiles get a Double Letter and a Triple Letter square, paid once when a word locks the cell.' },
-  { id: 'triple-up', name: 'Triple Up', cost: 8, family: 'power', target: 'tile', turn: 0, text: 'Choose an unlocked tile: a Triple Letter square, paid once when a word locks the cell.' },
-  { id: 'sticker', name: 'Gold Sticker', cost: 8, family: 'power', target: 'tile', turn: 0, text: 'Choose an unlocked tile: +5 for every word that uses that cell, on this board.' },
-  { id: 'wild-card', name: 'Wild Card', cost: 9, family: 'power', target: 'tile', turn: 1, text: 'Any tile, locked or not, becomes wild for one turn (a normal wild costs two). It ignores the one wild per board.' },
+  { id: 'power-pair', name: 'Power Pair', cost: 8, family: 'power', target: 'none', turn: 0, text: 'Two random unlocked tiles get a Double and a Triple Letter square. Each pays once, when a word locks its cell.' },
+  { id: 'triple-up', name: 'Triple Up', cost: 8, family: 'power', target: 'tile', turn: 0, text: 'Pick an unlocked tile: a Triple Letter square. Pays once, when a word locks its cell.' },
+  { id: 'sticker', name: 'Gold Sticker', cost: 8, family: 'power', target: 'tile', turn: 0, text: 'Pick an unlocked tile: +5 for every word that uses that cell.' },
+  { id: 'wild-card', name: 'Wild Card', cost: 9, family: 'power', target: 'tile', turn: 1, text: 'Pick any tile, locked or not: it is wild for the rest of the board. One turn.' },
   // scoring
   { id: 'head-start', name: 'Head Start', cost: 6, family: 'scoring', target: 'none', turn: 0, text: 'The tile bonus ladder starts one tile earlier on this board.' },
-  { id: 'double-down', name: 'Double Down', cost: 7, family: 'scoring', target: 'none', turn: 0, text: 'Your next locked word scores its letter values twice, up to 15 extra.' },
+  { id: 'double-down', name: 'Double Down', cost: 7, family: 'scoring', target: 'none', turn: 0, text: 'Your next locked word scores its letter values twice.' },
   { id: 'stretch', name: 'Stretch Bonus', cost: 7, family: 'scoring', target: 'none', turn: 0, text: 'Your next word of 4+ letters gets the length bonus one rung up: +15 for 4 letters, +30 for 5, +45 for 6.' },
-  { id: 'crossroads', name: 'Crossroads', cost: 6, family: 'scoring', target: 'none', turn: 0, text: 'For the rest of this board, every word that reuses a locked tile scores +2.' },
-  { id: 'diagonal', name: 'Diagonal Dividend', cost: 6, family: 'scoring', target: 'none', turn: 0, text: 'For the rest of this board, every word on a diagonal scores +5.' },
-  { id: 'open-field', name: 'Open Field', cost: 7, family: 'scoring', target: 'none', turn: 0, text: 'For the rest of this board, every word that uses no locked tile scores +4.' },
-  { id: 'short-stack', name: 'Short Stack', cost: 6, family: 'scoring', target: 'none', turn: 0, text: 'For the rest of this board, every 3-letter word scores +3.' },
+  { id: 'crossroads', name: 'Crossroads', cost: 6, family: 'scoring', target: 'none', turn: 0, text: 'Every word that reuses a locked tile scores +2, for the rest of this board.' },
+  { id: 'diagonal', name: 'Diagonal Dividend', cost: 6, family: 'scoring', target: 'none', turn: 0, text: 'Every diagonal word scores +5, for the rest of this board.' },
+  { id: 'open-field', name: 'Open Field', cost: 7, family: 'scoring', target: 'none', turn: 0, text: 'Every word that uses no locked tile scores +4, for the rest of this board.' },
+  { id: 'short-stack', name: 'Short Stack', cost: 6, family: 'scoring', target: 'none', turn: 0, text: 'Every 3-letter word scores +3, for the rest of this board.' },
+  { id: 'long-haul', name: 'Long Haul', cost: 7, family: 'scoring', target: 'none', turn: 0, text: 'Every word that spans the whole board (6 letters) scores +8, for the rest of this board.' },
   // tempo
-  { id: 'extra-turn', name: 'Extra Turn', cost: 8, family: 'tempo', target: 'none', turn: 0, text: 'This level has one more turn. Extra turns never earn gold.' },
-  { id: 'borrowed-time', name: 'Borrowed Time', cost: 10, family: 'tempo', target: 'none', turn: 0, text: 'This level has two more turns. Extra turns never earn gold.' },
-  { id: 'free-move', name: 'Free Move', cost: 5, family: 'tempo', target: 'none', turn: 0, text: 'Your next slide or swap costs no turn.' },
-  { id: 'rewind', name: 'Rewind', cost: 4, family: 'tempo', target: 'none', turn: 0, text: 'Take back your last move or lock, once, in a run where undo is otherwise off. Not past a Draw.' },
+  { id: 'extra-turn', name: 'Extra Turn', cost: 8, family: 'tempo', target: 'none', turn: 0, text: 'One more turn this level. It counts for gold and the full-board bonus like any other.' },
+  { id: 'borrowed-time', name: 'Borrowed Time', cost: 10, family: 'tempo', target: 'none', turn: 0, text: 'Two more turns this level. They count for gold and the full-board bonus like any other.' },
+  { id: 'rewind', name: 'Rewind', cost: 4, family: 'tempo', target: 'none', turn: 0, text: 'Take back your last move or lock, even a Draw. After a Draw is taken back, the next draw is rerolled.' },
   // information
-  { id: 'peek', name: 'Peek', cost: 3, family: 'info', target: 'none', turn: 0, text: 'For the rest of this level the Draw button shows the letter the next draw will bring.' },
-  { id: 'hint', name: 'Hint', cost: 4, family: 'info', target: 'none', turn: 0, text: 'Lights up the highest-scoring word that can be locked right now.' },
-  { id: 'scout-ahead', name: 'Scout Ahead', cost: 3, family: 'info', target: 'market', turn: 0, text: 'In the market: see the next board’s letters before buying anything else. Used at once; never takes a level’s perk.' },
+  { id: 'peek', name: 'Peek', cost: 3, family: 'info', target: 'none', turn: 0, text: 'For the rest of this level, see which letter the bag will give before you Draw.' },
+  { id: 'hint', name: 'Hint', cost: 4, family: 'info', target: 'none', turn: 0, text: 'Lights up the highest-scoring word you could lock right now.' },
   // economy
-  { id: 'gold-rush', name: 'Gold Rush', cost: 3, family: 'economy', target: 'none', turn: 0, text: 'This level’s spare turns pay double gold. It takes the level’s one perk, so no board boost this level.' },
+  { id: 'gold-rush', name: 'Gold Rush', cost: 3, family: 'economy', target: 'none', turn: 0, text: 'This level’s spare turns pay double gold.' },
 ];
 
 export const CARD_BY_ID = Object.fromEntries(CARDS.map((c) => [c.id, c]));
@@ -66,6 +65,7 @@ export const CARD_BY_ID = Object.fromEntries(CARDS.map((c) => [c.id, c]));
 export function cardText(card, size = 5) {
   if (size === 6) return card.text;
   if (card.id === 'stretch') return 'Your next word of 4+ letters gets the length bonus one rung up: +15 for 4 letters, +30 for 5.';
+  if (card.id === 'long-haul') return 'Every word that spans the whole board (5 letters) scores +8, for the rest of this board.';
   return card.text;
 }
 
@@ -77,17 +77,17 @@ export function perkLabel(card) {
 
 /** The empty per-board perk record (state.perk). */
 export function emptyPerk() {
-  return { squares: {}, stickers: {}, next: null, crossroads: false, diagonal: false, openField: false, shortStack: false, headStart: false, extraTurns: 0, freeMove: false, choiceDraw: false, peek: false, log: [] };
+  return { squares: {}, stickers: {}, double: false, stretch: false, crossroads: false, diagonal: false, openField: false, shortStack: false, longHaul: false, headStart: false, extraTurns: 0, choiceDraw: false, peek: false, log: [] };
 }
 
 /**
- * A new run's perk record: no gold, every card in a shuffled deck, an empty hand. A shop run (shop: true)
- * sells the whole catalogue at any time instead of a market between levels, and a bought card plays at
- * once, so its deck and hand stay unused.
+ * A new run's perk record: no gold, every card in a shuffled deck (the cards not bought yet), an empty
+ * hand. A shop run (shop: true) sells the whole deck at any time instead of a market between levels,
+ * and a bought card plays at once, so its hand stays empty.
  */
 export function newPerkRun(seed, { shop = false } = {}) {
   const deck = shuffle(CARDS.map((c) => c.id), mulberry32(hashString(`perks:${seed}`)));
-  return { gold: 0, deck, hand: [], used: null, goldRush: false, market: null, nextSeed: null, gained: 0, rng: hashString(`perkrng:${seed}`), levelStart: { gold: 0, hand: [] }, shop, scouted: false };
+  return { gold: 0, deck, hand: [], goldRush: false, market: null, gained: 0, rng: hashString(`perkrng:${seed}`), levelStart: { gold: 0, hand: [] }, shop };
 }
 
 function nextRand(perks) {
@@ -96,20 +96,17 @@ function nextRand(perks) {
   return r.value;
 }
 
-/** A level begins: the perk slot is free again and the hand is remembered for a retry of this board. */
+/** A level begins: the gold and hand are remembered for a retry of this board. */
 export function beginLevel(perks) {
-  perks.used = null;
   perks.goldRush = false;
   perks.market = null;
-  perks.nextSeed = null;
-  perks.scouted = false;
   perks.gained = 0;
   perks.levelStart = { gold: perks.gold, hand: perks.hand.slice() };
 }
 
-/** Gold for passing a level: the turns to spare on the board's own limit, doubled by Gold Rush. */
+/** Gold for passing a level: the turns to spare (turns a card added count too), doubled by Gold Rush. */
 export function goldForPass(state, perks) {
-  const spare = Math.max(0, baseTurnLimit(state) - state.turns);
+  const spare = Math.max(0, turnLimit(state) - state.turns);
   return perks && perks.goldRush ? spare * 2 : spare;
 }
 
@@ -153,17 +150,15 @@ export function pickOffer(deck, n = MARKET_SIZE, gold = Infinity) {
 }
 
 /**
- * Open the market with the cards the gold can buy: the offer leaves the deck while it is on show, and
- * nextSeed fixes the next board so Scout Ahead can show it. Returns null, and changes nothing, when no
- * card in the deck is affordable.
+ * Open the market with the cards the gold can buy: the offer leaves the deck while it is on show.
+ * Returns null, and changes nothing, when no card in the deck is affordable.
  */
-export function openMarket(perks, nextSeed) {
+export function openMarket(perks) {
   if (perks.market) return perks.market;
   const offer = pickOffer(perks.deck, MARKET_SIZE, perks.gold);
   if (!offer.length) return null;
   perks.deck = perks.deck.filter((id) => !offer.includes(id));
-  perks.market = { offer, bought: [], scouted: false };
-  perks.nextSeed = nextSeed;
+  perks.market = { offer, bought: [] };
   return perks.market;
 }
 
@@ -177,15 +172,29 @@ export function buyBlock(perks, id) {
   return '';
 }
 
-/** Buy a card from the offer: gold goes down, the card joins the hand (Scout Ahead resolves in the market instead). */
+/** Buy a card from the offer: gold goes down, the card joins the hand. */
 export function buyCard(perks, id) {
   const block = buyBlock(perks, id);
   if (block) throw new Error(block);
-  const c = CARD_BY_ID[id];
-  perks.gold -= c.cost;
+  perks.gold -= CARD_BY_ID[id].cost;
   perks.market.bought.push(id);
-  if (c.target === 'market') perks.market.scouted = true;
-  else perks.hand.push(id);
+  perks.hand.push(id);
+}
+
+/** Buy a card in the shop: gold goes down and the card leaves the deck for good; the caller plays it at once. */
+export function shopBuyBlock(perks, id) {
+  const c = CARD_BY_ID[id];
+  if (!c) return 'Unknown card';
+  if (!perks.deck.includes(id)) return 'Used';
+  if (perks.gold < c.cost) return `Needs ${c.cost - perks.gold} more gold`;
+  return '';
+}
+
+export function shopTake(perks, id) {
+  const block = shopBuyBlock(perks, id);
+  if (block) throw new Error(block);
+  perks.gold -= CARD_BY_ID[id].cost;
+  perks.deck = perks.deck.filter((x) => x !== id);
 }
 
 /** Close the market: what was not bought returns to the deck, which is shuffled again. */
@@ -204,7 +213,7 @@ const PLUS = (n) => `${n} turn${n === 1 ? '' : 's'}`;
 
 /**
  * Why a card in hand cannot be played now, or '' when it can. ctx: { historyLength } for Rewind.
- * The one-card-per-level rule and "play has stopped" are checked by the caller, which knows the game.
+ * "Play has stopped" is checked by the caller, which knows the game.
  */
 export function playBlock(id, state, ctx = {}) {
   const c = CARD_BY_ID[id];
@@ -248,8 +257,11 @@ export function playBlock(id, state, ctx = {}) {
     case 'wild-card':
       return state.board.some((ch) => ch !== WILD) ? '' : 'Every tile is wild';
     case 'double-down':
+      return p.double ? 'Already waiting for your next word' : '';
     case 'stretch':
-      return p.next ? 'A word bonus is already waiting' : '';
+      return p.stretch ? 'Already waiting for your next word' : '';
+    case 'long-haul':
+      return p.longHaul ? 'Already in play' : '';
     case 'head-start':
       return p.headStart ? 'Already in play' : '';
     case 'crossroads':
@@ -263,8 +275,6 @@ export function playBlock(id, state, ctx = {}) {
     case 'extra-turn':
     case 'borrowed-time':
       return turnsLeft > 0 ? '' : 'The turns are spent';
-    case 'free-move':
-      return p.freeMove ? 'Already armed' : '';
     case 'rewind':
       return ctx.historyLength > 0 ? '' : 'Nothing to take back';
     case 'peek':
@@ -272,11 +282,16 @@ export function playBlock(id, state, ctx = {}) {
     case 'hint':
     case 'gold-rush':
       return '';
-    case 'scout-ahead':
-      return 'Plays in the market';
     default:
       return '';
   }
+}
+
+/** The cells of the 2×2 block whose top-left tile is cell, clockwise from it. */
+export function rotateRing(g, cell) {
+  const r = g.rowOf(cell);
+  const c = g.colOf(cell);
+  return [g.idx(r, c), g.idx(r, c + 1), g.idx(r + 1, c + 1), g.idx(r + 1, c)];
 }
 
 /** The top-left cells of every 2×2 block whose four tiles are unlocked. */
@@ -339,7 +354,7 @@ const ACTION_COST = { pswap: 1, rotate: 1, setletter: 1, draw3: 1, unlock: 0, ex
 /**
  * Apply a perk action; returns the new state (input untouched). Throws on an illegal target.
  *   { type: 'pswap', a, b }              swap two unlocked tiles (Long Swap; the UI keeps them in a line), one turn
- *   { type: 'rotate', cell }             quarter-turn the 2×2 block whose top-left tile is cell, one turn
+ *   { type: 'rotate', cell, turns }      turn the 2×2 block whose top-left tile is cell clockwise by turns (1 to 3) quarter turns, one turn
  *   { type: 'setletter', cell, letter, fromBag }   Big Nudge (fromBag false) or Pick a Letter (fromBag true), one turn
  *   { type: 'draw3', cell, pick }        Choice Draw: the next three letters are drawn, pick (0..2) stays, one turn
  *   { type: 'unlock', cell }             no turn
@@ -350,7 +365,7 @@ const ACTION_COST = { pswap: 1, rotate: 1, setletter: 1, draw3: 1, unlock: 0, ex
  *   { type: 'wildcard', cell }           one turn
  *   { type: 'squares', cells: [{ cell, mult }] }
  *   { type: 'sticker', cell }            +5 for every word through the cell
- *   { type: 'flag', key, value }         next | crossroads | diagonal | openField | shortStack | headStart | freeMove | choiceDraw | peek
+ *   { type: 'flag', key, value }         double | stretch | crossroads | diagonal | openField | shortStack | longHaul | headStart | choiceDraw | peek
  *   { type: 'turns', n }                 extra turns
  */
 export function applyPerkAction(state, action) {
@@ -403,16 +418,12 @@ export function applyPerkAction(state, action) {
     }
     case 'rotate': {
       if (!rotateBlocks(state).includes(action.cell)) throw new Error('That block has a locked tile');
-      const r = g.rowOf(action.cell);
-      const c = g.colOf(action.cell);
-      const tl = g.idx(r, c);
-      const tr = g.idx(r, c + 1);
-      const br = g.idx(r + 1, c + 1);
-      const bl = g.idx(r + 1, c);
-      next.board[tr] = state.board[tl];
-      next.board[br] = state.board[tr];
-      next.board[bl] = state.board[br];
-      next.board[tl] = state.board[bl];
+      const turns = action.turns === undefined ? 1 : action.turns;
+      if (![1, 2, 3].includes(turns)) throw new Error('A quarter, half or three-quarter turn');
+      const ring = rotateRing(g, action.cell); // clockwise: top-left, top-right, bottom-right, bottom-left
+      ring.forEach((cell, k) => {
+        next.board[ring[(k + turns) % 4]] = state.board[cell];
+      });
       break;
     }
     case 'setletter': {
@@ -516,7 +527,7 @@ export function applyPerkAction(state, action) {
       break;
     }
     case 'flag': {
-      if (!['next', 'crossroads', 'diagonal', 'openField', 'shortStack', 'headStart', 'freeMove', 'choiceDraw', 'peek'].includes(action.key)) throw new Error('Unknown perk flag');
+      if (!['double', 'stretch', 'crossroads', 'diagonal', 'openField', 'shortStack', 'longHaul', 'headStart', 'choiceDraw', 'peek'].includes(action.key)) throw new Error('Unknown perk flag');
       next.perk[action.key] = action.value;
       break;
     }
