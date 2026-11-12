@@ -10,7 +10,7 @@ import { randomSeed, hashString } from './rng.js';
 import { openSheet, closeSheet } from './sheet.js';
 import { buildBoardSkeleton, tileIn, tileStep, animateAction, animateMoves, beginMoves, removeGhosts, clearTileEffects, wait, ANIM_MS } from './board.js';
 import {
-  CARD_BY_ID, FAMILIES, cardText, emptyPerk, newPerkRun, beginLevel, goldForPass, openMarket, hasMarket, buyBlock, buyCard, closeMarket, playBlock, rotateBlocks,
+  CARD_BY_ID, FAMILIES, cardText, emptyPerk, newPerkRun, beginLevel, goldForPass, playBlock, rotateBlocks,
   rotateRing, bigNudgeOptions, peekDraws, applyPerkAction, powerPairCells, perkSummary, perkLabel, shopOrder, shopBuyBlock, shopTake,
 } from './perks.js';
 import {
@@ -103,7 +103,6 @@ export function initWordMode(ctx) {
   const isLevels = () => w.game && w.game.mode === 'levels';
   const perks = () => (w.game && w.game.perks) || null; // the run's perk record (gold, deck, hand), or null
   const perksEnabled = () => !!(ctx.store.settings && ctx.store.settings.perks);
-  const perkShopSetting = () => !!(ctx.store.settings && ctx.store.settings.perkMode === 'shop'); // a shop run sells the whole catalogue at any time
   /** A run earning gold and shopping between levels (a retry carries a hand but earns nothing). */
   const perkRun = () => !!(w.game && w.game.perks && !w.game.perks.retry);
   const reduceMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -232,13 +231,13 @@ export function initWordMode(ctx) {
       const { board, bag } = dealLetters(seed, size);
       const state = createWordState(board, bag, drawSeed);
       // perk cards: a new run starts one when the setting is on; the next level carries the run on; a
-      // retry of a lost board gets the hand it had going in, but no gold and no market
+      // retry of a lost board gets the gold and the shop it had going in, but earns nothing
       let run = null;
       if (opts.perks) run = opts.perks;
-      else if ((opts.mode || 'free') === 'levels' && !opts.retry && (opts.level || 1) === 1 && perksEnabled()) run = newPerkRun(seed, { shop: perkShopSetting() });
+      else if ((opts.mode || 'free') === 'levels' && !opts.retry && (opts.level || 1) === 1 && perksEnabled()) run = newPerkRun();
       else if (opts.retry && opts.retry.perks) {
         const snap = opts.retry.perks;
-        run = { gold: snap.gold, hand: snap.hand.slice(), deck: snap.deck ? snap.deck.slice() : [], goldRush: false, market: null, gained: 0, rng: 1, levelStart: { gold: snap.gold, hand: snap.hand.slice() }, retry: true, shop: !!snap.shop };
+        run = { gold: snap.gold, deck: (snap.deck || []).slice(), goldRush: false, gained: 0, levelStart: { gold: snap.gold, deck: (snap.deck || []).slice() }, retry: true };
       }
       if (run) {
         beginLevel(run);
@@ -283,8 +282,6 @@ export function initWordMode(ctx) {
     w.perk = null;
     clearHint();
     closePerkPick();
-    closeSheet($('#w-market'));
-    closeSheet($('#w-handsheet'));
     closeCardDialog();
     closeSheet($('#w-shop'));
     ctx.showScreen('screen-word');
@@ -353,19 +350,13 @@ export function initWordMode(ctx) {
     const bagBtn = $('#w-bag-btn');
     bagBtn.hidden = w.over;
     bagBtn.setAttribute('aria-pressed', w.showBag ? 'true' : 'false');
-    const hand = $('#w-hand');
+    // the shop button shows the gold itself
+    const shopBtn = $('#w-hand');
     const run = perks();
-    hand.hidden = !run || w.over;
-    if (run && !hand.hidden) {
-      // a market run shows its hand behind a card icon; a shop run shows the gold itself, the shop behind it
-      const count = $('#w-hand-count');
-      const face = $('#w-hand-goldface');
-      hand.classList.toggle('shop', !!run.shop);
-      face.hidden = !run.shop;
-      face.textContent = `◆ ${run.gold}`;
-      count.hidden = !!run.shop || !run.hand.length;
-      count.textContent = String(run.hand.length);
-      hand.setAttribute('aria-label', run.shop ? `Shop: ${run.gold} gold` : `Perk cards: ${run.hand.length} in hand`);
+    shopBtn.hidden = !run || w.over;
+    if (run && !shopBtn.hidden) {
+      $('#w-hand-goldface').textContent = `◆ ${run.gold}`;
+      shopBtn.setAttribute('aria-label', `Shop: ${run.gold} gold`);
     }
   }
 
@@ -495,9 +486,6 @@ export function initWordMode(ctx) {
     if (bar.hidden) return;
     const score = finalScore(g.state);
     $('#w-goalbar-level').textContent = g.retry ? `Level ${g.level} · retry` : `Level ${g.level}`;
-    const goldEl = $('#w-gold');
-    goldEl.hidden = !g.perks || !!g.perks.retry || !!g.perks.shop; // a retry earns nothing; a shop run's gold is on the header button
-    if (g.perks) goldEl.textContent = `◆ ${g.perks.gold}`;
     if (g.goal === null) {
       $('#w-goalbar-text').textContent = 'Goal: computing…';
       $('#w-goalbar-fill').style.setProperty('--p', '0');
@@ -514,7 +502,6 @@ export function initWordMode(ctx) {
         // the level is passed: the turns to spare are banked as gold, once
         g.perks.gained = goldForPass(g.state, g.perks);
         g.perks.gold += g.perks.gained;
-        goldEl.textContent = `◆ ${g.perks.gold}`;
         $('#w-hand-goldface').textContent = `◆ ${g.perks.gold}`;
       }
       persist();
@@ -1172,14 +1159,11 @@ export function initWordMode(ctx) {
   }
 
   // ---------------------------------------------------------------------------
-  // Perk cards: the hand, playing a card, targeting on the board, the pickers, the market
+  // Perk cards: the shop, playing a card, targeting on the board, the pickers
 
-  /** A card is played: it leaves the hand (a shop card already left the deck when it was bought). */
-  function spendCard(id) {
-    const run = perks();
-    if (!run) return;
-    const i = run.hand.indexOf(id);
-    if (i >= 0) run.hand.splice(i, 1);
+  /** A card is played (it left the deck when it was bought): the run is saved and the gold shown. */
+  function spendCard() {
+    if (!perks()) return;
     persist();
     renderHud();
   }
@@ -1198,53 +1182,11 @@ export function initWordMode(ctx) {
     return playBlock(id, g.state, { historyLength: g.history.length });
   }
 
-  function cardHtml(c, cost, why, button, info = false) {
-    const infoBtn = info ? `<button type="button" class="btn mk-info" aria-label="What ${c.name} does">i</button>` : '';
-    return `<span class="mk-fam">${FAMILIES[c.family]}</span><span class="mk-name">${c.name}</span><span class="mk-cost">${cost}</span>${infoBtn}<p class="mk-text">${cardText(c, w.game ? w.game.size : 5)}</p><div class="mk-act"><span class="mk-why">${why}</span>${button}</div>`;
+  function cardHtml(c, cost, why, button) {
+    return `<span class="mk-fam">${FAMILIES[c.family]}</span><span class="mk-name">${c.name}</span><span class="mk-cost">${cost}</span><p class="mk-text">${cardText(c, w.game ? w.game.size : 5)}</p><div class="mk-act"><span class="mk-why">${why}</span>${button}</div>`;
   }
 
-  /** A card's full text in a popup above its info button (wide screens hide the text on the market cards). */
-  function toggleInfoPop(c, anchor) {
-    const pop = $('#w-tilepop');
-    if (!pop.hidden && tilePopAnchor === anchor) return closeTilePop();
-    openPopAt(`<div class="tp-info"><b>${c.name}</b><p>${cardText(c, w.game ? w.game.size : 5)}</p></div>`, anchor);
-    clearTimeout(w.infoPopTimer);
-    w.infoPopTimer = setTimeout(() => {
-      if (tilePopAnchor === anchor) closeTilePop();
-    }, 7000);
-  }
-
-  /** The hand sheet: every card bought so far, with Play where it can be played now. */
-  function openHand() {
-    const run = perks();
-    if (!run) return;
-    if (run.shop) return openShop();
-    closeMenu();
-    cancelGesture();
-    const sheet = $('#w-handsheet');
-    $('#w-hand-gold').textContent = `◆ ${run.gold}`;
-    $('#w-hand-gold').hidden = !!run.retry;
-    $('#w-hand-sub').textContent = run.retry ? 'Retry: the hand you had going in' : 'Each card is one use';
-    const list = $('#w-hand-cards');
-    list.innerHTML = '';
-    if (!run.hand.length) list.innerHTML = '<p class="mk-empty">No cards in hand. Pass a level and visit the market.</p>';
-    for (const id of run.hand) {
-      const c = CARD_BY_ID[id];
-      if (!c) continue;
-      const why = cardBlock(id);
-      const el = document.createElement('div');
-      el.className = `mk-card${why ? ' cannot' : ''}`;
-      el.innerHTML = cardHtml(c, c.turn ? `${c.turn} turn` : 'no turn', why, `<button type="button" class="btn btn-primary btn-small" ${why ? 'disabled' : ''}>Play</button>`);
-      el.querySelector('button').addEventListener('click', () => {
-        closeSheet(sheet);
-        playCard(id);
-      });
-      list.appendChild(el);
-    }
-    openSheet(sheet);
-  }
-
-  /** Play a card from the hand: cards without a target resolve now; the others arm targeting on the board. */
+  /** Play a card just bought: cards without a target resolve now; the others arm targeting on the board. */
   function playCard(id, opts = {}) {
     const c = CARD_BY_ID[id];
     const why = c ? cardBlock(id) : 'Unknown card';
@@ -1552,7 +1494,7 @@ export function initWordMode(ctx) {
     const run = perks();
     if (!run || !amount) return;
     run.gold += amount;
-    if (run.shop && id && !run.deck.includes(id)) run.deck.push(id);
+    if (id && !run.deck.includes(id)) run.deck.push(id);
     persist();
     renderHud();
     renderGoalBar();
@@ -1971,59 +1913,6 @@ export function initWordMode(ctx) {
     }
   }
 
-  /** The market between levels: three cards from the deck for the gold banked so far. */
-  function openMarketSheet() {
-    const g = w.game;
-    const run = perks();
-    if (!g || !run) return;
-    if (!openMarket(run)) return; // nothing the gold can buy: no market this time
-    persist();
-    renderMarket();
-    closeTilePop();
-    closeSheet($('#w-result'));
-    openSheet($('#w-market'));
-  }
-
-  function renderMarket() {
-    const g = w.game;
-    const run = g.perks;
-    const m = run.market;
-    if (!m) return;
-    $('#w-market-gold').textContent = `◆ ${run.gold}`;
-    $('#w-market-sub').textContent = `Level ${g.level} passed · +${run.gained} gold · before level ${g.level + 1}`;
-    const list = $('#w-market-cards');
-    list.innerHTML = '';
-    if (!m.offer.length) list.innerHTML = '<p class="mk-empty">The deck is empty: every card has been bought.</p>';
-    for (const id of m.offer) {
-      const c = CARD_BY_ID[id];
-      if (!c) continue;
-      const why = buyBlock(run, id);
-      const bought = m.bought.includes(id);
-      const el = document.createElement('div');
-      el.className = `mk-card${bought ? ' bought' : why ? ' cannot' : ''}`;
-      const note = bought ? 'In your hand' : why.startsWith('Needs') ? '' : why; // short of gold: dimmed is enough
-      el.innerHTML = cardHtml(c, bought ? 'Bought' : `◆ ${c.cost}`, note, bought ? '' : `<button type="button" class="btn btn-primary btn-small mk-buy" ${why ? 'disabled' : ''}>Buy</button>`, true);
-      el.querySelector('.mk-info').addEventListener('click', (e) => toggleInfoPop(c, e.currentTarget));
-      if (bought) {
-        list.appendChild(el);
-        continue;
-      }
-      el.querySelector('.mk-buy').addEventListener('click', () => {
-        try {
-          buyCard(run, id);
-        } catch (e) {
-          return ctx.showToast(e.message);
-        }
-        persist();
-        play('lock');
-        renderMarket();
-        renderHud();
-      });
-      list.appendChild(el);
-    }
-    $('#w-market-continue').textContent = `Continue to level ${g.level + 1}`;
-  }
-
   // ---------------------------------------------------------------------------
   // End of game
 
@@ -2037,11 +1926,10 @@ export function initWordMode(ctx) {
     startNextLevel(level + 1, `Level ${level} passed with ${score} · now level ${level + 1}`);
   }
 
-  /** Start a level of the run that just finished a board; a perk run carries its gold, deck and hand on. */
+  /** Start a level of the run that just finished a board; a perk run carries its gold and shop on. */
   function startNextLevel(level, note) {
     const g = w.game;
     const run = g && g.perks && !g.perks.retry ? g.perks : null;
-    if (run) closeMarket(run);
     start(false, { mode: 'levels', level, size: g ? g.size : 5, perks: run, note });
   }
 
@@ -2054,7 +1942,7 @@ export function initWordMode(ctx) {
     cancelGesture();
     if (g.perks && !g.perks.retry && g.mode === 'levels' && !advance && finalScore(st) >= g.goal) {
       // A perk run passed on its last move, or the goal landed late: the board waits for Next level like a
-      // mid-board pass, so the run (gold, hand, market) stays saved until the next level starts.
+      // mid-board pass, so the run (gold, shop) stays saved until the next level starts.
       w.pending = null;
       w.first = null;
       closeMenu();
@@ -2073,7 +1961,7 @@ export function initWordMode(ctx) {
     }
     w.over = true;
     const perkGame = !!(g.perks && !g.perks.retry); // a run with perk cards: its own best level, nothing posted
-    const handSnap = perkGame ? { gold: g.perks.levelStart.gold, hand: g.perks.levelStart.hand.slice(), deck: g.perks.deck.slice(), shop: !!g.perks.shop } : g.retry && g.retry.perks ? g.retry.perks : null;
+    const handSnap = perkGame ? { gold: g.perks.levelStart.gold, deck: (g.perks.levelStart.deck || g.perks.deck).slice() } : g.retry && g.retry.perks ? g.retry.perks : null;
     w.lastBoard = { seed: g.seed, drawSeed: g.drawSeed, size: g.size, retry: g.mode === 'levels' ? { level: g.level, goal: g.goal, botScore: g.botScore, perks: handSnap } : g.retry ? { ...g.retry, botScore: g.botScore } : null };
     w.pending = null;
     w.first = null;
@@ -2467,23 +2355,10 @@ export function initWordMode(ctx) {
   $('#w-pop').addEventListener('click', () => ($('#w-pop').hidden = true));
   $('#w-share').addEventListener('click', copyShare);
   $('#w-next').addEventListener('click', () => {
-    // a perk run shops first, when the gold buys anything; the goal reached mid-board is scored when the next level starts
-    if (perkRun() && hasMarket(w.game.perks)) openMarketSheet();
-    else if (w.game && !w.over) advanceEarly();
+    if (w.game && !w.over) advanceEarly(); // the goal was reached mid-board: score it and move on
     else startNextLevel(w.nextLevel || 1);
   });
-  $('#w-market-continue').addEventListener('click', () => {
-    closeSheet($('#w-market'));
-    if (w.game && !w.over) advanceEarly();
-    else startNextLevel(w.nextLevel || 1);
-  });
-  $('#w-market-home').addEventListener('click', () => {
-    closeSheet($('#w-market'));
-    closeTilePop();
-    if (w.over) w.game = null;
-    ctx.showHome(); // the passed board stays saved with its market; Continue brings it back
-  });
-  $('#w-hand').addEventListener('click', openHand);
+  $('#w-hand').addEventListener('click', openShop);
   $('#w-shop-close').addEventListener('click', () => {
     closeCardDialog();
     closeSheet($('#w-shop'));
@@ -2503,10 +2378,6 @@ export function initWordMode(ctx) {
   $('#w-carddialog-close').addEventListener('click', closeCardDialog);
   $('#w-carddialog').addEventListener('click', (e) => {
     if (e.target === $('#w-carddialog')) closeCardDialog();
-  });
-  $('#w-hand-close').addEventListener('click', () => closeSheet($('#w-handsheet')));
-  $('#w-handsheet').addEventListener('click', (e) => {
-    if (e.target === $('#w-handsheet')) closeSheet($('#w-handsheet'));
   });
   $('#w-perkpick-cancel').addEventListener('click', () => {
     closePerkPick();
@@ -2566,7 +2437,6 @@ export function initWordMode(ctx) {
   $('#w-home').addEventListener('click', () => {
     cancelGesture();
     closeTilePop();
-    closeSheet($('#w-market'));
     closeSheet($('#w-result'));
     if (w.over) w.game = null; // a passed board waiting for Next level stays saved
     ctx.showHome();
@@ -2576,7 +2446,6 @@ export function initWordMode(ctx) {
     closeMenu();
     cancelPerk();
     closePerkPick();
-    closeSheet($('#w-handsheet'));
     closeCardDialog();
     closeSheet($('#w-shop'));
     closeTilePop();

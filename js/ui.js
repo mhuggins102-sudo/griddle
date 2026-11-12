@@ -44,18 +44,6 @@ async function boot() {
   $('#opt-numerals').checked = !!ui.store.settings.numerals;
   $('#opt-show-words').checked = !!ui.store.settings.showWords;
   $('#opt-perks').checked = !!ui.store.settings.perks;
-  $('#opt-perk-shop').checked = ui.store.settings.perkMode === 'shop';
-  $('#opt-perk-market').checked = ui.store.settings.perkMode !== 'shop';
-  const perkModeSub = () => { $('#opt-perk-mode-sub').textContent = ui.store.settings.perkMode === 'shop' ? 'Shop: every card on sale at any time, played the moment it is bought' : 'Market: up to three cards offered after each level, kept in a hand'; };
-  perkModeSub();
-  for (const r of document.querySelectorAll('input[name="opt-perk-mode"]')) {
-    r.addEventListener('change', () => {
-      ui.store.settings.perkMode = document.querySelector('input[name="opt-perk-mode"]:checked').value; // new runs only
-      perkModeSub();
-      saveStore(ui.store);
-      showHome();
-    });
-  }
   $('#opt-sound').checked = ui.store.settings.sound !== false;
   setSoundEnabled(ui.store.settings.sound !== false);
   applyTheme(ui.store.settings.theme);
@@ -135,7 +123,7 @@ function showHome() {
   // a game in progress takes the primary slot; New game steps down to secondary
   $('#btn-word-continue').hidden = !g;
   $('#btn-word').classList.toggle('btn-primary', !g);
-  $('#btn-word .btn-sub').textContent = s.settings.perks ? `Levels with a goal to beat · perk ${s.settings.perkMode === 'shop' ? 'shop' : 'cards'}` : 'Levels with a goal to beat';
+  $('#btn-word .btn-sub').textContent = s.settings.perks ? 'Levels with a goal to beat · perk cards' : 'Levels with a goal to beat';
   if (g && g.state) {
     const size = g.size || Math.round(Math.sqrt(g.state.board.length));
     const lim = (TURNS_BY_SIZE[size] || 20) + ((g.state.perk && g.state.perk.extraTurns) || 0);
@@ -617,8 +605,6 @@ function resetData() {
   $('#opt-numerals').checked = false;
   $('#opt-show-words').checked = false;
   $('#opt-perks').checked = false;
-  $('#opt-perk-market').checked = true;
-  $('#opt-perk-mode-sub').textContent = 'Market: up to three cards offered after each level, kept in a hand';
   $('#opt-sound').checked = true;
   $('#opt-size-5').checked = true;
   $('#opt-theme-system').checked = true;
@@ -800,6 +786,6 @@ function wireEvents() {
 }
 
 // Expose a little for debugging and tests in the console.
-window.gridlock = { ui, deal, audioState, cardCost: (id) => (CARDS.find((c) => c.id === id) || { cost: 0 }).cost };
+window.gridlock = { ui, deal, audioState, cardIds: () => CARDS.map((c) => c.id) };
 
 boot();
