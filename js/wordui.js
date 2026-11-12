@@ -11,12 +11,12 @@ import { openSheet, closeSheet } from './sheet.js';
 import { buildBoardSkeleton, tileIn, tileStep, animateAction, animateMoves, beginMoves, removeGhosts, clearTileEffects, wait, ANIM_MS } from './board.js';
 import {
   CARD_BY_ID, FAMILIES, cardText, emptyPerk, newPerkRun, beginLevel, goldForPass, openMarket, hasMarket, buyBlock, buyCard, closeMarket, playBlock, rotateBlocks,
-  bigNudgeOptions, peekDraws, applyPerkAction, powerPairCells, perkSummary, perkLabel, shopOrder,
+  rotateRing, bigNudgeOptions, peekDraws, applyPerkAction, powerPairCells, perkSummary, perkLabel, shopOrder, shopBuyBlock, shopTake,
 } from './perks.js';
 import {
   DICT_VERSION, dealLetters, createWordState, applyWordAction, findWords, findWordAt, lockWord, parseDictionary, bagTotal, letterValue,
   describeWordCells, wordShareLine, slideMoves, coverageBonusFor, finalScore, shortfallPenalty, nudgeLetter, lineCellsFree,
-  turnLimit, baseTurnLimit, gridOfState, WILD, LETTERS, COVERAGE_TARGET, WILD_COST, SIZES, fullCoverTurnBonus, isBoardFull,
+  turnLimit, gridOfState, WILD, LETTERS, COVERAGE_TARGET, WILD_COST, SIZES, fullCoverTurnBonus, isBoardFull,
   COVERAGE_LADDER, MAX_WILDS,
 } from './words.js';
 import { botPlay, goalFor } from './wordbot.js';
@@ -238,7 +238,7 @@ export function initWordMode(ctx) {
       else if ((opts.mode || 'free') === 'levels' && !opts.retry && (opts.level || 1) === 1 && perksEnabled()) run = newPerkRun(seed, { shop: perkShopSetting() });
       else if (opts.retry && opts.retry.perks) {
         const snap = opts.retry.perks;
-        run = { gold: snap.gold, hand: snap.hand.slice(), deck: [], used: null, goldRush: false, market: null, nextSeed: null, gained: 0, rng: 1, levelStart: { gold: snap.gold, hand: snap.hand.slice() }, retry: true, shop: !!snap.shop, scouted: false };
+        run = { gold: snap.gold, hand: snap.hand.slice(), deck: snap.deck ? snap.deck.slice() : [], goldRush: false, market: null, gained: 0, rng: 1, levelStart: { gold: snap.gold, hand: snap.hand.slice() }, retry: true, shop: !!snap.shop };
       }
       if (run) {
         beginLevel(run);
@@ -364,9 +364,7 @@ export function initWordMode(ctx) {
       face.textContent = `◆ ${run.gold}`;
       count.hidden = !!run.shop || !run.hand.length;
       count.textContent = String(run.hand.length);
-      hand.classList.toggle('spent', !!run.used);
-      const used = run.used && CARD_BY_ID[run.used] ? `, ${CARD_BY_ID[run.used].name} played this level` : '';
-      hand.setAttribute('aria-label', run.shop ? `Shop: ${run.gold} gold${used}` : `Perk cards: ${run.hand.length} in hand${used}`);
+      hand.setAttribute('aria-label', run.shop ? `Shop: ${run.gold} gold` : `Perk cards: ${run.hand.length} in hand`);
     }
   }
 
@@ -1073,9 +1071,11 @@ export function initWordMode(ctx) {
       return;
     }
     clearHint();
-    // A draw is random, so nothing up to and including it can be undone; anything after it can.
-    if (action.type === 'draw') w.game.history = [];
-    else w.game.history.push(snapshotForUndo(before));
+    // A draw is random, so free play's undo cannot go back past one; a perk run keeps the snapshot for Rewind,
+    // which rerolls the next draw when it takes one back.
+    if (action.type !== 'draw') w.game.history.push(snapshotForUndo(before));
+    else if (perks()) w.game.history.push(Object.assign(snapshotForUndo(before), { undoneDraw: true }));
+    else w.game.history = [];
     w.game.state = next;
     persist();
     w.first = null;
@@ -1148,7 +1148,7 @@ export function initWordMode(ctx) {
     if (goalReached()) return; // the level bar shows Next level
     if (isBoardFull(next)) {
       const bonus = fullCoverTurnBonus(next);
-      const spare = Math.max(0, baseTurnLimit(next) - next.turns); // turns a card added never pay
+      const spare = Math.max(0, turnLimit(next) - next.turns);
       say(bonus ? `Board complete with ${spare} turn${spare === 1 ? '' : 's'} to spare: +${bonus}!` : 'Board complete!', 'good', 4000);
       finishSoon(1600 + delay);
       return;
@@ -1173,13 +1173,12 @@ export function initWordMode(ctx) {
   // ---------------------------------------------------------------------------
   // Perk cards: the hand, playing a card, targeting on the board, the pickers, the market
 
-  /** Take a card out of the hand and mark it as this level's one card. */
+  /** A card is played: it leaves the hand (a shop card already left the deck when it was bought). */
   function spendCard(id) {
     const run = perks();
     if (!run) return;
     const i = run.hand.indexOf(id);
     if (i >= 0) run.hand.splice(i, 1);
-    run.used = id;
     persist();
     renderHud();
   }
@@ -1191,7 +1190,7 @@ export function initWordMode(ctx) {
     if (!run || !g) return 'No run in play';
     if (w.over) return 'The board is over';
     if (w.perk) return `${CARD_BY_ID[w.perk.id] ? CARD_BY_ID[w.perk.id].name : 'A card'} is in play: finish or cancel it first`;
-    if (run.used) return `One card per level (${CARD_BY_ID[run.used] ? CARD_BY_ID[run.used].name : 'played'})`;
+    if (id === 'gold-rush' && run.goldRush) return 'Already in play';
     if (goalReached()) return 'The goal is reached';
     if (w.animating) return 'Wait a moment';
     if (g.state.turns >= turnLimit(g.state)) return 'The turns are spent';
@@ -1224,10 +1223,10 @@ export function initWordMode(ctx) {
     const sheet = $('#w-handsheet');
     $('#w-hand-gold').textContent = `◆ ${run.gold}`;
     $('#w-hand-gold').hidden = !!run.retry;
-    $('#w-hand-sub').textContent = run.used ? `${CARD_BY_ID[run.used] ? CARD_BY_ID[run.used].name : 'A card'} played this level` : run.retry ? 'Retry: the hand you had going in' : 'One card per level';
+    $('#w-hand-sub').textContent = run.retry ? 'Retry: the hand you had going in' : 'Each card is one use';
     const list = $('#w-hand-cards');
     list.innerHTML = '';
-    if (!run.hand.length) list.innerHTML = `<p class="mk-empty">${run.used ? 'No cards left in hand.' : 'No cards yet. Pass a level and visit the market.'}</p>`;
+    if (!run.hand.length) list.innerHTML = '<p class="mk-empty">No cards in hand. Pass a level and visit the market.</p>';
     for (const id of run.hand) {
       const c = CARD_BY_ID[id];
       if (!c) continue;
@@ -1249,7 +1248,7 @@ export function initWordMode(ctx) {
     const c = CARD_BY_ID[id];
     const why = c ? cardBlock(id) : 'Unknown card';
     if (why) {
-      refund(opts.paid);
+      refund(opts.paid, id);
       return say(why, 'bad');
     }
     const paid = opts.paid || 0;
@@ -1269,9 +1268,9 @@ export function initWordMode(ctx) {
       case 'power-pair':
         return resolvePerk(id, { type: 'squares', cells: powerPairCells(st) || [] }, 'Power Pair: a Double and a Triple Letter square landed', paid);
       case 'double-down':
-        return flag('next', 'double', 'Your next word scores its letters twice, up to 15 extra');
+        return flag('double', true, 'Double Down: your next word scores its letters twice');
       case 'stretch':
-        return flag('next', 'stretch', 'Your next word of 4 or more letters gets the bonus one rung up');
+        return flag('stretch', true, 'Stretch Bonus: your next word of 4 or more letters gets the bonus one rung up');
       case 'crossroads':
         return flag('crossroads', true, 'Crossroads: +2 for every word that reuses a locked tile');
       case 'diagonal':
@@ -1280,14 +1279,14 @@ export function initWordMode(ctx) {
         return flag('openField', true, 'Open Field: +4 for every word that uses no locked tile');
       case 'short-stack':
         return flag('shortStack', true, 'Short Stack: +3 for every 3-letter word');
+      case 'long-haul':
+        return flag('longHaul', true, `Long Haul: +8 for every ${g.size}-letter word`);
       case 'head-start':
         return flag('headStart', true, 'Head Start: the tile ladder starts a tile early');
       case 'extra-turn':
         return resolvePerk(id, { type: 'turns', n: 1 }, 'One more turn this level', paid);
       case 'borrowed-time':
         return resolvePerk(id, { type: 'turns', n: 2 }, 'Two more turns this level', paid);
-      case 'free-move':
-        return flag('freeMove', true, 'Your next slide or swap is free');
       case 'peek':
         return flag('peek', true, `Peek: the next draw brings ${peekDraws(st, 1)[0] || '?'}`);
       case 'rewind':
@@ -1315,7 +1314,7 @@ export function initWordMode(ctx) {
     try {
       next = applyPerkAction(g.state, action);
     } catch (e) {
-      refund(paid);
+      refund(paid, id);
       return say(e.message, 'bad');
     }
     g.state = next;
@@ -1338,9 +1337,9 @@ export function initWordMode(ctx) {
       say(e.message, 'bad');
       return false;
     }
-    // a redraw is random, so nothing up to and including it can be taken back
-    if (action.type === 'draw3' || action.type === 'exchange' || action.type === 'freshline') g.history = [];
-    else g.history.push(snapshotForUndo(before));
+    // a redraw is random: Rewind may take it back, and then rerolls the bag's next letter
+    const random = action.type === 'draw3' || action.type === 'exchange' || action.type === 'freshline';
+    g.history.push(random ? Object.assign(snapshotForUndo(before), { undoneDraw: true }) : snapshotForUndo(before));
     g.state = next;
     w.perk = null;
     if (id && !opts.keepCard) spendCard(id);
@@ -1373,15 +1372,15 @@ export function initWordMode(ctx) {
         await animateAction(boardEl, { type: 'swap', r: rowOf(action.a), c: colOf(action.a), r2: rowOf(action.b), c2: colOf(action.b) }, before.board, next.board, setFace);
         return;
       case 'rotate': {
-        const r = rowOf(action.cell);
-        const c = colOf(action.cell);
-        const cells = [idx(r, c), idx(r, c + 1), idx(r + 1, c + 1), idx(r + 1, c)];
+        // each tile slides straight to where the turn takes it
+        const ring = rotateRing(grid(), action.cell);
         const step = tileStep(boardEl) || 60;
-        const moves = [[step, 0], [0, step], [-step, 0], [0, -step]];
-        cells.forEach((cell, k) => {
+        const turns = action.turns || 1;
+        ring.forEach((cell, k) => {
+          const to = ring[(k + turns) % 4];
           const t = tileEl(cell);
           t.classList.add('moving');
-          t.style.transform = `translate(${moves[k][0]}px, ${moves[k][1]}px)`;
+          t.style.transform = `translate(${(colOf(to) - colOf(cell)) * step}px, ${(rowOf(to) - rowOf(cell)) * step}px)`;
         });
         play('swap');
         await wait(ANIM_MS + 60);
@@ -1524,7 +1523,7 @@ export function initWordMode(ctx) {
   /** Put a card being targeted back in the hand, unspent (a shop price is refunded). */
   function cancelPerk() {
     if (!w.perk) return;
-    const paid = w.perk.paid;
+    const { paid, id } = w.perk;
     w.perk = null;
     closePerkPick();
     if (w.game) {
@@ -1532,7 +1531,7 @@ export function initWordMode(ctx) {
       renderStrip();
     }
     if (paid) {
-      refund(paid);
+      refund(paid, id);
       say(`Card put back: ${paid} gold refunded`, '', 2200);
     }
   }
@@ -1540,17 +1539,19 @@ export function initWordMode(ctx) {
   /** Drop targeting without a word (play stopped under it); a shop price goes back. */
   function dropTargeting() {
     if (!w.perk) return;
-    const paid = w.perk.paid;
+    const { paid, id } = w.perk;
     w.perk = null;
     closePerkPick();
     clearTargeting();
-    refund(paid);
+    refund(paid, id);
   }
 
-  function refund(amount) {
+  /** A shop purchase that came to nothing: the gold comes back and the card returns to the deck. */
+  function refund(amount, id) {
     const run = perks();
     if (!run || !amount) return;
     run.gold += amount;
+    if (run.shop && id && !run.deck.includes(id)) run.deck.push(id);
     persist();
     renderHud();
     renderGoalBar();
@@ -1566,63 +1567,70 @@ export function initWordMode(ctx) {
     openSheet($('#w-shop'));
   }
 
+  const wideShop = () => matchMedia('(orientation: landscape) and (min-width: 640px)').matches;
+
+  /**
+   * The shop. In portrait the cards sit under family headings that open one at a time, or in one list by
+   * price; on a wide screen they are always by price, four to a row. A card the gold cannot buy is only
+   * dimmed; one the board cannot take says why; one bought earlier in the run is marked used.
+   */
   function renderShop() {
     const run = perks();
     const g = w.game;
     if (!run || !g) return;
     $('#w-shop-gold').textContent = `◆ ${run.gold}`;
-    $('#w-shop-sub').textContent = run.used && CARD_BY_ID[run.used] ? `${CARD_BY_ID[run.used].name} played this level` : run.retry ? 'Retry: nothing is counted' : 'One card per level · plays at once';
+    $('#w-shop-sub').textContent = run.retry ? 'Retry: nothing is counted' : 'Each card is one use · plays at once';
     const list = $('#w-shop-cards');
     list.innerHTML = '';
-    list.classList.toggle('by-type', w.shopSort !== 'price');
-    let family = null;
-    for (const c of shopOrder(w.shopSort)) {
-      if (w.shopSort !== 'price' && c.family !== family) {
-        family = c.family;
-        const h = document.createElement('div');
-        h.className = 'mk-group';
-        h.textContent = FAMILIES[family];
-        list.appendChild(h);
-      }
-      const scout = c.target === 'market';
-      let why = scout ? (run.scouted ? 'Next board already shown' : w.over ? 'The board is over' : '') : cardBlock(c.id);
-      if (!why && run.gold < c.cost) why = `Needs ${c.cost - run.gold} more gold`;
-      const played = run.used === c.id;
+    const byType = !wideShop() && w.shopSort !== 'price';
+    list.classList.toggle('by-type', byType);
+    const cardEl = (c) => {
+      const used = !run.deck.includes(c.id);
+      const why = used ? '' : cardBlock(c.id);
+      const afford = run.gold >= c.cost;
+      const blocked = used || !!why || !afford;
       const el = document.createElement('div');
-      el.className = `mk-card${why ? ' cannot' : ''}${played ? ' bought' : ''}`;
-      el.innerHTML = cardHtml(c, `◆ ${c.cost}`, played ? 'Played this level' : why, `<button type="button" class="btn btn-primary btn-small mk-buy" ${why ? 'disabled' : ''}>Buy</button>`, true);
+      el.className = `mk-card${blocked ? ' cannot' : ''}${used ? ' bought' : ''}`;
+      el.innerHTML = cardHtml(c, `◆ ${c.cost}`, used ? 'Used' : why, `<button type="button" class="btn btn-primary btn-small mk-buy" ${blocked ? 'disabled' : ''}>Buy</button>`, true);
       el.querySelector('.mk-info').addEventListener('click', (e) => toggleInfoPop(c, e.currentTarget));
       el.querySelector('.mk-buy').addEventListener('click', () => shopBuy(c.id));
-      list.appendChild(el);
+      return el;
+    };
+    if (!byType) {
+      for (const c of shopOrder('price')) list.appendChild(cardEl(c));
+      return;
     }
-    const scoutEl = $('#w-shop-scout');
-    scoutEl.hidden = !run.scouted || run.nextSeed === null || run.nextSeed === undefined;
-    if (!scoutEl.hidden) {
-      const { board } = dealLetters(run.nextSeed, g.size);
-      scoutEl.innerHTML = `<span class="hud-label">Next board</span><div class="mk-scout" style="--n:${g.size}">${board.map((ch) => `<span>${ch}</span>`).join('')}</div>`;
+    const groups = new Map();
+    for (const c of shopOrder('type')) {
+      if (!groups.has(c.family)) groups.set(c.family, []);
+      groups.get(c.family).push(c);
+    }
+    if (!groups.has(w.shopGroup)) w.shopGroup = groups.keys().next().value;
+    for (const [family, cards] of groups) {
+      const d = document.createElement('details');
+      d.className = 'shop-group';
+      d.open = family === w.shopGroup;
+      const left = cards.filter((c) => run.deck.includes(c.id)).length;
+      d.innerHTML = `<summary><span>${FAMILIES[family]}</span><small>${left} of ${cards.length} left</small></summary><div class="mk-cards"></div>`;
+      const box = d.querySelector('.mk-cards');
+      for (const c of cards) box.appendChild(cardEl(c));
+      d.addEventListener('toggle', () => {
+        if (!d.open) return;
+        w.shopGroup = family; // one group open at a time, remembered
+        for (const o of list.querySelectorAll('.shop-group')) if (o !== d) o.open = false;
+      });
+      list.appendChild(d);
     }
   }
 
-  /** Buy a card in the shop: the gold goes at once and the card plays at once (Scout Ahead shows the next board instead). */
+  /** Buy a card in the shop: the gold goes and the card leaves the deck for the run; it plays at once. */
   function shopBuy(id) {
     const run = perks();
     const c = CARD_BY_ID[id];
     if (!run || !c) return;
-    if (run.gold < c.cost) return ctx.showToast(`Needs ${c.cost - run.gold} more gold`);
-    if (c.target === 'market') {
-      if (run.scouted || w.over) return;
-      run.gold -= c.cost;
-      run.scouted = true;
-      if (run.nextSeed === null || run.nextSeed === undefined) run.nextSeed = randomSeed(); // the next board is fixed now so the preview is true
-      persist();
-      play('lock');
-      renderHud();
-      renderShop();
-      return;
-    }
-    const why = cardBlock(id);
-    if (why) return ctx.showToast(why);
-    run.gold -= c.cost;
+    const block = shopBuyBlock(run, id) || cardBlock(id);
+    if (block) return ctx.showToast(block);
+    shopTake(run, id);
     persist();
     play('lock');
     renderHud();
@@ -1687,9 +1695,11 @@ export function initWordMode(ctx) {
         doPerkAction(pk.id === 'long-swap' ? { type: 'pswap', a, b: cell } : { type: 'trade', a, b: cell });
         return;
       }
-      case 'rotate':
-        doPerkAction({ type: 'rotate', cell });
+      case 'rotate': {
+        const options = [{ label: '¼ turn', wide: true }, { label: '½ turn', wide: true }, { label: '¾ turn', wide: true }];
+        openPerkPick({ title: 'Rotate', sub: 'Clockwise, the whole block', options, onPick: (k) => doPerkAction({ type: 'rotate', cell, turns: k + 1 }) });
         return;
+      }
       case 'unlock':
         doPerkAction({ type: 'unlock', cell }, { note: 'Unlocked: the tile can move again' });
         return;
@@ -1858,7 +1868,13 @@ export function initWordMode(ctx) {
     const g = w.game;
     if (!g.history.length) return say('Nothing to take back', 'bad');
     cancelGesture();
-    g.state = g.history.pop();
+    const prev = g.history.pop();
+    if (prev.undoneDraw) {
+      // the draw is taken back and the bag's next letter is rolled afresh, so it is not simply dealt again
+      delete prev.undoneDraw;
+      prev.rngState = randomSeed();
+    }
+    g.state = prev;
     spendCard('rewind');
     w.first = null;
     w.pending = null;
@@ -1898,7 +1914,7 @@ export function initWordMode(ctx) {
     const g = w.game;
     const run = perks();
     if (!g || !run) return;
-    if (!openMarket(run, randomSeed())) return; // nothing the gold can buy: no market this time
+    if (!openMarket(run)) return; // nothing the gold can buy: no market this time
     persist();
     renderMarket();
     closeTilePop();
@@ -1923,7 +1939,7 @@ export function initWordMode(ctx) {
       const bought = m.bought.includes(id);
       const el = document.createElement('div');
       el.className = `mk-card${bought ? ' bought' : why ? ' cannot' : ''}`;
-      const note = bought ? (c.target === 'market' ? 'Used now' : 'In your hand') : why;
+      const note = bought ? 'In your hand' : why.startsWith('Needs') ? '' : why; // short of gold: dimmed is enough
       el.innerHTML = cardHtml(c, bought ? 'Bought' : `◆ ${c.cost}`, note, bought ? '' : `<button type="button" class="btn btn-primary btn-small mk-buy" ${why ? 'disabled' : ''}>Buy</button>`, true);
       el.querySelector('.mk-info').addEventListener('click', (e) => toggleInfoPop(c, e.currentTarget));
       if (bought) {
@@ -1943,12 +1959,6 @@ export function initWordMode(ctx) {
       });
       list.appendChild(el);
     }
-    const scout = $('#w-market-scout');
-    scout.hidden = !m.scouted;
-    if (m.scouted) {
-      const { board } = dealLetters(run.nextSeed, g.size);
-      scout.innerHTML = `<span class="hud-label">Next board</span><div class="mk-scout" style="--n:${g.size}">${board.map((ch) => `<span>${ch}</span>`).join('')}</div>`;
-    }
     $('#w-market-continue').textContent = `Continue to level ${g.level + 1}`;
   }
 
@@ -1965,13 +1975,12 @@ export function initWordMode(ctx) {
     startNextLevel(level + 1, `Level ${level} passed with ${score} · now level ${level + 1}`);
   }
 
-  /** Start a level of the run that just finished a board; a perk run carries its gold and hand on (and the board Scout Ahead showed). */
+  /** Start a level of the run that just finished a board; a perk run carries its gold, deck and hand on. */
   function startNextLevel(level, note) {
     const g = w.game;
     const run = g && g.perks && !g.perks.retry ? g.perks : null;
-    const seed = run && run.nextSeed !== null && run.nextSeed !== undefined ? run.nextSeed : undefined;
     if (run) closeMarket(run);
-    start(false, { mode: 'levels', level, size: g ? g.size : 5, perks: run, seed, note });
+    start(false, { mode: 'levels', level, size: g ? g.size : 5, perks: run, note });
   }
 
   function finish(auto = false, silent = false, advance = false) {
@@ -2002,7 +2011,7 @@ export function initWordMode(ctx) {
     }
     w.over = true;
     const perkGame = !!(g.perks && !g.perks.retry); // a run with perk cards: its own best level, nothing posted
-    const handSnap = perkGame ? { gold: g.perks.levelStart.gold, hand: g.perks.levelStart.hand.slice(), shop: !!g.perks.shop } : g.retry && g.retry.perks ? g.retry.perks : null;
+    const handSnap = perkGame ? { gold: g.perks.levelStart.gold, hand: g.perks.levelStart.hand.slice(), deck: g.perks.deck.slice(), shop: !!g.perks.shop } : g.retry && g.retry.perks ? g.retry.perks : null;
     w.lastBoard = { seed: g.seed, drawSeed: g.drawSeed, size: g.size, retry: g.mode === 'levels' ? { level: g.level, goal: g.goal, botScore: g.botScore, perks: handSnap } : g.retry ? { ...g.retry, botScore: g.botScore } : null };
     w.pending = null;
     w.first = null;
@@ -2106,7 +2115,7 @@ export function initWordMode(ctx) {
       { label: plural(st.locked.length, 'tile'), value: bonus, cls: bonus ? 'pos' : '', pop: 'tiles' },
     ];
     if (st.perk && (perkPts || (st.perk.log || []).length)) rows.splice(1, 0, { label: 'perks', value: perkPts, cls: 'pos perk', pop: 'perks' });
-    if (turnBonus) rows.push({ label: `${plural(Math.max(0, baseTurnLimit(st) - st.turns), 'turn')} left`, value: turnBonus, cls: 'pos' });
+    if (turnBonus) rows.push({ label: `${plural(Math.max(0, turnLimit(st) - st.turns), 'turn')} left`, value: turnBonus, cls: 'pos' });
     if (penalty) rows.push({ label: `${plural(COVERAGE_TARGET - st.locked.length, 'tile')} short`, value: -penalty, signed: true, cls: 'neg' });
     return rows;
   }
@@ -2118,7 +2127,7 @@ export function initWordMode(ctx) {
     const sheet = $('#w-result');
     if (!sheet.hidden && sheet.dataset.state === 'passed') return;
     const total = finalScore(st);
-    const left = Math.max(0, baseTurnLimit(st) - st.turns); // the turns that count: a card's extra turns pay no gold
+    const left = Math.max(0, turnLimit(st) - st.turns);
     const gold = perkRun() ? ` · +${g.perks.gained} gold` : '';
     w.shareText = `Level ${g.level} passed · ` + wordShareLine(total, st.words, g.size === 6 ? 'GridLock 6×6' : 'GridLock');
     showResult({
@@ -2301,7 +2310,7 @@ export function initWordMode(ctx) {
     const parts = [`<b>${st.words.length} word${st.words.length === 1 ? '' : 's'}</b> ${st.score - perkPts}`];
     if (perkPts) parts.push(`perks <b>+${perkPts}</b>`);
     if (bonus) parts.push(`${st.locked.length} tiles <b>+${bonus}</b>`);
-    if (turnBonus) parts.push(`${Math.max(0, baseTurnLimit(st) - st.turns)} turns left <b>+${turnBonus}</b>`);
+    if (turnBonus) parts.push(`${Math.max(0, turnLimit(st) - st.turns)} turns left <b>+${turnBonus}</b>`);
     if (penalty) parts.push(`${COVERAGE_TARGET - st.locked.length} tile${COVERAGE_TARGET - st.locked.length === 1 ? '' : 's'} short of ${COVERAGE_TARGET} <b>−${penalty}</b>`);
     let html = parts.join(' · ') + ` = <b>${total}</b>`;
     if (w.game.mode === 'levels' && w.game.goal !== null) html += `<br><span style="opacity:.75">Goal ${w.game.goal}: ${total >= w.game.goal ? 'reached' : `${w.game.goal - total} to go`}</span>`;
@@ -2446,6 +2455,9 @@ export function initWordMode(ctx) {
     w.refitTimer = setTimeout(fitBoardAbove, 350);
   }
   window.addEventListener('resize', refit);
+  window.addEventListener('resize', () => {
+    if (!$('#w-shop').hidden) renderShop();
+  });
   window.addEventListener('orientationchange', refit);
   window.addEventListener('pageshow', refit);
   document.addEventListener('visibilitychange', () => {

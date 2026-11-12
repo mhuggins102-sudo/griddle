@@ -46,7 +46,7 @@ async function boot() {
   $('#opt-perks').checked = !!ui.store.settings.perks;
   $('#opt-perk-shop').checked = ui.store.settings.perkMode === 'shop';
   $('#opt-perk-market').checked = ui.store.settings.perkMode !== 'shop';
-  const perkModeSub = () => { $('#opt-perk-mode-sub').textContent = ui.store.settings.perkMode === 'shop' ? 'Shop: every card on sale at any time, played the moment it is bought' : 'Market: three cards offered after each level, kept in a hand'; };
+  const perkModeSub = () => { $('#opt-perk-mode-sub').textContent = ui.store.settings.perkMode === 'shop' ? 'Shop: every card on sale at any time, played the moment it is bought' : 'Market: up to three cards offered after each level, kept in a hand'; };
   perkModeSub();
   for (const r of document.querySelectorAll('input[name="opt-perk-mode"]')) {
     r.addEventListener('change', () => {
@@ -618,7 +618,7 @@ function resetData() {
   $('#opt-show-words').checked = false;
   $('#opt-perks').checked = false;
   $('#opt-perk-market').checked = true;
-  $('#opt-perk-mode-sub').textContent = 'Market: three cards offered after each level, kept in a hand';
+  $('#opt-perk-mode-sub').textContent = 'Market: up to three cards offered after each level, kept in a hand';
   $('#opt-sound').checked = true;
   $('#opt-size-5').checked = true;
   $('#opt-theme-system').checked = true;

@@ -2,12 +2,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  dealLetters, createWordState, applyWordAction, lockWord, findWordAt, parseDictionary, bagTotal, turnLimit, baseTurnLimit, fullCoverTurnBonus,
-  coverageBonusFor, actionCost, perkExtras, scoreWord, finalScore, WILD, LETTERS,
+  dealLetters, createWordState, applyWordAction, lockWord, findWordAt, parseDictionary, bagTotal, turnLimit, fullCoverTurnBonus,
+  coverageBonusFor, perkExtras, scoreWord, finalScore, WILD, LETTERS,
 } from '../js/words.js';
 import {
   CARDS, CARD_BY_ID, FAMILIES, MARKET_SIZE, emptyPerk, newPerkRun, beginLevel, goldForPass, pickOffer, openMarket, buyBlock, buyCard, closeMarket, affordable, hasMarket, shopOrder,
-  playBlock, rotateBlocks, bigNudgeOptions, peekDraws, applyPerkAction, powerPairCells, perkSummary, perkLabel,
+  playBlock, rotateBlocks, bigNudgeOptions, peekDraws, applyPerkAction, powerPairCells, perkSummary, perkLabel, shopBuyBlock, shopTake,
 } from '../js/perks.js';
 
 const dict = parseDictionary(readFileSync(new URL('../data/words.txt', import.meta.url), 'utf8'));
@@ -23,9 +23,9 @@ function stateWith(rows, extra = {}) {
 const sum = (bag) => bagTotal(bag);
 const lock = (st, first, last) => lockWord(st, findWordAt(st, dict, first, last));
 
-test('catalogue: 30 unique cards priced 3 to 10 averaging about 6, every family represented', () => {
-  assert.equal(CARDS.length, 30);
-  assert.equal(new Set(CARDS.map((c) => c.id)).size, 30);
+test('catalogue: 29 unique cards priced 3 to 10 averaging about 6, every family represented', () => {
+  assert.equal(CARDS.length, 29);
+  assert.equal(new Set(CARDS.map((c) => c.id)).size, 29);
   const avg = CARDS.reduce((a, c) => a + c.cost, 0) / CARDS.length;
   assert.ok(avg > 5.5 && avg < 6.5, String(avg));
   assert.equal(CARD_BY_ID['gold-rush'].cost, 3);
@@ -35,7 +35,7 @@ test('catalogue: 30 unique cards priced 3 to 10 averaging about 6, every family 
     assert.ok(c.cost >= 3 && c.cost <= 10, `${c.id} costs ${c.cost}`);
     assert.ok(FAMILIES[c.family], `${c.id} family`);
     assert.ok(c.text.length > 20 && c.name, c.id);
-    assert.ok(['none', 'tile', 'pair', 'block', 'multi', 'line', 'flick', 'word', 'market'].includes(c.target), c.id);
+    assert.ok(['none', 'tile', 'pair', 'block', 'multi', 'line', 'flick'].includes(c.target), c.id);
   }
   assert.equal(perkLabel('squares'), 'Letter squares');
   assert.equal(perkLabel('open-field'), 'Open Field');
@@ -45,7 +45,7 @@ test('a new run: no gold, the whole deck shuffled by seed, empty hand; the offer
   const a = newPerkRun(42);
   const b = newPerkRun(42);
   assert.deepEqual(a.deck, b.deck);
-  assert.equal(a.deck.length, 30);
+  assert.equal(a.deck.length, 29);
   assert.notDeepEqual(newPerkRun(43).deck, a.deck);
   assert.equal(a.gold, 0);
   assert.deepEqual(a.hand, []);
@@ -58,107 +58,97 @@ test('a new run: no gold, the whole deck shuffled by seed, empty hand; the offer
 test('the offer is drawn from the cards the gold can buy: none below the cheapest card, fewer than three from a small pool', () => {
   const run = newPerkRun(5);
   assert.equal(hasMarket(run), false, 'no gold, no market');
-  assert.equal(openMarket(run, 1), null);
-  assert.equal(run.deck.length, 30, 'nothing left the deck');
+  assert.equal(openMarket(run), null);
+  assert.equal(run.deck.length, 29, 'nothing left the deck');
   assert.equal(run.market, null);
   run.gold = 4;
   assert.ok(affordable(run).every((id) => CARD_BY_ID[id].cost <= 4));
   assert.ok(hasMarket(run));
-  const m = openMarket(run, 1);
+  const m = openMarket(run);
   assert.ok(m.offer.length >= 1 && m.offer.length <= 3);
   assert.ok(m.offer.every((id) => CARD_BY_ID[id].cost <= 4), m.offer.join());
   assert.ok(m.offer.every((id) => buyBlock(run, id) === ''), 'everything on offer can be bought');
   closeMarket(run);
   run.deck = ['wild-card', 'hint', 'borrowed-time'];
   run.gold = 4;
-  assert.deepEqual(openMarket(run, 2).offer, ['hint'], 'a pool of one gives a market of one');
+  assert.deepEqual(openMarket(run).offer, ['hint'], 'a pool of one gives a market of one');
   closeMarket(run);
   run.gold = 100;
   assert.equal(pickOffer(run.deck, 3, 100).length, 3);
 });
 
-test('market: offer leaves the deck, buying costs gold and fills the hand, Scout Ahead resolves in place, closing returns the rest', () => {
+test('market: offer leaves the deck, buying costs gold and fills the hand, closing returns the rest', () => {
   const run = newPerkRun(1);
   run.gold = 30;
-  const market = openMarket(run, 999);
-  assert.equal(run.nextSeed, 999);
-  assert.equal(run.deck.length, 30 - 3);
+  const market = openMarket(run);
+  assert.equal(run.deck.length, 29 - 3);
   for (const id of market.offer) assert.ok(!run.deck.includes(id));
-  assert.equal(openMarket(run, 5), market, 'opening again keeps the same offer');
+  assert.equal(openMarket(run), market, 'opening again keeps the same offer');
   const [first, second] = market.offer;
   assert.equal(buyBlock(run, first), '');
   buyCard(run, first);
   assert.equal(run.gold, 30 - CARD_BY_ID[first].cost);
   assert.equal(buyBlock(run, first), 'Bought');
-  if (CARD_BY_ID[first].target === 'market') assert.ok(market.scouted && !run.hand.includes(first));
-  else assert.deepEqual(run.hand, [first]);
-  run.gold = 3;
+  assert.deepEqual(run.hand, [first]);
+  run.gold = 2;
   assert.match(buyBlock(run, second), /more gold/);
   assert.throws(() => buyCard(run, second), /more gold/);
   closeMarket(run);
   assert.equal(run.market, null);
-  assert.equal(run.deck.length + run.hand.length + (market.scouted ? 1 : 0), 30);
+  assert.equal(run.deck.length + run.hand.length, 29);
   assert.ok(run.deck.includes(second), 'the unbought card is back in the deck');
-  // scout ahead explicitly
-  const run2 = newPerkRun(2);
-  run2.gold = 50;
-  run2.market = { offer: ['scout-ahead', 'hint', 'peek'], bought: [], scouted: false };
-  buyCard(run2, 'scout-ahead');
-  assert.ok(run2.market.scouted);
-  assert.deepEqual(run2.hand, []);
-  assert.equal(run2.gold, 50 - 3);
 });
 
-test('beginLevel frees the perk slot and remembers the hand; gold is the spare turns on the base limit, doubled by Gold Rush', () => {
+test('shop: a card is bought once per run, for its price, and leaves the deck', () => {
+  const run = newPerkRun(4, { shop: true });
+  assert.match(shopBuyBlock(run, 'fresh-deal'), /Needs 3 more gold/);
+  run.gold = 10;
+  assert.equal(shopBuyBlock(run, 'fresh-deal'), '');
+  shopTake(run, 'fresh-deal');
+  assert.equal(run.gold, 7);
+  assert.ok(!run.deck.includes('fresh-deal'));
+  assert.equal(shopBuyBlock(run, 'fresh-deal'), 'Used');
+  assert.throws(() => shopTake(run, 'fresh-deal'), /Used/);
+  assert.equal(shopBuyBlock(run, 'nope'), 'Unknown card');
+});
+
+test('beginLevel remembers the hand; gold is the spare turns, extra turns included, doubled by Gold Rush', () => {
   const run = newPerkRun(3);
   run.gold = 20;
   run.hand = ['hint'];
-  run.used = 'peek';
   run.goldRush = true;
   beginLevel(run);
-  assert.equal(run.used, null);
   assert.equal(run.goldRush, false);
   assert.deepEqual(run.levelStart, { gold: 20, hand: ['hint'] });
   const st = stateWith(['ABCDE', 'FGHIJ', 'KLMNO', 'PQRST', 'UVWXY'], { turns: 14 });
   assert.equal(goldForPass(st, run), 6);
   run.goldRush = true;
   assert.equal(goldForPass(st, run), 12);
+  run.goldRush = false;
   st.perk.extraTurns = 2;
-  st.turns = 21;
-  assert.equal(goldForPass(st, run), 0, 'perk turns never pay');
   assert.equal(turnLimit(st), 22);
-  assert.equal(baseTurnLimit(st), 20);
+  assert.equal(goldForPass(st, run), 8, 'turns a card added count like any other');
 });
 
-test('engine hooks: extra turns, head start capped at the full board, free move spent by the next slide or swap', () => {
+test('engine hooks: extra turns count for the full-board bonus, head start capped at the full board', () => {
   const st = stateWith(['CATXX', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']);
   assert.equal(turnLimit(st), 20);
   st.perk.extraTurns = 1;
   assert.equal(turnLimit(st), 21);
   st.locked = Array.from({ length: 25 }, (_, i) => i);
   st.turns = 15;
-  assert.equal(fullCoverTurnBonus(st), 50, 'spare turns against the base limit');
+  assert.equal(fullCoverTurnBonus(st), 60, 'the extra turn is a spare turn like any other');
   st.perk.headStart = true;
   assert.equal(coverageBonusFor(st), 36, 'never past the full board');
   st.locked = Array.from({ length: 19 }, (_, i) => i);
   assert.equal(coverageBonusFor(st), 1, 'the ladder starts a tile early');
-  const fm = stateWith(['CATXX', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']);
-  fm.perk.freeMove = true;
-  const slide = { type: 'slide', axis: 'row', index: 1, dir: 1 };
-  assert.equal(actionCost(slide, fm), 0);
-  assert.equal(actionCost({ type: 'nudge', r: 1, c: 1, delta: 1 }, fm), 1);
-  const after = applyWordAction(fm, slide);
-  assert.equal(after.turns, 0);
-  assert.equal(after.perk.freeMove, false);
-  assert.equal(applyWordAction(after, slide).turns, 1, 'the next one costs again');
-  assert.equal(fm.perk.freeMove, true, 'input untouched');
 });
 
 test('extras: squares pay once, stickers every word, word bonuses wait for a qualifying word, board-wide bonuses add', () => {
   const st = stateWith(['CATXX', 'XRXXX', 'XTXXX', 'XXXXX', 'XXXXX']);
   st.perk.squares = { 0: 3, 1: 2 }; // C x3, A x2
   st.perk.stickers = { 1: 5 };
-  st.perk.next = 'double';
+  st.perk.double = true;
   const ex = perkExtras(st, [0, 1, 2]);
   assert.deepEqual(ex, [{ card: 'squares', pts: 3 * 2 + 1 }, { card: 'sticker', pts: 5 }, { card: 'double-down', pts: 5 }]);
   const locked = lock(st, 0, 2);
@@ -167,26 +157,31 @@ test('extras: squares pay once, stickers every word, word bonuses wait for a qua
   assert.equal(locked.perkPoints, 17);
   assert.deepEqual(locked.perk.squares, {}, 'a square pays once');
   assert.deepEqual(locked.perk.stickers, { 1: 5 }, 'a sticker stays');
-  assert.equal(locked.perk.next, null);
+  assert.equal(locked.perk.double, false, 'spent on the next lock');
   assert.equal(locked.perk.log.length, 3);
   assert.deepEqual(perkSummary(locked).map((x) => [x.card, x.pts]), [['squares', 7], ['sticker', 5], ['double-down', 5]]);
   const again = lock(locked, 1, 11);
   assert.equal(again.words[1].word, 'ART');
   assert.deepEqual(again.words[1].extras, [{ card: 'sticker', pts: 5 }], 'the sticker pays the next word through its cell too');
-  // double down is capped at 15
+  // double down is not capped, and can wait alongside a stretch bonus
   const dd = stateWith(['QUIZX', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']);
-  dd.perk.next = 'double';
-  assert.deepEqual(perkExtras(dd, [0, 1, 2, 3]), [{ card: 'double-down', pts: 15 }]);
+  dd.perk.double = true;
+  dd.perk.stretch = true;
+  assert.deepEqual(perkExtras(dd, [0, 1, 2, 3]), [{ card: 'double-down', pts: 22 }, { card: 'stretch', pts: 10 }]);
   // stretch waits for 4 letters and pays one rung up
   const lw = stateWith(['CATSX', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']);
-  lw.perk.next = 'stretch';
+  lw.perk.stretch = true;
   assert.deepEqual(perkExtras(lw, [0, 1, 2]), []);
   const stillWaiting = lock(lw, 0, 2);
-  assert.equal(stillWaiting.perk.next, 'stretch', 'a 3-letter word leaves it waiting');
+  assert.equal(stillWaiting.perk.stretch, true, 'a 3-letter word leaves it waiting');
   assert.deepEqual(perkExtras(lw, [0, 1, 2, 3]), [{ card: 'stretch', pts: 10 }]);
   const five = stateWith(['ZESTY', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']);
-  five.perk.next = 'stretch';
+  five.perk.stretch = true;
   assert.deepEqual(perkExtras(five, [0, 1, 2, 3, 4]), [{ card: 'stretch', pts: 15 }]);
+  five.perk.stretch = false;
+  five.perk.longHaul = true;
+  assert.deepEqual(perkExtras(five, [0, 1, 2, 3, 4]), [{ card: 'long-haul', pts: 8 }], 'a word the width of the board');
+  assert.deepEqual(perkExtras(five, [0, 1, 2]), []);
   // crossroads needs a reused locked tile, open field the opposite, short stack a 3-letter word, diagonal a diagonal
   const cr = stateWith(['CATXX', 'XOXXX', 'XXTXX', 'XXXXX', 'XXXXX']);
   cr.perk.crossroads = true;
@@ -210,6 +205,11 @@ test('perk actions: long swap, rotate, big nudge, pick a letter, unlock, trade, 
   const ro = applyPerkAction(st, { type: 'rotate', cell: 0 });
   assert.equal(ro.board.slice(0, 2).join('') + ro.board.slice(5, 7).join(''), 'DCOA', 'clockwise quarter turn');
   assert.equal(ro.turns, 1);
+  const half = applyPerkAction(st, { type: 'rotate', cell: 0, turns: 2 });
+  assert.equal(half.board.slice(0, 2).join('') + half.board.slice(5, 7).join(''), 'ODAC', 'half turn');
+  const tq = applyPerkAction(st, { type: 'rotate', cell: 0, turns: 3 });
+  assert.equal(tq.board.slice(0, 2).join('') + tq.board.slice(5, 7).join(''), 'AOCD', 'three-quarter turn');
+  assert.throws(() => applyPerkAction(st, { type: 'rotate', cell: 0, turns: 4 }), /quarter/);
   assert.ok(rotateBlocks(st).includes(0));
   const nu = applyPerkAction(st, { type: 'setletter', cell: 0, letter: 'F' });
   assert.equal(nu.board[0], 'F');
@@ -243,8 +243,8 @@ test('perk actions: long swap, rotate, big nudge, pick a letter, unlock, trade, 
   assert.throws(() => applyPerkAction(lockedSt, { type: 'squares', cells: [{ cell: 0, mult: 2 }] }), /locked/);
   const stk = applyPerkAction(st, { type: 'sticker', cell: 3 });
   assert.deepEqual(stk.perk.stickers, { 3: 5 });
-  const fl = applyPerkAction(st, { type: 'flag', key: 'next', value: 'double' });
-  assert.equal(fl.perk.next, 'double');
+  const fl = applyPerkAction(st, { type: 'flag', key: 'double', value: true });
+  assert.equal(fl.perk.double, true);
   assert.equal(applyPerkAction(st, { type: 'flag', key: 'shortStack', value: true }).perk.shortStack, true);
   assert.throws(() => applyPerkAction(st, { type: 'flag', key: 'gold', value: 1 }), /Unknown/);
   const tu = applyPerkAction(st, { type: 'turns', n: 2 });
@@ -295,9 +295,9 @@ test('playability reasons and power pair picks', () => {
   assert.match(playBlock('open-field', { ...st, perk: { ...st.perk, openField: true } }), /Already/);
   assert.match(playBlock('rewind', st, { historyLength: 0 }), /Nothing to take back/);
   assert.equal(playBlock('rewind', st, { historyLength: 2 }), '');
-  assert.match(playBlock('scout-ahead', st), /market/);
-  st.perk.next = 'stretch';
-  assert.match(playBlock('double-down', st), /already waiting/);
+  st.perk.stretch = true;
+  assert.match(playBlock('stretch', st), /Already waiting/);
+  assert.equal(playBlock('double-down', st), '', 'the two bonuses wait independently');
   st.turns = 20;
   assert.match(playBlock('letter-trade', st), /Needs 1 turn left/);
   assert.match(playBlock('extra-turn', st), /spent/);
@@ -321,7 +321,4 @@ test('a shop run never has a market; the shop lists the catalogue by family or b
   for (let i = 1; i < byPrice.length; i++) assert.ok(byPrice[i - 1].cost < byPrice[i].cost || (byPrice[i - 1].cost === byPrice[i].cost && byPrice[i - 1].name <= byPrice[i].name));
   assert.equal(byPrice[0].cost, 3);
   assert.equal(byPrice[byPrice.length - 1].cost, 10);
-  run.scouted = true;
-  beginLevel(run);
-  assert.equal(run.scouted, false, 'a new level forgets the scouted board');
 });
