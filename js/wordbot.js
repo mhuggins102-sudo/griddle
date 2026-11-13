@@ -7,19 +7,37 @@ import {
 } from './words.js';
 
 /**
- * Goal for a level as a share of the bot's banked word points (its fill bonuses excluded): 50% at level 1
- * and 5 points more per level, with no cap (100% at level 11, 150% at level 21), so the player's own
- * coverage and spare-turn bonuses are what carry a run past the bot.
+ * The goal for a level is fixed by the level and the board size: 60, 70, 80… on 5x5 and 100, 115, 130… on
+ * 6x6. The board is chosen to fit it: the bot plays a few candidate boards and the game keeps the one
+ * whose banked word points (fill bonuses excluded) put the goal closest to the level's share of them,
+ * 50% at level 1 and 5 points more per level, with no cap. So a level-1 board is one the bot scores
+ * about twice the goal on, a level-11 board one the bot just reaches the goal on, and later levels ask
+ * for more than the bot banks; the player's coverage and spare-turn bonuses are what carry a run on.
  */
+export const GOAL_SCHEDULE = { 5: { start: 60, step: 10 }, 6: { start: 100, step: 15 } };
 export const GOAL_START_PERCENT = 50;
 export const GOAL_STEP_PERCENT = 5;
+export const CANDIDATE_BOARDS = 6; // boards the bot tries for a level before the closest fit is kept
 export function goalPercent(level) {
   return GOAL_START_PERCENT + GOAL_STEP_PERCENT * (level - 1);
 }
 
-/** The level goal: the percentage of the bot's banked points (above 100% from level 12), rounded up to the nearest 10, at least 10. */
-export function goalFor(level, botScore) {
-  return Math.max(10, Math.ceil((botScore * goalPercent(level)) / 100 / 10) * 10);
+/** The level goal for a board size. */
+export function goalFor(level, size = 5) {
+  const { start, step } = GOAL_SCHEDULE[size] || GOAL_SCHEDULE[5];
+  return start + step * (Math.max(1, level) - 1);
+}
+
+/** The bot's banked points a level's board should have, so that the goal is the level's share of them. */
+export function targetBotScore(level, size = 5) {
+  return (goalFor(level, size) * 100) / goalPercent(level);
+}
+
+/** Of several bot results ({ banked, ... }), the one closest to the target, by banked points. */
+export function closestToTarget(results, target) {
+  let best = null;
+  for (const r of results) if (r && (best === null || Math.abs(r.banked - target) < Math.abs(best.banked - target))) best = r;
+  return best;
 }
 
 function legal(state, g, move) {

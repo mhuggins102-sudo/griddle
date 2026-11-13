@@ -6,11 +6,11 @@
 //   tap the first and last letter -> lock the word between them
 // Modes: levels (a bot sets a goal score per board; pass to advance) and free play (no goal).
 
-import { randomSeed, hashString } from './rng.js';
+import { randomSeed } from './rng.js';
 import { openSheet, closeSheet } from './sheet.js';
 import { buildBoardSkeleton, tileIn, tileStep, animateAction, animateMoves, beginMoves, removeGhosts, clearTileEffects, wait, ANIM_MS } from './board.js';
 import {
-  CARD_BY_ID, FAMILIES, cardText, emptyPerk, newPerkRun, beginLevel, goldForPass, playBlock, rotateBlocks,
+  CARD_BY_ID, FAMILIES, cardText, cardCost, emptyPerk, newPerkRun, beginLevel, goldForPass, playBlock, rotateBlocks,
   rotateRing, bigNudgeOptions, peekDraws, applyPerkAction, powerPairCells, perkSummary, perkLabel, shopOrder, shopBuyBlock, shopTake,
 } from './perks.js';
 import {
@@ -19,7 +19,7 @@ import {
   turnLimit, gridOfState, WILD, LETTERS, COVERAGE_TARGET, WILD_COST, SIZES, fullCoverTurnBonus, isBoardFull,
   COVERAGE_LADDER, MAX_WILDS,
 } from './words.js';
-import { botPlay, goalFor } from './wordbot.js';
+import { botPlay, goalFor, targetBotScore, closestToTarget, CANDIDATE_BOARDS } from './wordbot.js';
 import { play } from './sound.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -66,6 +66,7 @@ export function initWordMode(ctx) {
     pointerTs: 0,
     worker: null,
     workerJob: 0,
+    preparing: null, // { level, size, promise } for the board being chosen in the background
     perk: null, // a card being targeted on the board: { id, picked: [cells] }
     hint: null, // the word lit up by a Hint card: { cells, word, score }
     hintTimer: null,
@@ -127,44 +128,32 @@ export function initWordMode(ctx) {
   }
 
   // ---------------------------------------------------------------------------
-  // Goal score from the bot (web worker, main-thread fallback)
+  // The bot (web worker, main-thread fallback) and the board chosen for a level
 
-  function computeGoal(game) {
-    if (game.mode !== 'levels' || game.botScore !== null) return;
-    const job = ++w.workerJob;
-    const apply = (result) => {
-      // ignore a late reply: the board may have finished (and computed its goal itself) meanwhile
-      if (w.game !== game || job !== w.workerJob || w.over || game.botScore !== null) return;
-      game.botScore = result.banked; // the yardstick is the bot's word points, not its fill bonuses
-      game.botFinal = result.score;
-      game.botWords = result.words.map((x) => x.word);
-      game.goal = goalFor(game.level, result.banked);
-      persist();
-      cancelGesture();
-      renderAll(); // the goal may already be met: the bar lights up and the board greys out
-    };
-    const fallback = () => {
+  /** Play a board with the bot off the main thread; resolves its result, or null if the bot failed. */
+  function runBot(seed, size) {
+    const { board, bag } = dealLetters(seed, size);
+    const inline = () => new Promise((resolve) => setTimeout(() => { // let the screen paint first
       try {
-        const { board, bag } = dealLetters(game.seed, game.size);
-        apply(botPlay(board, bag, w.dict));
-      } catch (e) {
-        ctx.showToast('Could not compute a goal for this board.');
+        resolve(botPlay(board, bag, w.dict));
+      } catch {
+        resolve(null);
       }
-    };
-    // without a Worker the bot runs on the main thread: let the board paint first
-    if (typeof Worker === 'undefined') return void setTimeout(fallback, 0);
+    }, 0));
+    if (typeof Worker === 'undefined') return inline();
     try {
       if (!w.worker) {
         w.worker = new Worker(new URL('./wordbot-worker.js', import.meta.url), { type: 'module' });
+        w.pendingJobs = new Map();
         w.worker.onmessage = (e) => {
-          const pending = w.pendingJobs && w.pendingJobs.get(e.data.id);
+          const pending = w.pendingJobs.get(e.data.id);
           if (!pending) return;
           w.pendingJobs.delete(e.data.id);
-          if (e.data.error) pending.fallback();
-          else pending.apply(e.data.result);
+          if (e.data.error) pending.inline().then(pending.resolve);
+          else pending.resolve(e.data.result);
         };
         w.worker.onerror = () => {
-          const jobs = w.pendingJobs;
+          const jobs = Array.from(w.pendingJobs.values());
           w.pendingJobs = new Map();
           try {
             w.worker.terminate();
@@ -172,35 +161,86 @@ export function initWordMode(ctx) {
             // already gone
           }
           w.worker = null;
-          for (const p of jobs.values()) p.fallback();
+          for (const p of jobs) p.inline().then(p.resolve);
         };
-        w.pendingJobs = new Map();
       }
-      const { board, bag } = dealLetters(game.seed, game.size);
-      w.pendingJobs.set(job, { apply, fallback });
-      w.worker.postMessage({ id: job, board, bag });
+      const id = ++w.workerJob;
+      return new Promise((resolve) => {
+        w.pendingJobs.set(id, { resolve, inline });
+        w.worker.postMessage({ id, board, bag });
+      });
     } catch {
-      fallback();
+      return inline();
     }
   }
 
-  /** Make sure the goal is known before scoring a levels game (synchronous fallback). */
-  function ensureGoalNow(game) {
-    if (game.mode !== 'levels' || game.botScore !== null) return;
-    try {
-      const { board, bag } = dealLetters(game.seed, game.size);
-      const result = botPlay(board, bag, w.dict);
-      game.botScore = result.banked;
-      game.botFinal = result.score;
-      game.botWords = result.words.map((x) => x.word);
-      game.goal = goalFor(game.level, result.banked);
-    } catch (e) {
-      // the bot failed (it should never: it is pure): do not strand the run on an unscorable board
-      game.botScore = 0;
-      game.botWords = [];
-      game.goal = 10;
-      ctx.showToast('Could not compute a goal for this board; the level counts as passed.', 4000);
+  /** The bot's figures for a board: what the result card and the retry carry. */
+  const botData = (result) => ({ botScore: result ? result.banked : 0, botFinal: result ? result.score : 0, botWords: result ? result.words.map((x) => x.word) : [] });
+
+  /**
+   * Choose a board for a level: the bot plays up to CANDIDATE_BOARDS fresh boards and the one whose banked
+   * points come closest to the level's target is kept (a board within 3% of it is kept at once). Resolves
+   * { seed, botScore, botFinal, botWords }.
+   */
+  async function prepareLevel(level, size, avoidSeed = null) {
+    const target = targetBotScore(level, size);
+    const results = [];
+    for (let k = 0; k < CANDIDATE_BOARDS; k++) {
+      const seed = randomSeed();
+      if (seed === avoidSeed) continue;
+      const r = await runBot(seed, size);
+      if (!r) continue;
+      results.push({ seed, banked: r.banked, result: r });
+      if (Math.abs(r.banked - target) <= 0.03 * target) break;
     }
+    const best = closestToTarget(results, target);
+    if (!best) return { seed: randomSeed(), ...botData(null) }; // the bot failed everywhere: an unmeasured board, still playable
+    return { seed: best.seed, ...botData(best.result) };
+  }
+
+  /** Start choosing a level's board in the background; the result waits in the store for start(). */
+  function prefetch(level, size) {
+    const ready = ctx.store.prepared;
+    if (ready && ready.level === level && ready.size === size) return;
+    if (w.preparing && w.preparing.level === level && w.preparing.size === size) return;
+    const job = { level, size, promise: null };
+    job.promise = ensureDict().then((ok) => (ok ? prepareLevel(level, size) : null)).then((prep) => {
+      if (w.preparing === job) w.preparing = null;
+      if (!prep) return null;
+      ctx.store.prepared = { level, size, ...prep };
+      ctx.saveStore(ctx.store);
+      return prep;
+    });
+    w.preparing = job;
+  }
+
+  /** The board prepared for a level, from the store or the job in flight, or chosen now; the store slot is spent. */
+  async function takePrepared(level, size) {
+    const ready = ctx.store.prepared;
+    if (ready && ready.level === level && ready.size === size) {
+      ctx.store.prepared = null;
+      return ready;
+    }
+    if (w.preparing && w.preparing.level === level && w.preparing.size === size) {
+      ctx.showToast(`Dealing level ${level}…`, 1500);
+      const prep = await w.preparing.promise;
+      if (prep) {
+        ctx.store.prepared = null;
+        return prep;
+      }
+    }
+    ctx.showToast(`Dealing level ${level}…`, 1500);
+    return prepareLevel(level, size);
+  }
+
+  /** An old save without the bot's figures gets them in the background (the goal itself is fixed by the level). */
+  function ensureBotData(game) {
+    if (game.mode !== 'levels' || game.botScore !== null || game.retry) return;
+    runBot(game.seed, game.size).then((result) => {
+      if (w.game !== game || game.botScore !== null) return;
+      Object.assign(game, botData(result));
+      persist();
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -211,6 +251,16 @@ export function initWordMode(ctx) {
    * starts a new board; seed/drawSeed replay a known board; note is shown briefly under the board.
    */
   async function start(resume, opts = {}) {
+    if (w.starting) return; // a second press while a board is being chosen
+    w.starting = true;
+    try {
+      await startGame(resume, opts);
+    } finally {
+      w.starting = false;
+    }
+  }
+
+  async function startGame(resume, opts) {
     if (!(await ensureDict())) return;
     if (resume && ctx.store.wordGame) {
       w.game = ctx.store.wordGame;
@@ -221,20 +271,24 @@ export function initWordMode(ctx) {
       if (w.game.retry === undefined) w.game.retry = null;
       if (w.game.size === undefined) w.game.size = w.game.state.size || Math.round(Math.sqrt(w.game.state.board.length));
       if (w.game.practice === undefined) w.game.practice = false;
+      if (w.game.mode === 'levels' && w.game.goal === null) w.game.goal = goalFor(w.game.level, w.game.size); // a save from the bot-set days
       if (w.game.perks === undefined) w.game.perks = null;
       if (w.game.perks && !w.game.state.perk) w.game.state.perk = emptyPerk();
       if (showWordsOption()) w.game.practice = true; // once the words have been shown, the board stays practice
     } else {
-      const seed = opts.seed ?? randomSeed();
-      const drawSeed = opts.drawSeed ?? randomSeed();
       const size = SIZES.includes(opts.size) ? opts.size : 5;
+      const level = opts.level || 1;
+      // a level's board is chosen to fit its goal; the choice is usually made ahead of time
+      const prepared = (opts.mode || 'free') === 'levels' && !opts.retry && opts.seed === undefined ? await takePrepared(level, size) : null;
+      const seed = prepared ? prepared.seed : (opts.seed ?? randomSeed());
+      const drawSeed = opts.drawSeed ?? randomSeed();
       const { board, bag } = dealLetters(seed, size);
       const state = createWordState(board, bag, drawSeed);
       // perk cards: a new run starts one when the setting is on; the next level carries the run on; a
       // retry of a lost board gets the gold and the shop it had going in, but earns nothing
       let run = null;
       if (opts.perks) run = opts.perks;
-      else if ((opts.mode || 'free') === 'levels' && !opts.retry && (opts.level || 1) === 1 && perksEnabled()) run = newPerkRun();
+      else if ((opts.mode || 'free') === 'levels' && !opts.retry && level === 1 && perksEnabled()) run = newPerkRun(size);
       else if (opts.retry && opts.retry.perks) {
         const snap = opts.retry.perks;
         run = { gold: snap.gold, deck: (snap.deck || []).slice(), goldRush: false, gained: 0, levelStart: { gold: snap.gold, deck: (snap.deck || []).slice() }, retry: true };
@@ -251,10 +305,11 @@ export function initWordMode(ctx) {
         perks: run,
         startedAt: new Date().toISOString(),
         mode: opts.mode || 'free',
-        level: opts.level || 1,
-        goal: null,
-        botScore: null,
-        botWords: null,
+        level,
+        goal: (opts.mode || 'free') === 'levels' ? goalFor(level, size) : null,
+        botScore: prepared ? prepared.botScore : null,
+        botFinal: prepared ? prepared.botFinal : null,
+        botWords: prepared ? prepared.botWords : null,
         history: [], // states to undo back to; emptied by a draw, since a draw cannot be undone
         replay: !!opts.replay,
         practice: showWordsOption(), // the words on show: a practice board, nothing saved to stats or the leaderboard
@@ -301,7 +356,8 @@ export function initWordMode(ctx) {
     else if (opts.retry) say(`Replaying the board that ended your run · goal ${opts.retry.goal} · not counted in stats`, '', 3500);
     else if (opts.replay) say('Replaying this board · not counted in your stats', '', 3000);
     else if (w.game.practice) say('Practice board · words shown · not counted in stats', '', 3500);
-    computeGoal(w.game);
+    ensureBotData(w.game);
+    if (isLevels() && !w.game.retry) prefetch(w.game.level + 1, w.game.size); // the next board is chosen while this one is played
     // a board saved in its last moment (full, or a level run out of turns) is scored straight away
     const st = w.game.state;
     if (!goalReached() && (isBoardFull(st) || (st.turns >= turnLimit(st) && isLevels()) || (w.game.retry && finalScore(st) >= w.game.goal))) finish(true);
@@ -1182,6 +1238,8 @@ export function initWordMode(ctx) {
     return playBlock(id, g.state, { historyLength: g.history.length });
   }
 
+  const costOf = (c) => cardCost(c, w.game ? w.game.size : 5);
+
   function cardHtml(c, cost, why, button) {
     return `<span class="mk-fam">${FAMILIES[c.family]}</span><span class="mk-name">${c.name}</span><span class="mk-cost">${cost}</span><p class="mk-text">${cardText(c, w.game ? w.game.size : 5)}</p><div class="mk-act"><span class="mk-why">${why}</span>${button}</div>`;
   }
@@ -1536,10 +1594,10 @@ export function initWordMode(ctx) {
       el.className = `mk-card${blocked ? ' cannot' : ''}${used ? ' bought' : ''}${wide ? ' tappable' : ''}`;
       if (wide) {
         // the card itself opens the dialog that holds the text and the Buy
-        el.innerHTML = cardHtml(c, `◆ ${c.cost}`, used ? 'Used' : why, '');
+        el.innerHTML = cardHtml(c, `◆ ${costOf(c)}`, used ? 'Used' : why, '');
         el.tabIndex = 0;
         el.setAttribute('role', 'button');
-        el.setAttribute('aria-label', `${c.name}, ${c.cost} gold${used ? ', used' : why ? `, ${why}` : ''}`);
+        el.setAttribute('aria-label', `${c.name}, ${costOf(c)} gold${used ? ', used' : why ? `, ${why}` : ''}`);
         el.addEventListener('click', () => openCardDialog(c));
         el.addEventListener('keydown', (e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -1549,16 +1607,16 @@ export function initWordMode(ctx) {
         });
         return el;
       }
-      el.innerHTML = cardHtml(c, `◆ ${c.cost}`, used ? 'Used' : why, `<button type="button" class="btn btn-primary btn-small mk-buy" ${blocked ? 'disabled' : ''}>Buy</button>`);
+      el.innerHTML = cardHtml(c, `◆ ${costOf(c)}`, used ? 'Used' : why, `<button type="button" class="btn btn-primary btn-small mk-buy" ${blocked ? 'disabled' : ''}>Buy</button>`);
       el.querySelector('.mk-buy').addEventListener('click', () => shopBuy(c.id));
       return el;
     };
     if (!byType) {
-      for (const c of shopOrder('price')) list.appendChild(cardEl(c));
+      for (const c of shopOrder('price', g.size)) list.appendChild(cardEl(c));
       return;
     }
     const groups = new Map();
-    for (const c of shopOrder('type')) {
+    for (const c of shopOrder('type', g.size)) {
       if (!groups.has(c.family)) groups.set(c.family, []);
       groups.get(c.family).push(c);
     }
@@ -1597,7 +1655,7 @@ export function initWordMode(ctx) {
     const used = !run.deck.includes(c.id);
     const block = used ? '' : cardBlock(c.id);
     const why = block && QUIET_REASONS.has(c.id) && !w.perk ? '' : block;
-    return { used, why, blocked: used || !!block || run.gold < c.cost };
+    return { used, why, blocked: used || !!block || run.gold < costOf(c) };
   }
 
   // ---- the card dialog (wide-screen shop) --------------------------------------------------------------
@@ -1606,13 +1664,14 @@ export function initWordMode(ctx) {
     const run = perks();
     if (!run) return;
     const { used, why, blocked } = shopState(c);
+    const cost = costOf(c);
     const dlg = $('#w-carddialog');
     $('#w-carddialog-fam').textContent = FAMILIES[c.family];
     $('#w-carddialog-title').textContent = c.name;
     $('#w-carddialog-text').textContent = cardText(c, w.game ? w.game.size : 5);
-    $('#w-carddialog-why').textContent = used ? 'Used this run' : why || (run.gold < c.cost ? `${c.cost - run.gold} more gold needed` : '');
+    $('#w-carddialog-why').textContent = used ? 'Used this run' : why || (run.gold < cost ? `${cost - run.gold} more gold needed` : '');
     const buy = $('#w-carddialog-buy');
-    buy.textContent = `Buy · ◆ ${c.cost}`;
+    buy.textContent = `Buy · ◆ ${cost}`;
     buy.disabled = blocked;
     buy.onclick = () => {
       closeCardDialog();
@@ -1643,7 +1702,7 @@ export function initWordMode(ctx) {
     play('lock');
     renderHud();
     closeSheet($('#w-shop'));
-    playCard(id, { paid: c.cost });
+    playCard(id, { paid: costOf(c) });
   }
 
   function perkPointerDown(e, tile) {
@@ -1836,22 +1895,24 @@ export function initWordMode(ctx) {
     openPerkPick({ title: 'Choice Draw', sub: `Keep one; the ${old === WILD ? 'wild' : old} goes back into the bag`, options: options.map((l) => ({ label: l, small: String(letterValue(l)) })), onPick: (k) => doPerkAction({ type: 'draw3', cell, pick: k }, { keepCard: true }) });
   }
 
-  /** Fresh Deal: a new board from a seed derived from this one; the bot sets the goal again. */
-  function freshDeal() {
+  /** Fresh Deal: a new board chosen for the same goal, like the one it replaces. */
+  async function freshDeal() {
     const g = w.game;
-    const seed = hashString(`${g.seed}:fresh:${g.level}`);
-    const { board, bag } = dealLetters(seed, g.size);
-    g.seed = seed;
+    spendCard('fresh-deal');
+    w.animating = true; // nothing moves while the bot chooses
+    say('Fresh Deal: choosing a new board…', 'good', 6000);
+    const prep = await prepareLevel(g.level, g.size, g.seed);
+    w.animating = false;
+    if (w.game !== g || w.over) return;
+    const { board, bag } = dealLetters(prep.seed, g.size);
+    g.seed = prep.seed;
     g.state = createWordState(board, bag, g.drawSeed);
     g.state.perk = emptyPerk();
     g.history = [];
-    g.botScore = null;
-    g.botFinal = null;
-    g.botWords = null;
-    g.goal = null;
+    Object.assign(g, { botScore: prep.botScore, botFinal: prep.botFinal, botWords: prep.botWords });
     g.goalCelebrated = false;
     w.wordCount = 0;
-    spendCard('fresh-deal');
+    persist();
     play('draw');
     // the panels update now; the tiles spin and show their new letters halfway through, like a draw
     renderHud();
@@ -1867,8 +1928,7 @@ export function initWordMode(ctx) {
         if (w.game === g) renderBoard();
       }, 420);
     }
-    say('Fresh Deal: a new board; the goal is being worked out', 'good', 3200);
-    computeGoal(g);
+    say('Fresh Deal: a new board for the same goal', 'good', 3000);
   }
 
   /** Rewind: the one take-back a level run allows, bought as a card. */
@@ -1942,7 +2002,6 @@ export function initWordMode(ctx) {
     const g = w.game;
     const st = g.state;
     if (!auto && st.turns < turnLimit(st) && !isBoardFull(st)) return; // no ending early
-    ensureGoalNow(g);
     cancelGesture();
     if (g.perks && !g.perks.retry && g.mode === 'levels' && !advance && finalScore(st) >= g.goal) {
       // A perk run passed on its last move, or the goal landed late: the board waits for Next level like a
@@ -2464,5 +2523,5 @@ export function initWordMode(ctx) {
   });
   window.addEventListener('resize', positionMenu);
 
-  return { start, state: w, render: renderAll };
+  return { start, prefetch, state: w, render: renderAll };
 }
