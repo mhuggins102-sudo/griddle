@@ -11,7 +11,7 @@ import { initLeaderboard, bestReachedBySize, seedReached } from './leaderboard.j
 import { openSheet, closeSheet } from './sheet.js';
 import { setSoundEnabled, audioState } from './sound.js';
 import { TURNS_BY_SIZE } from './words.js';
-import { CARDS, FAMILIES, cardText } from './perks.js';
+import { CARDS, FAMILIES, cardText, cardCost } from './perks.js';
 import {
   loadStore, saveStore, newGame, currentRound, lockBid, playAction, giveUp, runningTotal, isGameOver, advanceRound,
   summarizeGame, shareLine, recordGame, findPuzzle, defaultStore,
@@ -61,6 +61,7 @@ async function boot() {
     r.addEventListener('change', () => {
       ui.store.settings.boardSize = Number(document.querySelector('input[name="opt-size"]:checked').value);
       saveStore(ui.store);
+      if (!ui.store.wordGame && ui.word) ui.word.prefetch(1, boardSize()); // level 1's board is chosen while the player decides
     });
   }
   $('#opt-sound').addEventListener('change', (e) => {
@@ -82,7 +83,7 @@ async function boot() {
     showHome();
   });
   // the rules list every perk card from the catalogue, so the two never drift apart
-  const perkList = () => { $('#help-perk-cards').innerHTML = CARDS.map((c) => `<li><b>${escapeHtml(c.name)}</b> <span class="perk-cost">◆ ${c.cost}</span> · <small>${escapeHtml(FAMILIES[c.family])}</small><br>${escapeHtml(cardText(c, boardSize()))}</li>`).join(''); };
+  const perkList = () => { $('#help-perk-cards').innerHTML = CARDS.map((c) => `<li><b>${escapeHtml(c.name)}</b> <span class="perk-cost">◆ ${cardCost(c, boardSize())}</span> · <small>${escapeHtml(FAMILIES[c.family])}</small><br>${escapeHtml(cardText(c, boardSize()))}</li>`).join(''); };
   perkList();
   for (const r of document.querySelectorAll('input[name="opt-size"]')) r.addEventListener('change', perkList);
   try {
@@ -132,6 +133,7 @@ function showHome() {
     $('#continue-sub').textContent = `${size === 6 ? '6×6 · ' : ''}${g.mode === 'levels' ? `Level ${g.level || 1}` : 'Free play'} · turn ${turn} of ${lim} · ${g.state.score || 0} points${perks}${g.practice ? ' · practice' : ''}`;
   }
   showScreen('screen-home'); // the figures live on the Stats screen
+  if (!g && ui.word) ui.word.prefetch(1, boardSize()); // a new run's first board is chosen while the player is here
 }
 
 function startNewGame() {

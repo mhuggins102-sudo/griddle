@@ -6,7 +6,7 @@ import {
   coverageBonusFor, perkExtras, scoreWord, finalScore, WILD, LETTERS,
 } from '../js/words.js';
 import {
-  CARDS, CARD_BY_ID, FAMILIES, emptyPerk, newPerkRun, beginLevel, goldForPass, shopOrder,
+  CARDS, CARD_BY_ID, FAMILIES, emptyPerk, newPerkRun, beginLevel, goldForPass, shopOrder, cardCost,
   playBlock, rotateBlocks, bigNudgeOptions, peekDraws, applyPerkAction, powerPairCells, perkSummary, perkLabel, shopBuyBlock, shopTake,
 } from '../js/perks.js';
 
@@ -23,16 +23,24 @@ function stateWith(rows, extra = {}) {
 const sum = (bag) => bagTotal(bag);
 const lock = (st, first, last) => lockWord(st, findWordAt(st, dict, first, last));
 
-test('catalogue: 29 unique cards priced 3 to 10 averaging about 6, every family represented', () => {
+test('catalogue: 29 unique cards priced 3 to 12 averaging about 6, a few cheaper on 6x6, every family represented', () => {
   assert.equal(CARDS.length, 29);
   assert.equal(new Set(CARDS.map((c) => c.id)).size, 29);
   const avg = CARDS.reduce((a, c) => a + c.cost, 0) / CARDS.length;
-  assert.ok(avg > 5.5 && avg < 6.5, String(avg));
+  assert.ok(avg > 5.3 && avg < 6.2, String(avg));
   assert.equal(CARD_BY_ID['gold-rush'].cost, 3);
+  assert.equal(cardCost('long-haul', 5), 8);
+  assert.equal(cardCost('long-haul', 6), 5);
+  assert.equal(cardCost('pick-letter', 6), 5);
+  assert.equal(cardCost('letter-trade', 6), 6);
+  assert.equal(cardCost('wild-card', 6), 9, 'no 6x6 price: the 5x5 one');
+  assert.equal(cardCost(CARD_BY_ID['head-start']), 3);
+  assert.deepEqual([CARD_BY_ID['borrowed-time'].cost, CARD_BY_ID['power-pair'].cost, CARD_BY_ID['short-stack'].cost, CARD_BY_ID.exchange.cost, CARD_BY_ID['fresh-line'].cost, CARD_BY_ID['choice-draw'].cost], [12, 5, 4, 4, 4, 4]);
   for (const id of ['long-swap', 'rotate', 'big-nudge', 'pick-letter', 'wild-card']) assert.equal(CARD_BY_ID[id].turn, 1, `${id} costs a turn`);
   assert.equal(CARD_BY_ID.unlock.turn, 0);
   for (const c of CARDS) {
-    assert.ok(c.cost >= 3 && c.cost <= 10, `${c.id} costs ${c.cost}`);
+    assert.ok(c.cost >= 3 && c.cost <= 12, `${c.id} costs ${c.cost}`);
+    if (c.cost6 !== undefined) assert.ok(c.cost6 >= 3 && c.cost6 < c.cost, `${c.id} costs ${c.cost6} on 6x6`);
     assert.ok(FAMILIES[c.family], `${c.id} family`);
     assert.ok(c.text.length > 20 && c.name, c.id);
     assert.ok(['none', 'tile', 'pair', 'block', 'multi', 'line', 'flick'].includes(c.target), c.id);
@@ -41,20 +49,27 @@ test('catalogue: 29 unique cards priced 3 to 10 averaging about 6, every family 
   assert.equal(perkLabel('open-field'), 'Open Field');
 });
 
-test('a new run: no gold, every card on sale', () => {
-  const run = newPerkRun();
+test('a new run: no gold, every card on sale, prices by its board size', () => {
+  const run = newPerkRun(6);
+  assert.equal(run.size, 6);
   assert.equal(run.gold, 0);
   assert.equal(run.deck.length, 29);
   assert.deepEqual(run.levelStart, { gold: 0, deck: run.deck });
 });
 
 test('shop: a card is bought once per run, for its price, and leaves the deck', () => {
-  const run = newPerkRun();
+  const run = newPerkRun(6);
   assert.match(shopBuyBlock(run, 'fresh-deal'), /Needs 3 more gold/);
   run.gold = 10;
   assert.equal(shopBuyBlock(run, 'fresh-deal'), '');
   shopTake(run, 'fresh-deal');
   assert.equal(run.gold, 7);
+  assert.equal(shopBuyBlock(run, 'long-haul'), '', 'Long Haul costs 5 on 6x6');
+  shopTake(run, 'long-haul');
+  assert.equal(run.gold, 2);
+  const five = newPerkRun(5);
+  five.gold = 7;
+  assert.match(shopBuyBlock(five, 'long-haul'), /Needs 1 more gold/, 'and 8 on 5x5');
   assert.ok(!run.deck.includes('fresh-deal'));
   assert.equal(shopBuyBlock(run, 'fresh-deal'), 'Used');
   assert.throws(() => shopTake(run, 'fresh-deal'), /Used/);
@@ -268,10 +283,13 @@ test('the shop lists the catalogue by family or by price', () => {
     const fb = families.indexOf(b.family);
     assert.ok(fa < fb || (fa === fb && (a.cost < b.cost || (a.cost === b.cost && a.name <= b.name))), `${a.id} before ${b.id}`);
   }
-  assert.deepEqual(byType.slice(0, 3).map((c) => c.id), ['fresh-deal', 'unlock', 'long-flick'], 'within a family: price, then name');
+  assert.deepEqual(byType.slice(0, 3).map((c) => c.id), ['fresh-deal', 'unlock', 'fresh-line'], 'within a family: price, then name');
   assert.equal(CARD_BY_ID.unlock.cost, 3);
   const byPrice = shopOrder('price');
   for (let i = 1; i < byPrice.length; i++) assert.ok(byPrice[i - 1].cost < byPrice[i].cost || (byPrice[i - 1].cost === byPrice[i].cost && byPrice[i - 1].name <= byPrice[i].name));
   assert.equal(byPrice[0].cost, 3);
-  assert.equal(byPrice[byPrice.length - 1].cost, 10);
+  assert.equal(byPrice[byPrice.length - 1].cost, 12);
+  const six = shopOrder('price', 6);
+  for (let i = 1; i < six.length; i++) assert.ok(cardCost(six[i - 1], 6) <= cardCost(six[i], 6), 'by the 6x6 price');
+  assert.ok(six.findIndex((c) => c.id === 'long-haul') < six.findIndex((c) => c.id === 'double-down'), 'Long Haul is cheap on 6x6');
 });
