@@ -303,6 +303,7 @@ export function initWordMode(ctx) {
         size,
         state,
         perks: run,
+        runId: opts.runId || `${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`, // ties the levels of one run together in the stats
         startedAt: new Date().toISOString(),
         mode: opts.mode || 'free',
         level,
@@ -1217,9 +1218,12 @@ export function initWordMode(ctx) {
   // ---------------------------------------------------------------------------
   // Perk cards: the shop, playing a card, targeting on the board, the pickers
 
-  /** A card is played (it left the deck when it was bought): the run is saved and the gold shown. */
-  function spendCard() {
-    if (!perks()) return;
+  /** A card is played (it left the deck when it was bought): it joins the board's record, the run is saved and the gold shown. */
+  function spendCard(id) {
+    const run = perks();
+    if (!run) return;
+    run.played ||= [];
+    if (id && !run.played.includes(id)) run.played.push(id);
     persist();
     renderHud();
   }
@@ -1267,7 +1271,7 @@ export function initWordMode(ctx) {
       case 'choice-draw':
         return flag('choiceDraw', true, 'Choice Draw armed: your next Draw offers three letters');
       case 'power-pair':
-        return resolvePerk(id, { type: 'squares', cells: powerPairCells(st) || [] }, 'Power Pair: a Double and a Triple Letter square landed', paid);
+        return resolvePerk(id, { type: 'squares', cells: powerPairCells(st) || [], card: 'power-pair' }, 'Power Pair: a Double and a Triple Letter square landed', paid);
       case 'double-down':
         return flag('double', true, 'Double Down: your next word scores its letters twice');
       case 'stretch':
@@ -1553,6 +1557,7 @@ export function initWordMode(ctx) {
     if (!run || !amount) return;
     run.gold += amount;
     if (id && !run.deck.includes(id)) run.deck.push(id);
+    if (id && run.played) run.played = run.played.filter((x) => x !== id);
     persist();
     renderHud();
     renderGoalBar();
@@ -1771,7 +1776,7 @@ export function initWordMode(ctx) {
         doPerkAction({ type: 'unlock', cell }, { note: 'Unlocked: the tile can move again' });
         return;
       case 'triple-up':
-        doPerkAction({ type: 'squares', cells: [{ cell, mult: 3 }] }, { note: 'Triple Letter: pays when a word locks that cell' });
+        doPerkAction({ type: 'squares', cells: [{ cell, mult: 3 }], card: 'triple-up' }, { note: 'Triple Letter: pays when a word locks that cell' });
         return;
       case 'sticker':
         doPerkAction({ type: 'sticker', cell }, { note: '+5 for every word that uses that cell' });
@@ -1994,7 +1999,7 @@ export function initWordMode(ctx) {
   function startNextLevel(level, note) {
     const g = w.game;
     const run = g && g.perks && !g.perks.retry ? g.perks : null;
-    start(false, { mode: 'levels', level, size: g ? g.size : 5, perks: run, note });
+    start(false, { mode: 'levels', level, size: g ? g.size : 5, perks: run, runId: g ? g.runId : undefined, note });
   }
 
   function finish(auto = false, silent = false, advance = false) {
@@ -2061,9 +2066,16 @@ export function initWordMode(ctx) {
         at: new Date().toISOString(), seed: g.seed, drawSeed: g.drawSeed, size: g.size, score: total, bonus, mode: g.mode, level: g.level, goal: g.goal, passed,
         words: st.words.map((x) => ({ word: x.word, score: x.score })),
       };
-      if (perkGame) entry.perks = true;
+      if (g.runId) entry.runId = g.runId;
+      if (perkGame) {
+        entry.perks = true;
+        // the cards played on this board, with the points each earned (the scoring cards; the rest show none)
+        const pts = {};
+        for (const x of perkSummary(st)) pts[x.card] = x.pts;
+        entry.cards = (g.perks.played || []).map((id) => (pts[id] ? { id, pts: pts[id] } : { id }));
+      }
       store.word.history.unshift(entry);
-      store.word.history = store.word.history.slice(0, 50);
+      store.word.history = store.word.history.slice(0, 200);
     }
     store.wordGame = null;
     ctx.saveStore(store);

@@ -84,19 +84,20 @@ export function perkLabel(card) {
 
 /** The empty per-board perk record (state.perk). */
 export function emptyPerk() {
-  return { squares: {}, stickers: {}, double: false, stretch: false, crossroads: false, diagonal: false, openField: false, shortStack: false, longHaul: false, headStart: false, extraTurns: 0, choiceDraw: false, peek: false, log: [] };
+  return { squares: {}, squareCard: {}, stickers: {}, double: false, stretch: false, crossroads: false, diagonal: false, openField: false, shortStack: false, longHaul: false, headStart: false, extraTurns: 0, choiceDraw: false, peek: false, log: [] };
 }
 
 /** A new run's perk record: no gold, every card still on sale (the deck is what has not been bought); prices follow the board size. */
 export function newPerkRun(size = 5) {
   const deck = CARDS.map((c) => c.id);
-  return { size, gold: 0, deck, goldRush: false, gained: 0, levelStart: { gold: 0, deck: deck.slice() } };
+  return { size, gold: 0, deck, played: [], goldRush: false, gained: 0, levelStart: { gold: 0, deck: deck.slice() } };
 }
 
 /** A level begins: the gold and the cards still on sale are remembered for a retry of this board. */
 export function beginLevel(perks) {
   perks.goldRush = false;
   perks.gained = 0;
+  perks.played = []; // the cards played on this board, for the stats
   perks.levelStart = { gold: perks.gold, deck: perks.deck.slice() };
 }
 
@@ -290,7 +291,7 @@ const ACTION_COST = { pswap: 1, rotate: 1, setletter: 1, draw3: 1, unlock: 0, ex
  *   { type: 'slideN', axis, index, dir, steps }   the line slides steps (2 or more) steps, one turn
  *   { type: 'trade', a, b }              the letters of any two tiles change places, one turn
  *   { type: 'wildcard', cell }           one turn
- *   { type: 'squares', cells: [{ cell, mult }] }
+ *   { type: 'squares', cells: [{ cell, mult }], card }   card: the card laying them, credited when they pay
  *   { type: 'sticker', cell }            +5 for every word through the cell
  *   { type: 'flag', key, value }         double | stretch | crossroads | diagonal | openField | shortStack | longHaul | headStart | choiceDraw | peek
  *   { type: 'turns', n }                 extra turns
@@ -440,11 +441,13 @@ export function applyPerkAction(state, action) {
       break;
     }
     case 'squares': {
+      next.perk.squareCard = { ...(p.squareCard || {}) };
       for (const { cell, mult } of action.cells || []) {
         needFree(cell);
         if (state.board[cell] === WILD) throw new Error('A wild tile scores 0');
         if (mult !== 2 && mult !== 3) throw new Error('Double or triple');
         next.perk.squares[cell] = mult;
+        if (action.card) next.perk.squareCard[cell] = action.card; // so the points are credited to the card that laid it
       }
       break;
     }

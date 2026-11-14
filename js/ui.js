@@ -11,7 +11,7 @@ import { initLeaderboard, bestReachedBySize, seedReached } from './leaderboard.j
 import { openSheet, closeSheet } from './sheet.js';
 import { setSoundEnabled, audioState } from './sound.js';
 import { TURNS_BY_SIZE } from './words.js';
-import { CARDS, FAMILIES, cardText, cardCost } from './perks.js';
+import { CARDS, CARD_BY_ID, FAMILIES, cardText, cardCost } from './perks.js';
 import {
   loadStore, saveStore, newGame, currentRound, lockBid, playAction, giveUp, runningTotal, isGameOver, advanceRound,
   summarizeGame, shareLine, recordGame, findPuzzle, defaultStore,
@@ -44,6 +44,13 @@ async function boot() {
   $('#opt-numerals').checked = !!ui.store.settings.numerals;
   $('#opt-show-words').checked = !!ui.store.settings.showWords;
   $('#opt-perks').checked = !!ui.store.settings.perks;
+  for (const r of document.querySelectorAll('input[name="opt-stats"]')) {
+    r.checked = r.value === (ui.store.settings.statsLayout || 'a');
+    r.addEventListener('change', () => {
+      ui.store.settings.statsLayout = document.querySelector('input[name="opt-stats"]:checked').value;
+      saveStore(ui.store);
+    });
+  }
   $('#opt-sound').checked = ui.store.settings.sound !== false;
   setSoundEnabled(ui.store.settings.sound !== false);
   applyTheme(ui.store.settings.theme);
@@ -548,39 +555,171 @@ async function copyShare() {
   }
 }
 
-function showStats() {
-  const s = ui.store;
-  const w = s.word || { gamesPlayed: 0, best: null, history: [] };
+// ---------------------------------------------------------------------------
+// Stats: the finished boards, filtered by board size and by whether perk cards were on
+
+const stats = { size: 'all', perks: 'all', cardsSort: 'use' }; // the filter in force (C keeps one size and one mode)
+
+/** The history entries the filter keeps. */
+function statsEntries(filter = stats) {
+  const hist = (ui.store.word && ui.store.word.history) || [];
+  return hist.filter((g) => (filter.size === 'all' || (g.size === 6 ? 6 : 5) === filter.size) && (filter.perks === 'all' || !!g.perks === (filter.perks === 'on')));
+}
+
+/** The runs among some entries: boards sharing a run id (older boards, without one, count as a run each). */
+function runsOf(entries) {
+  const runs = new Map();
+  entries.forEach((g, i) => {
+    const key = g.runId || `board${i}`;
+    if (!runs.has(key)) runs.set(key, []);
+    runs.get(key).push(g);
+  });
+  return Array.from(runs.values());
+}
+
+/** The figures for a set of boards; the stored tops (which outlive the history) join in when the filter pins a size and a mode. */
+function statsSummary(entries, filter) {
+  const w = ui.store.word || {};
+  const levels = entries.filter((g) => g.mode === 'levels');
+  let top = Math.max(0, ...levels.map((g) => (g.passed ? g.level + 1 : g.level)));
+  const sizes = filter.size === 'all' ? [5, 6] : [filter.size];
+  const modes = filter.perks === 'all' ? ['', 'Perks'] : [filter.perks === 'on' ? 'Perks' : ''];
+  for (const size of sizes) for (const mode of modes) top = Math.max(top, w[`bestReached${mode}${size}`] || 0);
+  let best = Math.max(0, ...entries.map((g) => g.score));
+  if (filter.perks !== 'on') for (const size of sizes) best = Math.max(best, w[size === 6 ? 'best6' : 'best'] || 0);
+  const words = entries.reduce((a, g) => a + g.words.length, 0);
+  const bestWord = entries.flatMap((g) => g.words).sort((a, b) => b.score - a.score)[0] || null;
+  const perkBoards = entries.filter((g) => g.perks);
+  const cardUses = perkBoards.reduce((a, g) => a + ((g.cards && g.cards.length) || 0), 0);
+  return {
+    games: entries.length,
+    best: entries.length || best ? best : null,
+    avg: entries.length ? Math.round(entries.reduce((a, g) => a + g.score, 0) / entries.length) : null,
+    top: top || null,
+    wordsPerGame: entries.length ? (words / entries.length).toFixed(1) : null,
+    bestWord,
+    perkRuns: runsOf(perkBoards).length,
+    cardUses,
+  };
+}
+
+/** Every card played in some perk boards: the share of runs it was played in and its average points per use. */
+function cardRows(entries) {
+  const perkBoards = entries.filter((g) => g.perks);
+  const runs = runsOf(perkBoards);
+  const rows = new Map();
+  for (const run of runs) {
+    const seen = new Set();
+    for (const g of run) for (const c of g.cards || []) {
+      const row = rows.get(c.id) || { id: c.id, runs: 0, uses: 0, pts: 0, paid: 0 };
+      row.uses++;
+      if (c.pts) { row.pts += c.pts; row.paid++; }
+      if (!seen.has(c.id)) { seen.add(c.id); row.runs++; }
+      rows.set(c.id, row);
+    }
+  }
+  const out = Array.from(rows.values()).filter((r) => CARD_BY_ID[r.id]).map((r) => ({ ...r, name: CARD_BY_ID[r.id].name, share: runs.length ? r.runs / runs.length : 0, avg: r.paid ? r.pts / r.paid : null }));
+  if (stats.cardsSort === 'pts') out.sort((a, b) => (b.avg ?? -1) - (a.avg ?? -1) || b.share - a.share || (a.name < b.name ? -1 : 1));
+  else out.sort((a, b) => b.share - a.share || (b.avg ?? -1) - (a.avg ?? -1) || (a.name < b.name ? -1 : 1));
+  return { rows: out, runs: runs.length, boards: perkBoards.length };
+}
+
+const tile = (label, value) => `<div><span class="hud-label">${label}</span><span class="hud-value">${value ?? '–'}</span></div>`;
+const seg = (name, value, options, label) => `<div class="seg seg-small" role="radiogroup" aria-label="${label}">${options.map(([v, t]) => `<label><input type="radio" name="${name}" value="${v}"${String(v) === String(value) ? ' checked' : ''}><span>${t}</span></label>`).join('')}</div>`;
+
+/** The summary tiles, with a Cards used tile when the boards shown include perk runs. */
+function tilesHtml(sum, withCards) {
+  return `<div class="stat-summary">
+    ${tile('Games', sum.games)}
+    ${tile('Best', sum.best)}
+    ${tile('Average', sum.avg)}
+    ${tile('Top level', sum.top)}
+    ${tile('Words / game', sum.wordsPerGame)}
+    <div><span class="hud-label">Best word</span><span class="hud-value small">${sum.bestWord ? `${escapeHtml(sum.bestWord.word)} ${sum.bestWord.score}` : '–'}</span></div>
+    ${withCards ? `<button type="button" id="stats-cards-open" aria-label="Show the cards used"><span class="hud-label">Cards used</span><span class="hud-value">${sum.cardUses}</span></button>` : ''}
+  </div>`;
+}
+
+function recentHtml(entries) {
+  if (!entries.length) return '<p class="stats-empty">No boards match.</p>';
+  return `<h3>Recent games</h3><ul class="stat-list">${entries.slice(0, 40)
+    .map((g) => `<li><span>${g.size === 6 ? '6×6 · ' : ''}${g.perks ? '◆ ' : ''}${g.mode === 'levels' ? `L${g.level} ${g.passed ? '✓' : '✗'} ` : ''}${g.score}${g.goal ? ` / ${g.goal}` : ''} · ${g.words.length ? g.words.map((x) => escapeHtml(x.word)).join(', ') : 'no words'}</span><span>${new Date(g.at).toLocaleDateString()}</span></li>`)
+    .join('')}</ul>`;
+}
+
+function renderStats() {
+  const w = ui.store.word || { gamesPlayed: 0, best: null, history: [] };
   const body = $('#stats-body');
   if (!w.gamesPlayed) {
-    body.innerHTML = `<p class="hint">No games finished yet.</p>${SHOW_NUMBER_GAME && s.gamesPlayed ? `<p class="hint">Number game: ${s.gamesPlayed} played, best ${s.bestTotal}.</p>` : ''}`;
-  } else {
-    const hist = w.history || [];
-    const avg = hist.length ? Math.round(hist.reduce((a, g) => a + g.score, 0) / hist.length) : 0;
-    const wordsPlayed = hist.reduce((a, g) => a + g.words.length, 0);
-    const bestWord = hist.filter((g) => !g.perks).flatMap((g) => g.words).sort((a, b) => b.score - a.score)[0]; // card points never make a best word
-    const reached = bestReachedBySize(w);
-    body.innerHTML = `
-      <div class="stat-summary">
-        <div><span class="hud-label">Games</span><span class="hud-value">${w.gamesPlayed}</span></div>
-        <div><span class="hud-label">${w.best6 != null ? 'Best 5×5' : 'Best'}</span><span class="hud-value">${w.best ?? '–'}</span></div>
-        ${w.best6 != null ? `<div><span class="hud-label">Best 6×6</span><span class="hud-value">${w.best6}</span></div>` : ''}
-        <div><span class="hud-label">Average</span><span class="hud-value">${avg}</span></div>
-        <div><span class="hud-label">Words locked</span><span class="hud-value">${wordsPlayed}</span></div>
-        <div><span class="hud-label">Per game</span><span class="hud-value">${hist.length ? (wordsPlayed / hist.length).toFixed(1) : 0}</span></div>
-        <div><span class="hud-label">Best word</span><span class="hud-value">${bestWord ? `${escapeHtml(bestWord.word)} ${bestWord.score}` : '–'}</span></div>
-        <div><span class="hud-label">${w.best6 != null ? 'Top level 5×5' : 'Top level'}</span><span class="hud-value">${reached[5] || '–'}</span></div>
-        ${w.best6 != null ? `<div><span class="hud-label">Top level 6×6</span><span class="hud-value">${reached[6] || '–'}</span></div>` : ''}
-        ${w.bestReachedPerks5 ? `<div><span class="hud-label">Top level · perks${w.bestReachedPerks6 ? ' 5×5' : ''}</span><span class="hud-value">${w.bestReachedPerks5}</span></div>` : ''}
-        ${w.bestReachedPerks6 ? `<div><span class="hud-label">Top level · perks 6×6</span><span class="hud-value">${w.bestReachedPerks6}</span></div>` : ''}
-      </div>
-      <h3>Recent games</h3>
-      <ul class="stat-list">${hist
-        .map((g) => `<li><span>${g.size === 6 ? '6×6 · ' : ''}${g.perks ? '◆ ' : ''}${g.mode === 'levels' ? `L${g.level} ${g.passed ? '✓' : '✗'} ` : ''}${g.score}${g.goal ? ` / ${g.goal}` : ''} · ${g.words.length ? g.words.map((x) => escapeHtml(x.word)).join(', ') : 'no words'}</span><span>${new Date(g.at).toLocaleDateString()}</span></li>`)
-        .join('')}</ul>
-    `;
+    body.innerHTML = '<p class="hint">No games finished yet.</p>';
+    return;
   }
+  const layout = ui.store.settings.statsLayout || 'a';
+  const hist = w.history || [];
+  const anyPerks = hist.some((g) => g.perks);
+  let html = '';
+  if (layout === 'a') {
+    // A: two filter rows above the figures
+    html += `<div class="stats-filters">${seg('stats-size', stats.size, [['all', 'All sizes'], [5, '5×5'], [6, '6×6']], 'Board size')}${seg('stats-perks', stats.perks, [['all', 'All games'], ['off', 'No cards'], ['on', 'Perk cards']], 'Perk cards')}</div>`;
+  } else if (layout === 'b') {
+    // B: a tab per mode, the size underneath
+    html += `<div class="stats-tabs" role="tablist">${[['all', 'All games'], ['off', 'Without cards'], ['on', 'With cards']].map(([v, t]) => `<button type="button" role="tab" data-perks="${v}" class="${stats.perks === v ? 'active' : ''}" aria-selected="${stats.perks === v}">${t}</button>`).join('')}</div>`;
+    html += `<div class="stats-sizes"><span class="hud-label">Board</span>${seg('stats-size', stats.size, [['all', 'All'], [5, '5×5'], [6, '6×6']], 'Board size')}</div>`;
+  } else {
+    // C: a grid of the four combinations; one is open below
+    if (stats.size === 'all') stats.size = 5;
+    if (stats.perks === 'all') stats.perks = 'off';
+    const counts = {};
+    for (const size of [5, 6]) for (const perks of ['off', 'on']) counts[`${size}${perks}`] = statsSummary(statsEntries({ size, perks }), { size, perks });
+    if (!counts[`${stats.size}${stats.perks}`].games) {
+      const first = Object.entries(counts).find(([, v]) => v.games);
+      if (first) { stats.size = Number(first[0].slice(0, 1)); stats.perks = first[0].slice(1); }
+    }
+    const cell = (size, perks) => { const c = counts[`${size}${perks}`]; const active = stats.size === size && stats.perks === perks; return `<button type="button" class="cell${active ? ' active' : ''}" data-size="${size}" data-perks="${perks}" ${c.games ? '' : 'disabled'} aria-pressed="${active}"><span class="big">${c.games}</span><small>${c.games ? `best ${c.best} · level ${c.top || '–'}` : 'no games'}</small></button>`; };
+    html += `<div class="stats-grid"><span class="corner">Games</span><span class="col">5×5</span><span class="col">6×6</span><span class="row">No cards</span>${cell(5, 'off')}${cell(6, 'off')}<span class="row">Perk cards</span>${cell(5, 'on')}${cell(6, 'on')}</div>`;
+  }
+  const entries = statsEntries();
+  const sum = statsSummary(entries, stats);
+  const withCards = stats.perks !== 'off' && entries.some((g) => g.perks);
+  html += tilesHtml(sum, withCards);
+  html += recentHtml(entries);
+  if (!anyPerks && layout !== 'c') html = html.replace(/<div class="seg seg-small" role="radiogroup" aria-label="Perk cards">[\s\S]*?<\/div>/, ''); // nothing to filter by yet
+  body.innerHTML = html;
+  for (const r of body.querySelectorAll('input[name="stats-size"]')) r.addEventListener('change', () => { stats.size = r.value === 'all' ? 'all' : Number(r.value); renderStats(); });
+  for (const r of body.querySelectorAll('input[name="stats-perks"]')) r.addEventListener('change', () => { stats.perks = r.value; renderStats(); });
+  for (const b of body.querySelectorAll('.stats-tabs button')) b.addEventListener('click', () => { stats.perks = b.dataset.perks; renderStats(); });
+  for (const b of body.querySelectorAll('.stats-grid button.cell')) b.addEventListener('click', () => { stats.size = Number(b.dataset.size); stats.perks = b.dataset.perks; renderStats(); });
+  for (const b of body.querySelectorAll('#stats-cards-open')) b.addEventListener('click', openStatsCards);
+}
+
+function showStats() {
+  renderStats();
   openSheet($('#stats'));
+}
+
+/** The popup: every card played in the boards on show. */
+function openStatsCards() {
+  renderStatsCards();
+  $('#stats-cards').hidden = false;
+  $('#stats-cards-close').focus();
+}
+
+function renderStatsCards() {
+  const { rows, runs, boards } = cardRows(statsEntries());
+  const size = stats.size === 'all' ? '' : ` on ${stats.size}×${stats.size}`;
+  $('#stats-cards-sub').textContent = `${runs} run${runs === 1 ? '' : 's'} with cards${size} · ${boards} board${boards === 1 ? '' : 's'}`;
+  const list = $('#stats-cards-list');
+  if (!rows.length) {
+    list.innerHTML = '<p class="stats-empty">No cards played yet.</p>';
+    return;
+  }
+  list.innerHTML = rows
+    .map((r) => `<div class="stats-card"><span class="name">${escapeHtml(r.name)}</span><span class="bar"><i style="width:${Math.round(100 * r.share)}%"></i></span><span class="use">${Math.round(100 * r.share)}% of runs · ${r.uses} use${r.uses === 1 ? '' : 's'}</span><span class="pts${r.avg === null ? ' none' : ''}">${r.avg === null ? '–' : `+${r.avg.toFixed(1)}`}<small>${r.avg === null ? 'no points' : 'per use'}</small></span></div>`)
+    .join('');
+}
+
+function closeStatsCards() {
+  $('#stats-cards').hidden = true;
 }
 
 /** The reset sheet: wipe the device, and choose whether the leaderboard name goes with it. */
@@ -686,6 +825,14 @@ function wireEvents() {
   $('#btn-stats-done').addEventListener('click', () => closeSheet($('#stats')));
   $('#stats').addEventListener('click', (e) => {
     if (e.target === $('#stats')) closeSheet($('#stats'));
+  });
+  $('#stats-cards-close').addEventListener('click', closeStatsCards);
+  $('#stats-cards').addEventListener('click', (e) => {
+    if (e.target === $('#stats-cards')) closeStatsCards();
+  });
+  for (const r of document.querySelectorAll('input[name="stats-cards-sort"]')) r.addEventListener('change', () => { stats.cardsSort = r.value; renderStatsCards(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !$('#stats-cards').hidden) closeStatsCards();
   });
   $('#help').addEventListener('click', (e) => {
     if (e.target === $('#help')) closeHelp();
