@@ -5,7 +5,7 @@ import { CELLS, idx } from '../js/engine.js';
 import {
   dealLetters, createWordState, applyWordAction, findWords, lockWord, scoreWord, nudgeLetter, wordLines, parseDictionary,
   bagTotal, LETTER_COUNTS, WILD, wordShareLine, slideMoves, isPluralPair, findWordAt, coverageBonus, finalScore, shortfallPenalty, WORD_TURNS, sameWordInflected,
-  fullCoverTurnBonus, isBoardFull, projectedScore, turnLimit, TURNS_BY_SIZE,
+  fullCoverTurnBonus, isBoardFull, projectedScore, turnLimit, TURNS_BY_SIZE, isCommonWord,
 } from '../js/words.js';
 
 const dict = parseDictionary(readFileSync(new URL('../data/words.txt', import.meta.url), 'utf8'));
@@ -14,14 +14,27 @@ function boardFrom(rows) {
   return rows.join('').split('');
 }
 
-test('dictionary loads with 3 to 6 letter words only, most common first, modern words in, rarities out', () => {
-  assert.ok(dict.size > 19000 && dict.size < 23000, String(dict.size));
+test('dictionary: the whole of ENABLE (3 to 6 letters) plus modern words, the common tier first, rarities accepted but rare', () => {
+  assert.ok(dict.size > 28000 && dict.size < 31000, String(dict.size));
   for (const w of dict.keys()) assert.ok(w.length >= 3 && w.length <= 6 && /^[A-Z]+$/.test(w));
   assert.ok(dict.has('CAT') && dict.has('QUIZ') && dict.has('TONE') && dict.has('LETTER'));
   assert.ok(dict.has('VAPE') && dict.has('SELFIE') && dict.has('EMOJI'), 'modern words');
-  assert.ok(!dict.has('ANOPIA') && !dict.has('ABMHOS'), 'rarities pruned');
+  assert.ok(dict.has('ENMESH') && dict.has('EPEE') && dict.has('ABMHOS'), 'every ENABLE word is accepted');
   assert.ok(!dict.has('AA') && !dict.has('LETTERS'));
-  assert.ok(dict.get('THE') < dict.get('CAT') && dict.get('CAT') < dict.get('QUIZ'), 'ranked by everyday frequency');
+  assert.ok(dict.common > 19000 && dict.common < 23000, String(dict.common));
+  assert.ok(isCommonWord(dict, 'CAT') && isCommonWord(dict, 'SELFIE') && !isCommonWord(dict, 'ABMHOS') && !isCommonWord(dict, 'ENMESH'), 'the common tier is the everyday list');
+  assert.ok(dict.get('THE') < dict.get('CAT') && dict.get('CAT') < dict.get('QUIZ') && dict.get('QUIZ') < dict.get('ENMESH'), 'ranked by everyday frequency, rare words after');
+  assert.equal(isCommonWord(dict, 'NOTAWORD'), false);
+});
+
+test('a "#rare" line splits the tiers; without one every word is common', () => {
+  const two = parseDictionary('CAT\nDOG>DOG\n#rare\nZAX\n# a comment\nQOPH\n');
+  assert.equal(two.size, 4);
+  assert.equal(two.common, 2);
+  assert.ok(isCommonWord(two, 'DOG') && !isCommonWord(two, 'ZAX') && !isCommonWord(two, 'QOPH'));
+  const one = parseDictionary('CAT\nZAX\n');
+  assert.equal(one.common, 2);
+  assert.ok(isCommonWord(one, 'ZAX'));
 });
 
 test('deal: 25 letters plus a 73-tile bag, Scrabble distribution, deterministic; 6x6 deals 36 and leaves 62', () => {

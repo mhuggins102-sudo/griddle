@@ -38,6 +38,13 @@ run, a daily grid's post sits in the player's outbox and is retried later (the p
   counted; a reset that keeps the leaderboard name keeps the daily grids played; the rulebook's "Watch the
   tutorial" passes the saved game's mode.
 
+- Word list: the whole of ENABLE (28,743 words of 3 to 6 letters, the public-domain stand-in for the
+  Scrabble dictionary) plus the modern supplement is now accepted, in two tiers in `data/words.txt`: the
+  common tier first (exactly the old list, most common first), then a `#rare` line and the rest. The bot
+  (which sets level goals) and `isCommonWord` use the common tier only, so goals are unchanged; players
+  can lock any listed word. Rebuild with `node tools/build-words.js --sources .scratch/dict` (sources are
+  downloaded with curl when missing).
+
 ## The two background checks (stopped before every finding was verified)
 
 Both ran as workflows: readers produced findings, then three independent refuters voted on each. All

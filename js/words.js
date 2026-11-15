@@ -11,7 +11,7 @@ export { MIN_WORD, gridOf, gridOfState };
 
 export const WILD = '*';
 /** Bump when data/words.txt changes: it is part of the fetch URL, so browsers never keep a stale list. */
-export const DICT_VERSION = '2026-11-02-lemma2';
+export const DICT_VERSION = '2026-11-15-enable-full';
 export const SIZES = [5, 6];
 export const MAX_WORD = 6;
 /** Turns per board size. WORD_TURNS is the 5x5 value, kept for callers that assume it. */
@@ -506,14 +506,27 @@ export function describeWordCells(cells, size = 5) {
 export function parseDictionary(text) {
   const dict = new Map();
   dict.lemma = new Map();
+  dict.common = null; // the rank where the rare tier starts (a "#rare" line in the file); null until seen, then every word before it is common
   for (const line of text.split(/\r?\n/)) {
-    const [word, lemmaPart] = line.trim().toUpperCase().split('>');
+    const trimmed = line.trim();
+    if (trimmed.startsWith('#')) {
+      if (trimmed.toLowerCase() === '#rare' && dict.common === null) dict.common = dict.size;
+      continue;
+    }
+    const [word, lemmaPart] = trimmed.toUpperCase().split('>');
     const w = (word || '').trim();
     if (w.length < MIN_WORD || w.length > MAX_WORD || !/^[A-Z]+$/.test(w) || dict.has(w)) continue;
     dict.set(w, dict.size);
     if (lemmaPart) dict.lemma.set(w, lemmaPart.split('/').map((l) => l.trim()).filter((l) => /^[A-Z]+$/.test(l)));
   }
+  if (dict.common === null) dict.common = dict.size; // no rare tier: every word is common
   return dict;
+}
+
+/** Whether a word belongs to the dictionary's common tier (everyday words); rare Scrabble words are accepted from a player but not played by the bot. */
+export function isCommonWord(dict, word) {
+  const rank = dict.get(word);
+  return rank !== undefined && (dict.common == null || rank < dict.common);
 }
 
 /** "GridLock 87 (QUIZ 25, TONE 9, ...)" */
