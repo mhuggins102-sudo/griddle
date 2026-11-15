@@ -1038,7 +1038,8 @@ svg { display: block; }
 .hint.bad { color: var(--danger); }
 .lb-controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 8px; }
 .lb-controls .seg { flex: 1 1 0; min-width: 0; }
-.lb-controls .seg.lb-kind { flex-basis: 100%; } /* size and perk cards share the first row; high scores / top level take the second */
+.lb-controls .seg.lb-kind { flex-basis: 100%; } /* daily / high scores / top level take the first row; size and perk cards (or the day) share the second */
+#resume .sheet-foot { display: grid; grid-template-columns: 1fr; gap: 8px; }
 .lb-controls .seg span { padding: 0 6px; white-space: nowrap; }
 .lb-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .lb-list li { display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 10px; min-height: 36px; padding: 3px 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); font-size: 15px; }

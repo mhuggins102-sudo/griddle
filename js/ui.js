@@ -122,45 +122,78 @@ function showHome() {
   $('#btn-continue').hidden = !ui.store.currentGame;
   const s = ui.store;
   const g = s.wordGame;
-  // a game in progress takes the primary slot; Multi Round steps down to secondary
-  $('#btn-word-continue').hidden = !g;
-  $('#btn-word').classList.toggle('btn-primary', !g);
-  $('#btn-word .btn-sub').textContent = s.settings.perks ? 'Levels with a goal to beat · perk cards' : 'Levels with a goal to beat';
-  if (g && g.state) {
-    const size = g.size || Math.round(Math.sqrt(g.state.board.length));
-    const lim = (TURNS_BY_SIZE[size] || 20) + ((g.state.perk && g.state.perk.extraTurns) || 0);
-    const turn = Math.min((g.state.turns || 0) + 1, lim);
-    const perks = g.perks && !g.perks.retry ? ` · ◆ ${g.perks.gold}` : '';
-    const what = g.mode === 'levels' ? `Level ${g.level || 1}` : g.mode === 'daily' ? 'Daily grid' : 'Single Round';
-    $('#continue-sub').textContent = `${size === 6 ? '6×6 · ' : ''}${what} · turn ${turn} of ${lim} · ${g.state.score || 0} points${perks}${g.practice && g.mode !== 'daily' ? ' · practice' : ''}`;
-  }
-  // the daily grid: today's size on the button; once played (or given up) it waits for tomorrow
+  // the mode with a game in progress takes the primary slot and says so under its name; pressing it offers
+  // to continue or start over (Multi Round is primary when nothing is in progress)
+  const live = g && g.state ? g.mode : null;
+  $('#btn-word').classList.toggle('btn-primary', !live || live === 'levels');
+  $('#btn-free').classList.toggle('btn-primary', live === 'free');
+  $('#btn-daily').classList.toggle('btn-primary', live === 'daily');
+  $('#word-sub').textContent = live === 'levels' ? `${describeSaved(g)} · Continue` : s.settings.perks ? 'Levels with a goal to beat · perk cards' : 'Levels with a goal to beat';
+  $('#free-sub').textContent = live === 'free' ? `${describeSaved(g)} · Continue` : 'One board, no goal';
+  // the daily grid: once played (or given up) it waits for tomorrow; in progress, the button carries on
   const today = dailyKey();
-  const spec = dailySpec(today);
   const done = s.word && s.word.daily && s.word.daily.day === today ? s.word.daily : null;
-  const inPlay = g && g.mode === 'daily' && g.daily === today;
+  const inPlay = live === 'daily' && g.daily === today;
   $('#btn-daily').disabled = !!done && !inPlay;
-  $('#daily-sub').textContent = inPlay ? `${spec.size}×${spec.size} · in progress` : done ? (done.abandoned ? 'Given up today · back tomorrow' : `Played today: ${done.score} points · back tomorrow`) : `${spec.size}×${spec.size} today · the same board for everyone · one go`;
+  $('#daily-sub').textContent = inPlay ? `${describeSaved(g)} • Continue` : done ? (done.abandoned ? 'Given up today • Back tomorrow' : `Played today: ${done.score} points • Back tomorrow`) : 'Same for everyone • One try';
   showScreen('screen-home'); // the figures live on the Stats screen
   if (!g && ui.word) ui.word.prefetch(1, boardSize()); // a new run's first board is chosen while the player is here
 }
 
-/**
- * Before a new board replaces the saved game: the player confirms, and a daily grid given up counts as the
- * day's one go (so it cannot be restarted for a better run). Returns false when the player keeps the game.
- */
-function abandonSaved(what) {
+const MODE_NAMES = { levels: 'Multi Round', free: 'Single Round', daily: 'Daily Grid' };
+
+/** A saved game in a line: size, where it stands, the score, the gold, practice. */
+function describeSaved(g) {
+  const size = g.size || Math.round(Math.sqrt(g.state.board.length));
+  const lim = (TURNS_BY_SIZE[size] || 20) + ((g.state.perk && g.state.perk.extraTurns) || 0);
+  const turn = Math.min((g.state.turns || 0) + 1, lim);
+  const perks = g.perks && !g.perks.retry ? ` · ◆ ${g.perks.gold}` : '';
+  const where = g.mode === 'levels' ? `Level ${g.level || 1} · ` : g.replay ? 'Replay · ' : '';
+  return `${size === 6 ? '6×6 · ' : ''}${where}turn ${turn} of ${lim} · ${g.state.score || 0} points${perks}${g.practice && g.mode !== 'daily' ? ' · practice' : ''}`;
+}
+
+/** Start a fresh game of a mode; the saved game, if any, is gone by now. */
+function startMode(mode) {
+  ui.store.wordGame = null;
+  if (mode === 'levels') ui.word.start(false, { mode: 'levels', level: 1, size: boardSize() });
+  else if (mode === 'daily') ui.word.start(false, { mode: 'daily' });
+  else ui.word.start(false, { mode: 'free', size: boardSize() });
+}
+
+/** The saved game is given up for another: a daily grid given up counts as the day's one try (it cannot be restarted for a better run). */
+function giveUpSaved() {
   const g = ui.store.wordGame;
-  if (!g) return true;
-  const daily = g.mode === 'daily' && g.daily;
-  if (!confirm(daily ? `Give up today's grid and start ${what}? The daily counts as played.` : `Abandon the game in progress and start ${what}?`)) return false;
-  if (daily) {
+  if (g && g.mode === 'daily' && g.daily) {
     ui.store.word ||= { gamesPlayed: 0, best: null, history: [] };
     ui.store.word.daily = { day: g.daily, size: g.size, score: null, abandoned: true, at: new Date().toISOString() };
   }
   ui.store.wordGame = null;
   saveStore(ui.store);
-  return true;
+}
+
+let resumeChoice = null; // the mode the player pressed while a game was saved
+
+/**
+ * A mode button was pressed. With nothing saved the game starts; today's daily grid in progress simply
+ * carries on (it is one try, never restarted); otherwise a sheet offers to continue the saved game or to
+ * start the chosen one instead.
+ */
+function chooseMode(mode) {
+  const g = ui.store.wordGame;
+  if (!g || !g.state) return startMode(mode);
+  if (mode === 'daily' && g.mode === 'daily' && g.daily === dailyKey()) return ui.word.start(true);
+  const saved = MODE_NAMES[g.mode] || 'Game';
+  const dailySaved = g.mode === 'daily' && g.daily;
+  resumeChoice = mode;
+  $('#resume-title').textContent = `${saved} in progress`;
+  $('#resume-detail').textContent = describeSaved(g) + (dailySaved && g.daily !== dailyKey() ? ` · ${g.daily}` : '') + (dailySaved ? '. Giving it up counts as that day\'s try.' : '');
+  $('#btn-resume-continue').textContent = `Continue ${saved}`;
+  $('#btn-resume-new').textContent = mode === g.mode ? (mode === 'levels' ? 'Start a new run' : mode === 'daily' ? "Start today's grid" : 'Start a new board') : `Start ${MODE_NAMES[mode]} instead`;
+  openSheet($('#resume'));
+}
+
+function closeResume() {
+  closeSheet($('#resume'));
 }
 
 function startNewGame() {
@@ -789,21 +822,23 @@ function wireEvents() {
     startNewGame();
   });
   $('#btn-continue').addEventListener('click', continueGame);
-  $('#btn-word').addEventListener('click', () => {
-    if (!abandonSaved('a Multi Round')) return;
-    ui.word.start(false, { mode: 'levels', level: 1, size: boardSize() });
+  $('#btn-word').addEventListener('click', () => chooseMode('levels'));
+  $('#btn-free').addEventListener('click', () => chooseMode('free'));
+  $('#btn-daily').addEventListener('click', () => chooseMode('daily'));
+  $('#btn-resume-continue').addEventListener('click', () => {
+    closeResume();
+    ui.word.start(true);
   });
-  $('#btn-free').addEventListener('click', () => {
-    if (!abandonSaved('a Single Round')) return;
-    ui.word.start(false, { mode: 'free', size: boardSize() });
+  $('#btn-resume-new').addEventListener('click', () => {
+    const mode = resumeChoice;
+    closeResume();
+    giveUpSaved();
+    if (mode) startMode(mode);
   });
-  $('#btn-daily').addEventListener('click', () => {
-    const g = ui.store.wordGame;
-    if (g && g.mode === 'daily' && g.daily === dailyKey()) return ui.word.start(true); // today's grid is the saved game: carry on
-    if (!abandonSaved("today's grid")) return;
-    ui.word.start(false, { mode: 'daily' });
+  $('#btn-resume-close').addEventListener('click', closeResume);
+  $('#resume').addEventListener('click', (e) => {
+    if (e.target === $('#resume')) closeResume();
   });
-  $('#btn-word-continue').addEventListener('click', () => ui.word.start(true));
   $('#btn-help-home').addEventListener('click', openHelp);
   $('#btn-help-round').addEventListener('click', openHelp);
   $('#btn-help-close').addEventListener('click', closeHelp);
