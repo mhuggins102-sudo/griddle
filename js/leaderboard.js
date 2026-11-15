@@ -165,7 +165,7 @@ export function initLeaderboard(ctx) {
   const nameSheet = $('#lb-name');
   const configured = !!(SUPABASE_URL && SUPABASE_KEY);
   const base = String(SUPABASE_URL).replace(/\/+$/, '');
-  const view = { size: 5, kind: 'score', perks: false, day: 'today', fixedDay: null, loadToken: 0 }; // fixedDay: one day's grid alone, from the result card
+  const view = { size: 5, kind: 'daily', perks: false, day: 'today', fixedDay: null, loadToken: 0 }; // fixedDay: one day's grid alone, from the result card
   let flushing = null;
   let promptTimer = null;
 
@@ -446,6 +446,8 @@ export function initLeaderboard(ctx) {
 
   function open() {
     view.fixedDay = null;
+    view.kind = 'daily'; // from the home screen the sheet opens on today's daily grid
+    view.day = 'today';
     if (ctx.boardSize) view.size = ctx.boardSize() === 6 ? 6 : 5; // the board chosen on the home screen
     if (ctx.perksOn) view.perks = !!ctx.perksOn(); // and the perk cards setting as it stands
     $(`#lb-size-${view.size}`).checked = true;
