@@ -182,6 +182,7 @@ svg { display: block; }
 .logo-row:last-child .logo-tile:nth-child(2) { --tilt: -2deg; }
 .logo-row:last-child .logo-tile:nth-child(4) { --tilt: 2deg; }
 .tagline { margin: 0 auto; color: var(--muted); font-size: 17px; max-width: 34ch; text-align: center; }
+.tagline span { display: block; white-space: nowrap; } /* one sentence per line */
 .home-buttons { display: flex; flex-direction: column; gap: 10px; }
 .btn-big { min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 8px 16px; }
 .btn-big .btn-main { font-size: 18px; font-weight: 700; }
@@ -198,8 +199,7 @@ svg { display: block; }
 .toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; cursor: pointer; }
 .toggle + .toggle { border-top: 1px solid var(--line); }
 .toggle small { display: block; color: var(--muted); font-size: 12.5px; }
-.toggle.toggle-sub { padding-left: 18px; min-height: 46px; } /* a sub-option of the switch above */
-.toggle.toggle-sub.off { opacity: 0.45; }
+.toggle.toggle-sub { padding-left: 18px; min-height: 46px; } /* a sub-option of the switch above, shown only while that switch is on */
 .switch {
   appearance: none;
   -webkit-appearance: none;
@@ -1290,3 +1290,47 @@ button.rs-tile:active { background: var(--line); }
 .card-dialog-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; }
 .card-dialog-foot .mk-why { font-size: 12.5px; color: var(--muted); }
 .card-dialog-foot .btn { margin-left: auto; }
+
+/* ===========================================================================
+   Wild appearance: a playful look chosen in the settings (candy colours, a rounded face, chunky tiles) */
+:root[data-theme="wild"] {
+  color-scheme: light;
+  --bg: #ffe9f3;
+  --panel: #ffffff;
+  --tray: #ffd3e6;
+  --ink: #3a1140;
+  --muted: #8a5a93;
+  --line: #f3b6d2;
+  --tile: #fff8e1;
+  --tile-edge: #f7a8c9;
+  --tile-ink: #3a1140;
+  --tile-val: #a04fa8;
+  --pip: #3a1140;
+  --accent: #ff2d8a;
+  --accent-ink: #ffffff;
+  --select: #00b8d9;
+  --target: #ffb703;
+  --region: #8c6bd6;
+  --ok: #0aa37a;
+  --ok-bg: #d9f7ea;
+  --locked: #bff2dc;
+  --locked-edge: #2fcf96;
+  --wild: #e9d6ff;
+  --wild-edge: #b388ff;
+  --no-bg: #fff0f6;
+  --danger: #ff5a36;
+  --gold: #b8860b;
+  --gold-bg: #fff2b8;
+  --sq2: #00b8d9;
+  --sq3: #ff5a36;
+  --radius: 20px;
+  --tile-radius: 14px;
+  --shadow: 0 2px 0 rgba(58, 17, 64, 0.1), 0 8px 20px rgba(255, 45, 138, 0.14);
+}
+:root[data-theme="wild"] body { font-family: "Fredoka", "Baloo 2", "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+:root[data-theme="wild"] .btn, :root[data-theme="wild"] .seg, :root[data-theme="wild"] .seg span { border-radius: 999px; }
+:root[data-theme="wild"] .btn-big { border-radius: 24px; }
+:root[data-theme="wild"] .tile { box-shadow: 0 4px 0 var(--tile-edge); }
+:root[data-theme="wild"] .tile.locked { box-shadow: 0 4px 0 var(--locked-edge); }
+:root[data-theme="wild"] .logo-tile:nth-child(odd) { transform: rotate(-4deg); }
+:root[data-theme="wild"] .logo-tile:nth-child(even) { transform: rotate(3deg); }
