@@ -199,6 +199,8 @@ test('a locked word cannot be extended with an ending on the same tiles, but a d
   assert.deepEqual(dict.lemma.get('VAPES'), ['VAPE'], 'modern words carry their own lemmas');
   assert.ok(sameWordInflected('VAPE', 'VAPES', dict) && sameWordInflected('VAPING', 'VAPE', dict) && sameWordInflected('EMOJIS', 'EMOJI', dict));
   assert.ok(!sameWordInflected('CAR', 'CARS', parseDictionary('CAR\nCARS')), 'nothing is guessed from spelling without a lemma');
+  assert.ok(!sameWordInflected('LIVE', 'LIVER', dict) && !sameWordInflected('MAT', 'MATTER', dict) && !sameWordInflected('NUMB', 'NUMBER', dict) && !sameWordInflected('TOKE', 'TOKEN', dict), 'a headword in its own right is not an ending of a shorter word');
+  assert.ok(sameWordInflected('LIVE', 'LIVES', dict) && sameWordInflected('LOCK', 'LOCKED', dict) && sameWordInflected('WORK', 'WORKS', dict), 'plain forms still are');
   assert.ok(!sameWordInflected('PLAY', 'PLAYER', dict) && !sameWordInflected('CAR', 'CARROT', dict) && !sameWordInflected('HER', 'HERRING', dict), 'derived and containing words are different words');
   const board = boardFrom(['DOORS', 'XXXXX', 'DOORS', 'XXXXX', 'XXXXX']);
   let s = createWordState(board, {});
