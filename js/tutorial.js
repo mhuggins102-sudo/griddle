@@ -1,10 +1,12 @@
-// Step-by-step tutorial: an intro, one page per move and two on scoring, each with a worked example
-// on a small board of the game's own size, animated with the game's tile animations and sounds.
-// The move's result is outlined once it lands. Pure DOM; opened from the in-game help button.
+// Step-by-step tutorial: an intro, one page per move, two on scoring and, when perk cards are on, one on
+// gold and the shop, each with a worked example on a small board of the game's own size, animated with
+// the game's tile animations and sounds. The move's result is outlined once it lands. Pure DOM; opened
+// from the in-game help button.
 
 import { ANIM_MS, wait, buildBoardSkeleton, tileIn, animateAction, beginMoves, removeGhosts, clearTileEffects } from './board.js';
 import { createWordState, slideMoves, applyWordAction, letterValue, scoreWord, LENGTH_BONUS, COVERAGE_LADDER, TURNS_BY_SIZE, FULL_COVER_TURN_BONUS, WILD_COST } from './words.js';
 import { GOAL_START_PERCENT, GOAL_STEP_PERCENT, GOAL_SCHEDULE } from './wordbot.js';
+import { CARDS, cardCost } from './perks.js';
 import { play, unlockAudio } from './sound.js';
 import { openSheet, closeSheet } from './sheet.js';
 
@@ -82,11 +84,11 @@ export function initTutorial() {
     for (const c of cells) tileEl(c).classList.add('demo-word');
   }
 
-  function floatAt(cell, text) {
+  function floatAt(cell, text, cls = 'good') {
     const tr = tileEl(cell).getBoundingClientRect();
     const wr = wrapEl.getBoundingClientRect();
     const el = document.createElement('span');
-    el.className = 'float good';
+    el.className = `float ${cls}`;
     el.textContent = text;
     el.style.left = `${tr.left - wr.left + tr.width / 2}px`;
     el.style.top = `${tr.top - wr.top + tr.height / 2}px`;
@@ -99,6 +101,18 @@ export function initTutorial() {
     const run = ++runId;
     const alive = () => run === runId && !sheet.hidden;
     render(rowsToBoard(page.rows), { locked: page.locked || [], outline: page.outline || [] });
+    if (page.demo === 'gold') {
+      // a level passed with turns to spare: the gold it earns floats up, again and again
+      const cells = size * size;
+      for (;;) {
+        await wait(900);
+        if (!alive()) return;
+        play('lock');
+        floatAt(Math.floor(cells / 2), `◆ +${page.gold}`, 'gold');
+        await wait(2400);
+        if (!alive()) return;
+      }
+    }
     if (!page.ex) return;
     for (let loop = 0; alive(); loop++) {
       if (loop > 0) render(rowsToBoard(page.rows)); // back to the starting board
@@ -173,6 +187,15 @@ export function initTutorial() {
     const lettersSum = lockEx.cells.reduce((a, c) => a + letterValue(lockBoard[c]), 0);
     const firstRung = Math.min(...Object.keys(COVERAGE_LADDER[n]).map(Number));
     const manyLocked = Array.from({ length: cells }, (_, i) => i).filter((i) => i !== 0 && i !== cells - 1 && i !== Math.floor(cells / 2));
+    const costs = CARDS.map((c) => cardCost(c, n));
+    const perkPage = {
+      title: 'Perk cards',
+      demo: 'gold',
+      gold: 3,
+      rows: lockEx.rows,
+      locked: lockEx.cells,
+      html: `<p><strong>Perk cards</strong> are on. Every turn you have to spare when a level's goal is reached is one <strong>gold</strong> (◆): pass with 3 turns left and you earn 3. The gold button in the header opens the <strong>shop</strong> at any time.</p><p>Each card is bought once per run, for ${Math.min(...costs)} to ${Math.max(...costs)} gold, and is played the moment you buy it. A card that changes the board or its letters still costs that turn; Tempo cards add turns; scoring cards add points, shown on their own line of the result card.</p>`,
+    };
     const goalLine = opts.mode === 'levels'
       ? `<p>This is a <strong>level run</strong>: reach the goal score and the level is passed at once${opts.goal ? ` (this board's goal is <strong>${opts.goal}</strong>)` : ''}. Run out of turns below it and the run ends.</p>`
       : '<p>This is <strong>free play</strong>: no goal, just score as much as you can before the turns run out.</p>';
@@ -200,6 +223,7 @@ export function initTutorial() {
         locked: manyLocked,
         html: `<p>From the <strong>${firstRung}th locked tile</strong> the bonus climbs by 1, 3, 5, 7… per tile: the tiles past ${firstRung - 1}, squared (${ladderText(n)}). Lock all ${cells} with turns to spare and each spare turn adds +${FULL_COVER_TURN_BONUS}. The board here has ${manyLocked.length} locked: +${COVERAGE_LADDER[n][manyLocked.length] || 0}.</p><p>In a level run the goal is fixed by the level: ${GOAL_SCHEDULE[n].start} at level 1 and ${GOAL_SCHEDULE[n].step} more each level, with no ceiling. Each board is chosen to fit its goal: a bot plays a few candidates and the one kept is the board whose word points make the goal ${GOAL_START_PERCENT}% of them at level 1 and ${GOAL_STEP_PERCENT} points more each level. Your fill bonuses count toward the goal, so crossing words through locked tiles to cover the board is what carries a run.</p>`,
       },
+      ...(opts.perks ? [perkPage] : []), // the mode's own page, last
     ];
   }
 
@@ -233,7 +257,7 @@ export function initTutorial() {
     text.style.height = `${max}px`;
   }
 
-  /** Open the tutorial for a board size; opts: { mode: 'levels'|'free', goal } from the game in play. */
+  /** Open the tutorial for a board size; opts: { mode: 'levels'|'free', goal, perks } from the game in play (perks adds the perk cards page). */
   function open(n, opts = {}) {
     unlockAudio();
     size = TURNS_BY_SIZE[n] ? n : 5;

@@ -779,14 +779,32 @@ function wireEvents() {
   $('#btn-help-done').addEventListener('click', closeHelp);
   $('#btn-help-tutorial').addEventListener('click', () => {
     closeHelp();
-    ui.tutorial.open(boardSize(), {});
+    ui.tutorial.open(boardSize(), { perks: !!ui.store.settings.perks }); // the perk page when the setting is on
   });
-  // the rules read as chapters: opening one closes the others
+  // the rules read as chapters: opening one closes the others, and its title snaps to the top of the sheet
   const chapters = document.querySelectorAll('#help .chapter');
+  const chapterWrap = $('#help .chapters');
   for (const d of chapters) {
     d.addEventListener('toggle', () => {
-      if (!d.open) return;
+      if (!d.open) {
+        chapterWrap.style.paddingBottom = '';
+        return;
+      }
       for (const o of chapters) if (o !== d) o.open = false;
+      requestAnimationFrame(() => {
+        const sc = $('#help .sheet-scroll');
+        // room under the last chapters, just enough for the opened title to reach the top
+        let after = 0;
+        let seen = false;
+        for (const o of chapters) {
+          if (o === d) seen = true;
+          else if (seen) after += o.offsetHeight;
+        }
+        chapterWrap.style.paddingBottom = `${Math.max(0, sc.clientHeight - d.offsetHeight - after - 10)}px`;
+        const top = d.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 10;
+        const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        sc.scrollTo({ top: Math.max(0, top), behavior: reduce ? 'auto' : 'smooth' });
+      });
     });
   }
   $('#btn-settings').addEventListener('click', () => openSheet($('#settings')));
