@@ -4,9 +4,12 @@
 //   flick a row or column         -> slide (a long drag along the line slides too)
 //   press and hold a tile         -> menu: nudge down, nudge up, draw, wild (locked tiles)
 //   tap the first and last letter -> lock the word between them
-// Modes: levels (a bot sets a goal score per board; pass to advance) and free play (no goal).
+// Modes: levels (Multi Round: a fixed goal per board, pass to advance), free (Single Round: one board, no goal)
+// and daily (the Daily grid: one board a day, the same for everyone, one go). Practice mode (a setting) lists
+// the words on the board and offers Undo; a practice board is not counted. The daily grid ignores it.
 
 import { randomSeed } from './rng.js';
+import { dailyKey, dailySpec } from './daily.js';
 import { openSheet, closeSheet } from './sheet.js';
 import { buildBoardSkeleton, tileIn, tileStep, animateAction, animateMoves, beginMoves, removeGhosts, clearTileEffects, wait, ANIM_MS } from './board.js';
 import {
@@ -51,7 +54,7 @@ const PASS_PAUSE_MS = 900; // between the goal being reached and the result card
 export function initWordMode(ctx) {
   const w = {
     dict: null,
-    game: null, // { seed, drawSeed, size, state, mode: 'levels'|'free', level, goal, botScore, history, replay, retry }
+    game: null, // { seed, drawSeed, size, state, mode: 'levels'|'free'|'daily', level, goal, botScore, history, replay, retry, practice, daily, undoFloor }
     first: null, // first letter tapped for a lock
     pending: null, // candidate chosen from the found-words list, awaiting Lock
     found: [],
@@ -101,6 +104,15 @@ export function initWordMode(ctx) {
   }
   const tileEl = (cell) => tileIn(boardEl, cell);
   const showWordsOption = () => !!(ctx.store.settings && ctx.store.settings.showWords);
+  /** Practice mode as it applies to the board in play: the words are listed and Undo is offered. Never on the daily grid. */
+  const practiceLive = () => !!(w.game && w.game.practice && w.game.mode !== 'daily' && showWordsOption());
+  /** Whether Undo has a move to take back: never past a draw (random) or past a card played (its purchase stays). */
+  function undoable() {
+    const g = w.game;
+    if (!g || !g.history.length || g.history.length <= (g.undoFloor || 0)) return false;
+    const top = g.history[g.history.length - 1];
+    return !top.undoneDraw && !top.card;
+  }
   const isLevels = () => w.game && w.game.mode === 'levels';
   const perks = () => (w.game && w.game.perks) || null; // the run's perk record (gold, deck, hand), or null
   const perksEnabled = () => !!(ctx.store.settings && ctx.store.settings.perks);
@@ -274,14 +286,17 @@ export function initWordMode(ctx) {
       if (w.game.mode === 'levels' && w.game.goal === null) w.game.goal = goalFor(w.game.level, w.game.size); // a save from the bot-set days
       if (w.game.perks === undefined) w.game.perks = null;
       if (w.game.perks && !w.game.state.perk) w.game.state.perk = emptyPerk();
-      if (showWordsOption()) w.game.practice = true; // once the words have been shown, the board stays practice
+      if (w.game.daily === undefined) w.game.daily = null;
+      if (w.game.undoFloor === undefined) w.game.undoFloor = 0;
+      if (showWordsOption() && w.game.mode !== 'daily') w.game.practice = true; // once the words have been shown, the board stays practice
     } else {
-      const size = SIZES.includes(opts.size) ? opts.size : 5;
+      const daily = opts.mode === 'daily' ? dailySpec(dailyKey()) : null; // today's grid: the day decides its size, letters and draws
+      const size = daily ? daily.size : SIZES.includes(opts.size) ? opts.size : 5;
       const level = opts.level || 1;
       // a level's board is chosen to fit its goal; the choice is usually made ahead of time
       const prepared = (opts.mode || 'free') === 'levels' && !opts.retry && opts.seed === undefined ? await takePrepared(level, size) : null;
-      const seed = prepared ? prepared.seed : (opts.seed ?? randomSeed());
-      const drawSeed = opts.drawSeed ?? randomSeed();
+      const seed = daily ? daily.seed : prepared ? prepared.seed : (opts.seed ?? randomSeed());
+      const drawSeed = daily ? daily.drawSeed : (opts.drawSeed ?? randomSeed());
       const { board, bag } = dealLetters(seed, size);
       const state = createWordState(board, bag, drawSeed);
       // perk cards: a new run starts one when the setting is on; the next level carries the run on; a
@@ -313,8 +328,10 @@ export function initWordMode(ctx) {
         botWords: prepared ? prepared.botWords : null,
         history: [], // states to undo back to; emptied by a draw, since a draw cannot be undone
         replay: !!opts.replay,
-        practice: showWordsOption(), // the words on show: a practice board, nothing saved to stats or the leaderboard
-        retry: null, // a free-play replay of the board that ended a run: its goal stays on show
+        practice: !daily && showWordsOption(), // practice mode: the words on show and Undo offered; nothing saved to stats or the leaderboard
+        daily: daily ? daily.key : null, // the day a daily grid belongs to
+        undoFloor: 0, // the history length when a card was last played: Undo never goes back past it
+        retry: null, // a single-round replay of the board that ended a run: its goal stays on show
       };
       if (opts.retry) {
         // a retry plays like free play, with the lost level's goal shown for the challenge (and the hand a perk run had)
@@ -356,7 +373,8 @@ export function initWordMode(ctx) {
     if (opts.note) say(opts.note, 'good', 2800);
     else if (opts.retry) say(`Replaying the board that ended your run · goal ${opts.retry.goal} · not counted in stats`, '', 3500);
     else if (opts.replay) say('Replaying this board · not counted in your stats', '', 3000);
-    else if (w.game.practice) say('Practice board · words shown · not counted in stats', '', 3500);
+    else if (w.game.mode === 'daily') say('Daily grid · the same board for everyone today · one go', '', 3500);
+    else if (practiceLive()) say('Practice board · words and Undo on · not counted in stats', '', 3500);
     ensureBotData(w.game);
     if (isLevels() && !w.game.retry) prefetch(w.game.level + 1, w.game.size); // the next board is chosen while this one is played
     // a board saved in its last moment (full, or a level run out of turns) is scored straight away
@@ -401,9 +419,9 @@ export function initWordMode(ctx) {
       seg.classList.toggle('last', urgent && i >= st.turns);
     });
     const undo = $('#w-undo');
-    undo.hidden = w.over || isLevels(); // no undo in a level run
-    undo.disabled = !w.game.history.length;
-    undo.title = w.game.history.length ? 'Undo the last move' : 'Nothing to undo (a draw cannot be undone)';
+    undo.hidden = w.over || !practiceLive(); // Undo belongs to practice mode
+    undo.disabled = !undoable();
+    undo.title = undoable() ? 'Undo the last move' : 'Nothing to undo (a draw or a card cannot be undone)';
     const bagBtn = $('#w-bag-btn');
     bagBtn.hidden = w.over;
     bagBtn.setAttribute('aria-pressed', w.showBag ? 'true' : 'false');
@@ -485,7 +503,7 @@ export function initWordMode(ctx) {
     const st = w.game.state;
     w.found = findWords(st, w.dict);
     const wrap = $('#w-found-wrap');
-    wrap.hidden = !showWordsOption() || w.over;
+    wrap.hidden = !practiceLive() || w.over;
     const el = $('#w-found');
     el.innerHTML = '';
     if (wrap.hidden) return;
@@ -653,7 +671,7 @@ export function initWordMode(ctx) {
     closeMenu();
     renderBoard();
     renderStrip();
-    if (showWordsOption()) renderWords();
+    if (practiceLive()) renderWords();
   }
 
   /** In a level run, play stops the moment the goal is reached; Next level is the only way on. */
@@ -1116,8 +1134,8 @@ export function initWordMode(ctx) {
       return;
     }
     clearHint();
-    // A draw is random, so free play's undo cannot go back past one; a perk run keeps the snapshot for Rewind,
-    // which rerolls the next draw when it takes one back.
+    // A draw is random, so Undo cannot go back past one; a perk run keeps the snapshot for Rewind, which
+    // rerolls the next draw when it takes one back.
     if (action.type !== 'draw') w.game.history.push(snapshotForUndo(before));
     else if (perks()) w.game.history.push(Object.assign(snapshotForUndo(before), { undoneDraw: true }));
     else w.game.history = [];
@@ -1201,9 +1219,10 @@ export function initWordMode(ctx) {
     if (next.turns >= turnLimit(next)) finishSoon(500 + delay); // the last turn is spent: score the board
   }
 
+  /** Practice mode's Undo: the last move or lock comes back, as far back as the last draw or card. */
   function undo() {
     const g = w.game;
-    if (!g || w.over || w.animating || !g.history.length || g.mode === 'levels') return;
+    if (!g || w.over || w.animating || !practiceLive() || !undoable()) return;
     cancelGesture();
     g.state = g.history.pop();
     persist();
@@ -1212,7 +1231,7 @@ export function initWordMode(ctx) {
     w.pending = null;
     closeMenu();
     renderAll();
-    say(g.history.length ? 'Move undone' : 'Move undone · nothing further back', '', 1800);
+    say(undoable() ? 'Move undone' : 'Move undone · nothing further back', '', 1800);
   }
 
   // ---------------------------------------------------------------------------
@@ -1323,6 +1342,7 @@ export function initWordMode(ctx) {
       return say(e.message, 'bad');
     }
     g.state = next;
+    g.undoFloor = g.history.length; // practice mode's Undo stops here: a card played stays played
     spendCard(id);
     renderAll();
     if (action.type === 'squares') for (const { cell } of action.cells) tileEl(cell).classList.add('lock-pop');
@@ -1344,7 +1364,8 @@ export function initWordMode(ctx) {
     }
     // a redraw is random: Rewind may take it back, and then rerolls the bag's next letter
     const random = action.type === 'draw3' || action.type === 'exchange' || action.type === 'freshline';
-    g.history.push(random ? Object.assign(snapshotForUndo(before), { undoneDraw: true }) : snapshotForUndo(before));
+    // (the card tag keeps practice mode's Undo from taking the card's move back: the card would stay spent)
+    g.history.push(Object.assign(snapshotForUndo(before), random ? { undoneDraw: true } : {}, id ? { card: id } : {}));
     g.state = next;
     w.perk = null;
     if (id && !opts.keepCard) spendCard(id);
@@ -1947,6 +1968,7 @@ export function initWordMode(ctx) {
       delete prev.undoneDraw;
       prev.rngState = randomSeed();
     }
+    delete prev.card;
     g.state = prev;
     spendCard('rewind');
     w.first = null;
@@ -2053,6 +2075,7 @@ export function initWordMode(ctx) {
       isBest = !perkGame && (store.word[bestKey] == null || total > store.word[bestKey]);
       if (isBest) store.word[bestKey] = total;
       store.word.gamesPlayed++;
+      if (g.mode === 'daily' && g.daily) store.word.daily = { day: g.daily, size: g.size, score: total, at: new Date().toISOString() }; // the day's one go
       if (passed && !perkGame) store.word.bestLevel = Math.max(store.word.bestLevel || 0, g.level);
       if (perkGame) {
         const key = `bestPerks${g.size}`; // the best score with perk cards per size, for the perk leaderboard; not a personal best
@@ -2071,6 +2094,7 @@ export function initWordMode(ctx) {
         words: st.words.map((x) => ({ word: x.word, score: x.score })),
       };
       if (g.runId) entry.runId = g.runId;
+      if (g.daily) entry.daily = g.daily;
       if (perkGame) {
         entry.perks = true;
         // the cards played on this board, with the points each earned (the scoring cards; the rest show none)
@@ -2083,14 +2107,16 @@ export function initWordMode(ctx) {
     }
     store.wordGame = null;
     ctx.saveStore(store);
-    // the leaderboard hears about every finished board; replays and retries never count, a perk run goes to
-    // the perk boards, and the name question waits for a board whose result is on screen
+    // the leaderboard hears about every finished board; replays, retries and practice never count, a perk run
+    // goes to the perk boards, a daily grid to its day's board as well, and the name question waits for a
+    // board whose result is on screen
     if (ctx.leaderboard) {
       ctx.leaderboard.afterBoard({
         size: g.size,
         score: total,
         levelReached: g.mode === 'levels' ? store.word[perkGame ? `bestReachedPerks${g.size}` : `bestReached${g.size}`] : 0,
         perks: perkGame,
+        daily: g.mode === 'daily' ? g.daily : null,
         replay: !!g.replay || !!g.practice,
         prompt: !silent,
       });
@@ -2118,10 +2144,11 @@ export function initWordMode(ctx) {
     } else {
       const best = store.word[bestKey];
       line = isBest ? 'New personal best!' : total === best ? 'Ties your personal best' : `Personal best: ${best}`;
+      if (g.mode === 'daily') title = 'Daily grid';
     }
     if (g.practice) line = `${levelsRun ? (passed ? `Goal ${g.goal} reached` : `Reached level ${g.level}`) + ' · ' : ''}Practice board · not counted in stats`;
     play(levelsRun ? (passed ? 'fanfare' : 'fail') : isBoardFull(st) ? 'fanfare' : 'lock');
-    w.shareText = (levelsRun ? `Level ${g.level} ${passed ? 'passed' : 'failed'} · ` : g.retry ? `Level ${g.retry.level} retry · ` : '') + wordShareLine(total, st.words, g.size === 6 ? 'GridLock 6×6' : 'GridLock');
+    w.shareText = (levelsRun ? `Level ${g.level} ${passed ? 'passed' : 'failed'} · ` : g.retry ? `Level ${g.retry.level} retry · ` : g.mode === 'daily' ? `Daily grid ${g.daily} · ` : '') + wordShareLine(total, st.words, g.size === 6 ? 'GridLock 6×6' : 'GridLock');
     const showNext = levelsRun && passed && !g.replay;
     w.nextLevel = passed ? g.level + 1 : 1;
     renderHud();
@@ -2135,8 +2162,8 @@ export function initWordMode(ctx) {
       total,
       board: st,
       next: showNext,
-      again: !showNext,
-      againText: levelsRun || g.retry ? 'New game' : 'New board',
+      again: !showNext && g.mode !== 'daily', // the daily grid is one go
+      againText: levelsRun || g.retry ? 'New run' : 'New board',
       replay: !(showNext || (g.retry && total >= g.goal)), // a lost board can be retried; a beaten retry cannot
     });
   }

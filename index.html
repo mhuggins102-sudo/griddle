@@ -30,8 +30,9 @@
         </div>
         <div class="home-buttons">
           <button id="btn-word-continue" class="btn btn-primary btn-big" hidden><span class="btn-main">Continue</span><span class="btn-sub" id="continue-sub"></span></button>
-          <button id="btn-word" class="btn btn-primary btn-big"><span class="btn-main">New game</span><span class="btn-sub">Levels with a goal to beat</span></button>
-          <button id="btn-free" class="btn btn-big"><span class="btn-main">Free play</span><span class="btn-sub">One board, no goal, unlimited undos</span></button>
+          <button id="btn-word" class="btn btn-primary btn-big"><span class="btn-main">Multi Round</span><span class="btn-sub">Levels with a goal to beat</span></button>
+          <button id="btn-free" class="btn btn-big"><span class="btn-main">Single Round</span><span class="btn-sub">One board, no goal</span></button>
+          <button id="btn-daily" class="btn btn-big"><span class="btn-main">Daily grid</span><span class="btn-sub" id="daily-sub">The same board for everyone · one go</span></button>
           <div class="btn-row four">
             <button id="btn-help-home" class="btn">How to play</button>
             <button id="btn-stats" class="btn">Stats</button>
@@ -330,17 +331,22 @@
         <div class="sheet-head"><h2>Leaderboard</h2><button id="btn-lb-close" class="btn btn-icon" aria-label="Close">✕</button></div>
         <div class="sheet-scroll">
           <div class="lb-controls">
-            <div class="seg seg-small" role="radiogroup" aria-label="Board size">
+            <div class="seg seg-small lb-size-seg" role="radiogroup" aria-label="Board size">
               <label><input type="radio" name="lb-size" id="lb-size-5" value="5" checked><span>5×5</span></label>
               <label><input type="radio" name="lb-size" id="lb-size-6" value="6"><span>6×6</span></label>
             </div>
-            <div class="seg seg-small" role="radiogroup" aria-label="Perk cards">
+            <div class="seg seg-small lb-perks-seg" role="radiogroup" aria-label="Perk cards">
               <label><input type="radio" name="lb-perks" id="lb-perks-off" value="off" checked><span>No cards</span></label>
               <label><input type="radio" name="lb-perks" id="lb-perks-on" value="on"><span>Perk cards</span></label>
+            </div>
+            <div class="seg seg-small lb-day-seg" role="radiogroup" aria-label="Day" hidden>
+              <label><input type="radio" name="lb-day" id="lb-day-today" value="today" checked><span>Today</span></label>
+              <label><input type="radio" name="lb-day" id="lb-day-yesterday" value="yesterday"><span>Yesterday</span></label>
             </div>
             <div class="seg seg-small lb-kind" role="radiogroup" aria-label="Board">
               <label><input type="radio" name="lb-kind" id="lb-kind-score" value="score" checked><span>High scores</span></label>
               <label><input type="radio" name="lb-kind" id="lb-kind-level" value="level"><span>Top level</span></label>
+              <label><input type="radio" name="lb-kind" id="lb-kind-daily" value="daily"><span>Daily</span></label>
             </div>
           </div>
           <ol id="lb-list" class="lb-list" aria-live="polite"></ol>
@@ -395,7 +401,7 @@
             <div class="chapter-body">
               <p>You get a grid of letter tiles and a fixed number of turns: a <strong>5×5</strong> board with <strong>20 turns</strong>, or a <strong>6×6</strong> board with <strong>25 turns</strong> (pick on the home screen). Every move costs one turn.</p>
               <p>Rearrange the grid into words, <strong>lock</strong> the words in to bank their points, and lock as many tiles as you can before the turns run out. The score counts at the end of the board; the header always shows it as it stands.</p>
-              <p><strong>New game</strong> is a run of levels, each with a goal score to reach. <strong>Free play</strong> is one board with no goal and unlimited undo.</p>
+              <p><strong>Multi Round</strong> is a run of levels, each with a goal score to reach. <strong>Single Round</strong> is one board with no goal. The <strong>Daily grid</strong> is one board a day, the same for everyone, 5×5 or 6×6 as the day decides, with one go at it and a leaderboard of its own.</p>
             </div>
           </details>
           <details class="chapter">
@@ -410,7 +416,7 @@
                 <li><strong>Lock</strong>: tap the first letter of a word, then its last letter. The word locks at once and its points are banked.</li>
                 <li><strong>Wild</strong> (two turns, so it needs two turns left, and only once per board): press and hold a <em>locked</em> tile and choose ★. A wild tile reads as any letter in any word but scores no points itself.</li>
               </ul>
-              <p>In free play, the <strong>Undo</strong> button in the header takes back your moves and locks one at a time, as far back as you like. The one thing it cannot do is go back past a Draw, since the draw was random. The board is scored the moment the last turn is spent or the last tile is locked.</p>
+              <p>In <strong>Practice mode</strong> (settings), the <strong>Undo</strong> button in the header takes back your moves and locks one at a time, as far back as you like. It cannot go back past a Draw, since the draw was random, or past a perk card you played. With Practice mode off there is no undo. The board is scored the moment the last turn is spent or the last tile is locked.</p>
               <p>The <strong>?</strong> button during a game opens a step-by-step tutorial that shows each move on a board.</p>
             </div>
           </details>
@@ -448,29 +454,29 @@
           <details class="chapter">
             <summary><span class="chapter-num">5</span><span class="chapter-title">Levels and the goal</span></summary>
             <div class="chapter-body">
-              <p><strong>New game</strong> starts at level 1. Each level has a fixed <strong>goal</strong>, shown under the header: 60 at level 1 and 10 more per level on a 5×5 board, 100 and 15 more per level on 6×6. The moment your score reaches the goal the level is passed: the bar lights up, play on that board stops, and <strong>Next level</strong> takes you to a fresh board. Use up the turns (or lock the whole board) below the goal and the run ends.</p>
+              <p><strong>Multi Round</strong> starts at level 1. Each level has a fixed <strong>goal</strong>, shown under the header: 60 at level 1 and 10 more per level on a 5×5 board, 100 and 15 more per level on 6×6. The moment your score reaches the goal the level is passed: the bar lights up, play on that board stops, and <strong>Next level</strong> takes you to a fresh board. Use up the turns (or lock the whole board) below the goal and the run ends.</p>
               <p>The board is chosen to fit the goal. Behind the scenes a bot plays a few candidate boards, and the one kept is the board whose word points (its coverage and spare-turn bonuses do not count) make the goal the level's share of them: half at level 1, then 5 percentage points more per level, so a level-11 board is one the bot just reaches the goal on, and later levels ask for more than the bot banks. Your coverage and spare-turn bonuses count toward the goal, so filling the board is what carries a run past the bot.</p>
-              <p>Level runs have no undo; tap the level bar at any time for the breakdown. When a run ends you see the final board's score and the level you reached, and you can replay that board with its goal on show, as a free-play challenge that does not count towards your stats.</p>
+              <p>Tap the level bar at any time for the breakdown. When a run ends you see the final board's score and the level you reached, and you can replay that board with its goal on show, as a single-round challenge that does not count towards your stats.</p>
             </div>
           </details>
           <details class="chapter">
             <summary><span class="chapter-num">6</span><span class="chapter-title">The bag and the 6×6 board</span></summary>
             <div class="chapter-body">
               <p>The tiles are dealt from a bag of 98 Scrabble-style letters (no blanks): 25 on a 5×5 board (73 stay in the bag), 36 on a 6×6 board (62 stay). Every tile shows its point value in the corner.</p>
-              <p>The 6×6 board gives you 25 turns instead of 20, allows words of up to six letters (+30), and its coverage ladder runs from the 29th tile to +64 for all 36. Levels and free play work the same way on both sizes, and each size keeps its own personal best.</p>
+              <p>The 6×6 board gives you 25 turns instead of 20, allows words of up to six letters (+30), and its coverage ladder runs from the 29th tile to +64 for all 36. Multi Round and Single Round work the same way on both sizes, and each size keeps its own personal best.</p>
             </div>
           </details>
           <details class="chapter">
             <summary><span class="chapter-num">7</span><span class="chapter-title">Options and stats</span></summary>
             <div class="chapter-body">
-              <p>Practice mode, in the settings (gear button), lists the words currently on the board with their points, as a hint; tap a listed word, then Lock. It is off by default, and a board played with it on is practice: nothing from it is saved to your stats or posted to the leaderboard. Sounds can be switched off there too.</p>
-              <p>After a free-play board, or the board that ended a run, you can <strong>replay the same board</strong> (same letters, same draws). Replays do not count towards your stats or personal best, but the game remembers your best score on that board and tells you when you beat it. Your best scores and recent games are kept on this device; see Stats.</p>
+              <p><strong>Practice mode</strong>, in the settings (gear button), lists the words currently on the board with their points, as a hint (tap a listed word, then Lock), and offers <strong>Undo</strong>, in Multi Round and Single Round alike. It is off by default, and a board played with it on is practice: nothing from it is saved to your stats or posted to the leaderboard. The Daily grid ignores it: no words, no undo. Sounds can be switched off there too.</p>
+              <p>After a Single Round, a Daily grid or the board that ended a run, you can <strong>replay the same board</strong> (same letters, same draws). Replays do not count towards your stats or personal best, but the game remembers your best score on that board and tells you when you beat it. Your best scores and recent games are kept on this device; see Stats.</p>
             </div>
           </details>
           <details class="chapter">
             <summary><span class="chapter-num">8</span><span class="chapter-title">Leaderboard</span></summary>
             <div class="chapter-body">
-              <p>The trophy button shows eight public top tens: the best single-board scores and the highest level reached, for 5×5 and for 6×6, with and without perk cards. Pick the board size, whether perk cards were on, then high scores or top level. After your first finished board the game asks for a name; post under it, or stay anonymous and nothing leaves your device. Replays never count. You can change or remove your name from the leaderboard sheet, and Reset device data lets you keep or forget it.</p>
+              <p>The trophy button shows the public top tens: the best single-board scores and the highest level reached, for 5×5 and for 6×6, with and without perk cards, and the Daily grid's own board for today and yesterday. Pick the board size, whether perk cards were on, then high scores, top level or daily. After your first finished board the game asks for a name; post under it, or stay anonymous and nothing leaves your device. Replays never count. You can change or remove your name from the leaderboard sheet, and Reset device data lets you keep or forget it.</p>
             </div>
           </details>
           <details class="chapter">

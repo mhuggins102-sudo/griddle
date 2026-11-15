@@ -1,11 +1,12 @@
 // GridLock leaderboard: eight boards (5x5 and 6x6, with and without perk cards, best single-board score and
-// highest level reached), each a top 10 kept in Supabase and read and written with plain fetch through the
-// functions in supabase/schema.sql. The player is a random id made on the device plus a chosen name; results wait in
+// highest level reached) plus one per day for the daily grid, each a top 10 kept in Supabase and read and
+// written with plain fetch through the functions in supabase/schema.sql. The player is a random id made on the device plus a chosen name; results wait in
 // an outbox until the player has a name and the network is there. A player who stays anonymous sends
 // nothing. Replays never count.
 
 import { SUPABASE_URL, SUPABASE_KEY } from './leaderboard-config.js';
 import { openSheet, closeSheet } from './sheet.js';
+import { dailyKey, shiftDay, dailySpec, isDailyKey } from './daily.js';
 
 export const NAME_MAX = 16;
 export const TOP_N = 10;
@@ -41,7 +42,19 @@ export function defaultIdentity() {
  * anything changed.
  */
 export function queueResult(pending, entry) {
-  if (!entry || !(entry.value >= 0)) return false;
+  if (!entry || typeof entry.value !== 'number' || !(entry.value >= 0)) return false;
+  if (entry.kind === 'daily') {
+    if (!isDailyKey(entry.day)) return false;
+    const fresh = { kind: 'daily', day: entry.day, size: entry.size, value: entry.value };
+    const i = pending.findIndex((e) => e.kind === 'daily' && e.day === entry.day);
+    if (i < 0) {
+      pending.push(fresh);
+      return true;
+    }
+    if (entry.value <= pending[i].value) return false;
+    pending[i] = fresh;
+    return true;
+  }
   const perks = !!entry.perks;
   const i = pending.findIndex((e) => e.size === entry.size && e.kind === entry.kind && !!e.perks === perks);
   if (i < 0) {
@@ -114,6 +127,8 @@ export function localBests(word) {
     const reached = bestReachedBySize(word, perks);
     for (const size of [5, 6]) if (reached[size] > 0) out.push({ size, kind: 'level', perks, value: reached[size] });
   }
+  const d = word?.daily;
+  if (d && isDailyKey(d.day) && typeof d.score === 'number' && d.score >= 0) out.push({ kind: 'daily', day: d.day, size: d.size === 6 ? 6 : 5, value: d.score }); // a grid given up has no score
   return out;
 }
 
@@ -145,7 +160,7 @@ export function initLeaderboard(ctx) {
   const nameSheet = $('#lb-name');
   const configured = !!(SUPABASE_URL && SUPABASE_KEY);
   const base = String(SUPABASE_URL).replace(/\/+$/, '');
-  const view = { size: 5, kind: 'score', perks: false, loadToken: 0 };
+  const view = { size: 5, kind: 'score', perks: false, day: 'today', loadToken: 0 };
   let flushing = null;
   let promptTimer = null;
 
@@ -231,7 +246,8 @@ export function initLeaderboard(ctx) {
         if (!id.pending.length) break;
         const e = id.pending[0];
         try {
-          await rpc('submit_score', { p_player: id.playerId, p_name: id.name, p_size: e.size, p_kind: e.kind, p_perks: !!e.perks, p_value: e.value });
+          if (e.kind === 'daily') await rpc('submit_daily', { p_player: id.playerId, p_name: id.name, p_day: e.day, p_size: e.size, p_value: e.value });
+          else await rpc('submit_score', { p_player: id.playerId, p_name: id.name, p_size: e.size, p_kind: e.kind, p_perks: !!e.perks, p_value: e.value });
           sent++;
         } catch (err) {
           if (!rejected(err)) break;
@@ -252,16 +268,18 @@ export function initLeaderboard(ctx) {
   /**
    * A board just finished. score is its final score; levelReached is the level the run stands at after this
    * board (the next level if it was passed, this one if not), or 0 outside a run; perks marks a run with perk
-   * cards, which has boards of its own; replay marks a replay or retry, which never counts. The first time,
-   * the player is asked for a name (prompt false defers that question, for a board scored while leaving the
-   * screen); after that results go out.
+   * cards, which has boards of its own; daily is the day key of a daily grid, which goes to that day's board
+   * as well; replay marks a replay or retry, which never counts. The first time, the player is asked for a
+   * name (prompt false defers that question, for a board scored while leaving the screen); after that
+   * results go out.
    */
-  function afterBoard({ size, score, levelReached = 0, perks = false, replay = false, prompt = true }) {
+  function afterBoard({ size, score, levelReached = 0, perks = false, daily = null, replay = false, prompt = true }) {
     if (replay || !configured) return; // replays never count; without a project there is nothing to post to
     const id = identity();
     if (id.status === 'anonymous') return;
     let changed = queueResult(id.pending, { size, kind: 'score', perks: !!perks, value: score });
     if (levelReached > 0) changed = queueResult(id.pending, { size, kind: 'level', perks: !!perks, value: levelReached }) || changed;
+    if (daily) changed = queueResult(id.pending, { kind: 'daily', day: daily, size, value: score }) || changed;
     if (changed) ctx.saveStore(ctx.store);
     if (id.status === 'unasked') {
       if (!prompt) return; // a board scored on the way out: the question waits for one whose result is on screen
@@ -354,8 +372,20 @@ export function initLeaderboard(ctx) {
     }
   }
 
+  /** The day the daily view shows, as a key. */
+  const viewDay = () => (view.day === 'yesterday' ? shiftDay(dailyKey(), -1) : dailyKey());
+
   function describe() {
+    if (view.kind === 'daily') return `${view.day === 'today' ? 'today' : 'yesterday'}'s daily grid`;
     return `${view.size}×${view.size} · ${view.perks ? 'perk cards' : 'no cards'} · ${view.kind === 'score' ? 'high scores' : 'top level'}`;
+  }
+
+  /** The switches that apply: size and perk cards for the boards, the day for the daily grid. */
+  function syncControls() {
+    const daily = view.kind === 'daily';
+    $('#leaderboard .lb-size-seg').hidden = daily;
+    $('#leaderboard .lb-perks-seg').hidden = daily;
+    $('#leaderboard .lb-day-seg').hidden = !daily;
   }
 
   async function load() {
@@ -373,8 +403,10 @@ export function initLeaderboard(ctx) {
       if (sent && token === view.loadToken && !sheet.hidden) load(); // the boards just changed: show it
     });
     let rows;
+    const player = id.status === 'named' ? id.playerId : null;
+    const dayKey = viewDay();
     try {
-      rows = await rpc('get_leaderboard', { p_size: view.size, p_kind: view.kind, p_perks: view.perks, p_player: id.status === 'named' ? id.playerId : null });
+      rows = view.kind === 'daily' ? await rpc('get_daily', { p_day: dayKey, p_player: player }) : await rpc('get_leaderboard', { p_size: view.size, p_kind: view.kind, p_perks: view.perks, p_player: player });
     } catch {
       if (token !== view.loadToken) return;
       status.textContent = 'Couldn’t reach the leaderboard. Check your connection and try again';
@@ -393,7 +425,13 @@ export function initLeaderboard(ctx) {
       }
       list.appendChild(li);
     }
-    if (!rows || !rows.length) status.textContent = `No ${view.kind === 'score' ? 'scores' : 'levels'} on the ${view.size}×${view.size} board ${view.perks ? 'with' : 'without'} perk cards yet`;
+    if (view.kind === 'daily') {
+      const spec = dailySpec(dayKey);
+      const parts = [`${view.day === 'today' ? 'Today' : 'Yesterday'}'s grid · ${spec.size}×${spec.size}`];
+      if (!rows || !rows.length) parts.push('no scores yet');
+      else if (id.status !== 'named') parts.push('join to post your own');
+      status.textContent = parts.join(' · ');
+    } else if (!rows || !rows.length) status.textContent = `No ${view.kind === 'score' ? 'scores' : 'levels'} on the ${view.size}×${view.size} board ${view.perks ? 'with' : 'without'} perk cards yet`;
     else if (id.status !== 'named') status.textContent = 'Join to post your own results';
     else status.textContent = '';
     list.setAttribute('aria-label', `Top ${TOP_N}, ${describe()}`);
@@ -404,7 +442,9 @@ export function initLeaderboard(ctx) {
     if (ctx.perksOn) view.perks = !!ctx.perksOn(); // and the perk cards setting as it stands
     $(`#lb-size-${view.size}`).checked = true;
     $(`#lb-perks-${view.perks ? 'on' : 'off'}`).checked = true;
+    $(`#lb-day-${view.day}`).checked = true;
     $(`#lb-kind-${view.kind}`).checked = true;
+    syncControls();
     renderFoot();
     openSheet(sheet);
     load();
@@ -438,6 +478,13 @@ export function initLeaderboard(ctx) {
   for (const r of document.querySelectorAll('input[name="lb-kind"]')) {
     r.addEventListener('change', () => {
       view.kind = document.querySelector('input[name="lb-kind"]:checked').value;
+      syncControls();
+      load();
+    });
+  }
+  for (const r of document.querySelectorAll('input[name="lb-day"]')) {
+    r.addEventListener('change', () => {
+      view.day = document.querySelector('input[name="lb-day"]:checked').value === 'yesterday' ? 'yesterday' : 'today';
       load();
     });
   }

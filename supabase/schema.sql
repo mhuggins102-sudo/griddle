@@ -2,15 +2,19 @@
 -- It is safe to run again (every statement is "if not exists", "create or replace", or checks first), and
 -- running it again is also how a project made by an earlier version of this file is brought up to date.
 --
--- The browser only ever holds the project's public key, so the table itself is closed to it (row level
--- security on, no policies, no grants). The four functions below are the only doors. Each runs as its
+-- The browser only ever holds the project's public key, so the tables themselves are closed to it (row level
+-- security on, no policies, no grants). The six functions below are the only doors. Each runs as its
 -- owner (SECURITY DEFINER), so it can read and write the table, and each checks its own arguments.
 --
 --   get_leaderboard(size, kind, perks, player)  → the top 10 for one board, plus the caller's own row if outside
 --   submit_score(player, name, size, kind, perks, value) → keeps the highest value per player and board
---   rename_player(player, name)                 → a new name on every row of that player
+--   get_daily(day, player)                      → the top 10 of one day's daily grid, plus the caller's own row
+--   submit_daily(player, name, day, size, value) → the player's score on that day's grid (the highest, if posted twice)
+--   rename_player(player, name)                 → a new name on every row of that player, daily rows included
 --   remove_player(player)                       → a player who goes anonymous disappears from every board
 --
+-- The daily grid has a table of its own, one row per player and day (the day as the player's local date,
+-- YYYY-MM-DD; the grid's size is hashed from the day in the game and stored here for display).
 -- A board is a size, a kind and whether perk cards were on: size is 5 or 6, kind is 'score' (best
 -- single-board score) or 'level' (highest level reached), perks is false for plain games and true for runs
 -- with perk cards, so there are eight boards. player is a random id the game makes up on the device; name
@@ -66,6 +70,25 @@ create index if not exists leaderboard_board_idx on public.leaderboard (size, ki
 alter table public.leaderboard enable row level security;
 revoke all on table public.leaderboard from public, anon, authenticated;
 
+-- The daily grid: one row per player and day. A post is only taken for a day close to the server's own
+-- (the player's local date can be a day either side), so stale or made-up days are refused.
+create table if not exists public.daily_leaderboard (
+  player_id  uuid        not null,
+  day        date        not null,
+  size       smallint    not null check (size in (5, 6)),
+  name       text        not null check (char_length(name) between 1 and 16),
+  value      integer     not null check (value >= 0),
+  hidden     boolean     not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (player_id, day)
+);
+
+create index if not exists daily_leaderboard_rank_idx on public.daily_leaderboard (day, value desc, updated_at asc);
+
+alter table public.daily_leaderboard enable row level security;
+revoke all on table public.daily_leaderboard from public, anon, authenticated;
+
 -- The signatures from before perks: gone, so that only the new ones answer.
 drop function if exists public.submit_score(uuid, text, integer, text, integer);
 drop function if exists public.get_leaderboard(integer, text, uuid);
@@ -115,6 +138,30 @@ begin
 end;
 $$;
 
+-- Post a daily grid score. One row per player and day; the highest value stays if a day is posted twice.
+create or replace function public.submit_daily(p_player uuid, p_name text, p_day date, p_size integer, p_value integer)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_name text := public.clean_name(p_name);
+begin
+  if p_player is null then raise exception 'player required'; end if;
+  if v_name is null then raise exception 'name required'; end if;
+  if p_day is null or p_day < current_date - 3 or p_day > current_date + 1 then raise exception 'day out of range'; end if;
+  if p_size is null or p_size not in (5, 6) then raise exception 'size must be 5 or 6'; end if;
+  if p_value is null or p_value < 0 or p_value > 5000 then raise exception 'value out of range'; end if;
+  insert into public.daily_leaderboard as l (player_id, day, size, name, value)
+  values (p_player, p_day, p_size, v_name, p_value)
+  on conflict (player_id, day) do update
+    set name = excluded.name,
+        value = greatest(l.value, excluded.value),
+        updated_at = case when excluded.value > l.value then now() else l.updated_at end;
+end;
+$$;
+
 create or replace function public.rename_player(p_player uuid, p_name text)
 returns void
 language plpgsql
@@ -127,6 +174,7 @@ begin
   if p_player is null then raise exception 'player required'; end if;
   if v_name is null then raise exception 'name required'; end if;
   update public.leaderboard set name = v_name where player_id = p_player;
+  update public.daily_leaderboard set name = v_name where player_id = p_player;
 end;
 $$;
 
@@ -139,6 +187,7 @@ as $$
 begin
   if p_player is null then raise exception 'player required'; end if;
   delete from public.leaderboard where player_id = p_player;
+  delete from public.daily_leaderboard where player_id = p_player;
 end;
 $$;
 
@@ -164,12 +213,36 @@ as $$
   order by r.rank;
 $$;
 
--- Only the public key's roles may call the four doors; the helper stays internal.
+-- The top 10 of one day's daily grid, plus the caller's own row when it sits outside the top 10.
+create or replace function public.get_daily(p_day date, p_player uuid default null)
+returns table (rank integer, name text, value integer, me boolean)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  with ranked as (
+    select l.player_id, l.name, l.value,
+           (row_number() over (order by l.value desc, l.updated_at asc, l.player_id))::integer as rank
+    from public.daily_leaderboard l
+    where l.day = p_day and not l.hidden
+  )
+  select r.rank, r.name, r.value, (r.player_id = p_player) is true as me
+  from ranked r
+  where r.rank <= 10 or r.player_id = p_player
+  order by r.rank;
+$$;
+
+-- Only the public key's roles may call the six doors; the helper stays internal.
 revoke all on function public.clean_name(text) from public, anon, authenticated;
 revoke all on function public.submit_score(uuid, text, integer, text, integer, boolean) from public;
 revoke all on function public.rename_player(uuid, text) from public;
 revoke all on function public.remove_player(uuid) from public;
 revoke all on function public.get_leaderboard(integer, text, uuid, boolean) from public;
+revoke all on function public.submit_daily(uuid, text, date, integer, integer) from public;
+revoke all on function public.get_daily(date, uuid) from public;
+grant execute on function public.submit_daily(uuid, text, date, integer, integer) to anon, authenticated;
+grant execute on function public.get_daily(date, uuid) to anon, authenticated;
 grant execute on function public.submit_score(uuid, text, integer, text, integer, boolean) to anon, authenticated;
 grant execute on function public.rename_player(uuid, text) to anon, authenticated;
 grant execute on function public.remove_player(uuid) to anon, authenticated;
