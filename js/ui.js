@@ -44,13 +44,6 @@ async function boot() {
   $('#opt-numerals').checked = !!ui.store.settings.numerals;
   $('#opt-show-words').checked = !!ui.store.settings.showWords;
   $('#opt-perks').checked = !!ui.store.settings.perks;
-  for (const r of document.querySelectorAll('input[name="opt-stats"]')) {
-    r.checked = r.value === (ui.store.settings.statsLayout || 'a');
-    r.addEventListener('change', () => {
-      ui.store.settings.statsLayout = document.querySelector('input[name="opt-stats"]:checked').value;
-      saveStore(ui.store);
-    });
-  }
   $('#opt-sound').checked = ui.store.settings.sound !== false;
   setSoundEnabled(ui.store.settings.sound !== false);
   applyTheme(ui.store.settings.theme);
@@ -558,7 +551,7 @@ async function copyShare() {
 // ---------------------------------------------------------------------------
 // Stats: the finished boards, filtered by board size and by whether perk cards were on
 
-const stats = { size: 'all', perks: 'all', cardsSort: 'use' }; // the filter in force (C keeps one size and one mode)
+const stats = { size: 'all', perks: 'all', cardsSort: 'use', recentOpen: false }; // the filter in force
 
 /** The history entries the filter keeps. */
 function statsEntries(filter = stats) {
@@ -627,7 +620,7 @@ function cardRows(entries) {
 const tile = (label, value) => `<div><span class="hud-label">${label}</span><span class="hud-value">${value ?? '–'}</span></div>`;
 const seg = (name, value, options, label) => `<div class="seg seg-small" role="radiogroup" aria-label="${label}">${options.map(([v, t]) => `<label><input type="radio" name="${name}" value="${v}"${String(v) === String(value) ? ' checked' : ''}><span>${t}</span></label>`).join('')}</div>`;
 
-/** The summary tiles, with a Cards used tile when the boards shown include perk runs. */
+/** The summary tiles; the Cards used tile opens the popup when the boards shown include perk runs, and is dimmed otherwise so the sheet keeps its size. */
 function tilesHtml(sum, withCards) {
   return `<div class="stat-summary">
     ${tile('Games', sum.games)}
@@ -636,15 +629,16 @@ function tilesHtml(sum, withCards) {
     ${tile('Top level', sum.top)}
     ${tile('Words / game', sum.wordsPerGame)}
     <div><span class="hud-label">Best word</span><span class="hud-value small">${sum.bestWord ? `${escapeHtml(sum.bestWord.word)} ${sum.bestWord.score}` : '–'}</span></div>
-    ${withCards ? `<button type="button" id="stats-cards-open" aria-label="Show the cards used"><span class="hud-label">Cards used</span><span class="hud-value">${sum.cardUses}</span></button>` : ''}
+    <button type="button" id="stats-cards-open" aria-label="Show the cards used" ${withCards ? '' : 'disabled'}><span class="hud-label">Cards used</span><span class="hud-value">${withCards ? sum.cardUses : '–'}</span></button>
   </div>`;
 }
 
+/** The recent boards, folded away until asked for, so the sheet opens at the same size whatever the filter. */
 function recentHtml(entries) {
-  if (!entries.length) return '<p class="stats-empty">No boards match.</p>';
-  return `<h3>Recent games</h3><ul class="stat-list">${entries.slice(0, 40)
+  const rows = entries.slice(0, 40)
     .map((g) => `<li><span>${g.size === 6 ? '6×6 · ' : ''}${g.perks ? '◆ ' : ''}${g.mode === 'levels' ? `L${g.level} ${g.passed ? '✓' : '✗'} ` : ''}${g.score}${g.goal ? ` / ${g.goal}` : ''} · ${g.words.length ? g.words.map((x) => escapeHtml(x.word)).join(', ') : 'no words'}</span><span>${new Date(g.at).toLocaleDateString()}</span></li>`)
-    .join('')}</ul>`;
+    .join('');
+  return `<details class="stats-recent"${stats.recentOpen ? ' open' : ''}><summary><span>Recent games</span><small>${entries.length ? `${Math.min(entries.length, 40)} of ${entries.length}` : 'none'}</small></summary>${rows ? `<ul class="stat-list">${rows}</ul>` : '<p class="stats-empty">No boards match.</p>'}</details>`;
 }
 
 function renderStats() {
@@ -654,45 +648,25 @@ function renderStats() {
     body.innerHTML = '<p class="hint">No games finished yet.</p>';
     return;
   }
-  const layout = ui.store.settings.statsLayout || 'a';
   const hist = w.history || [];
   const anyPerks = hist.some((g) => g.perks);
-  let html = '';
-  if (layout === 'a') {
-    // A: two filter rows above the figures
-    html += `<div class="stats-filters">${seg('stats-size', stats.size, [['all', 'All sizes'], [5, '5×5'], [6, '6×6']], 'Board size')}${seg('stats-perks', stats.perks, [['all', 'All games'], ['off', 'No cards'], ['on', 'Perk cards']], 'Perk cards')}</div>`;
-  } else if (layout === 'b') {
-    // B: a tab per mode, the size underneath
-    html += `<div class="stats-tabs" role="tablist">${[['all', 'All games'], ['off', 'Without cards'], ['on', 'With cards']].map(([v, t]) => `<button type="button" role="tab" data-perks="${v}" class="${stats.perks === v ? 'active' : ''}" aria-selected="${stats.perks === v}">${t}</button>`).join('')}</div>`;
-    html += `<div class="stats-sizes"><span class="hud-label">Board</span>${seg('stats-size', stats.size, [['all', 'All'], [5, '5×5'], [6, '6×6']], 'Board size')}</div>`;
-  } else {
-    // C: a grid of the four combinations; one is open below
-    if (stats.size === 'all') stats.size = 5;
-    if (stats.perks === 'all') stats.perks = 'off';
-    const counts = {};
-    for (const size of [5, 6]) for (const perks of ['off', 'on']) counts[`${size}${perks}`] = statsSummary(statsEntries({ size, perks }), { size, perks });
-    if (!counts[`${stats.size}${stats.perks}`].games) {
-      const first = Object.entries(counts).find(([, v]) => v.games);
-      if (first) { stats.size = Number(first[0].slice(0, 1)); stats.perks = first[0].slice(1); }
-    }
-    const cell = (size, perks) => { const c = counts[`${size}${perks}`]; const active = stats.size === size && stats.perks === perks; return `<button type="button" class="cell${active ? ' active' : ''}" data-size="${size}" data-perks="${perks}" ${c.games ? '' : 'disabled'} aria-pressed="${active}"><span class="big">${c.games}</span><small>${c.games ? `best ${c.best} · level ${c.top || '–'}` : 'no games'}</small></button>`; };
-    html += `<div class="stats-grid"><span class="corner">Games</span><span class="col">5×5</span><span class="col">6×6</span><span class="row">No cards</span>${cell(5, 'off')}${cell(6, 'off')}<span class="row">Perk cards</span>${cell(5, 'on')}${cell(6, 'on')}</div>`;
-  }
+  // the filters: board size, then whether perk cards were on (shown once any perk run exists)
+  let html = `<div class="stats-filters">${seg('stats-size', stats.size, [['all', 'All sizes'], [5, '5×5'], [6, '6×6']], 'Board size')}${anyPerks ? seg('stats-perks', stats.perks, [['all', 'All games'], ['off', 'No cards'], ['on', 'Perk cards']], 'Perk cards') : ''}</div>`;
   const entries = statsEntries();
   const sum = statsSummary(entries, stats);
   const withCards = stats.perks !== 'off' && entries.some((g) => g.perks);
   html += tilesHtml(sum, withCards);
   html += recentHtml(entries);
-  if (!anyPerks && layout !== 'c') html = html.replace(/<div class="seg seg-small" role="radiogroup" aria-label="Perk cards">[\s\S]*?<\/div>/, ''); // nothing to filter by yet
   body.innerHTML = html;
   for (const r of body.querySelectorAll('input[name="stats-size"]')) r.addEventListener('change', () => { stats.size = r.value === 'all' ? 'all' : Number(r.value); renderStats(); });
   for (const r of body.querySelectorAll('input[name="stats-perks"]')) r.addEventListener('change', () => { stats.perks = r.value; renderStats(); });
-  for (const b of body.querySelectorAll('.stats-tabs button')) b.addEventListener('click', () => { stats.perks = b.dataset.perks; renderStats(); });
-  for (const b of body.querySelectorAll('.stats-grid button.cell')) b.addEventListener('click', () => { stats.size = Number(b.dataset.size); stats.perks = b.dataset.perks; renderStats(); });
-  for (const b of body.querySelectorAll('#stats-cards-open')) b.addEventListener('click', openStatsCards);
+  $('#stats-cards-open').addEventListener('click', openStatsCards);
+  const recent = body.querySelector('.stats-recent');
+  recent.addEventListener('toggle', () => { stats.recentOpen = recent.open; });
 }
 
 function showStats() {
+  stats.recentOpen = false; // the list is folded away each time the sheet opens
   renderStats();
   openSheet($('#stats'));
 }
