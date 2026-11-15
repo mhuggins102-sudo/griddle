@@ -1077,6 +1077,8 @@ svg { display: block; }
 .result-sheet .sheet-foot { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; }
 .rs-row { display: flex; gap: 8px; }
 .rs-row .btn { flex: 1 1 0; white-space: nowrap; }
+.rs-row .btn-trophy { flex: 0 0 48px; width: 48px; padding: 0; display: grid; place-items: center; } /* the day's leaderboard, after a daily grid */
+.rs-row .btn-trophy svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .pos { color: var(--ok); }
 .neg { color: var(--danger); }
 .rs-headtotal { font-size: 36px; line-height: 1; font-weight: 900; font-variant-numeric: tabular-nums; margin: 0 0 0 auto; padding-right: 4px; }

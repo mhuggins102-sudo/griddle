@@ -8,7 +8,7 @@ import { ANIM_MS, wait, neighbours, buildBoardSkeleton, tileIn, animateAction, c
 import { initWordMode } from './wordui.js';
 import { initTutorial } from './tutorial.js';
 import { initLeaderboard, bestReachedBySize, seedReached } from './leaderboard.js';
-import { dailyKey, dailySpec } from './daily.js';
+import { dailyKey, shiftDay, dailyRecords, dailyTarget } from './daily.js';
 import { openSheet, closeSheet } from './sheet.js';
 import { setSoundEnabled, audioState } from './sound.js';
 import { TURNS_BY_SIZE } from './words.js';
@@ -130,12 +130,19 @@ function showHome() {
   $('#btn-daily').classList.toggle('btn-primary', live === 'daily');
   $('#word-sub').textContent = live === 'levels' ? `${describeSaved(g)} · Continue` : s.settings.perks ? 'Levels with a goal to beat · perk cards' : 'Levels with a goal to beat';
   $('#free-sub').textContent = live === 'free' ? `${describeSaved(g)} · Continue` : 'One board, no goal';
-  // the daily grid: once played (or given up) it waits for tomorrow; in progress, the button carries on
+  // the daily grid: today's until it is played (or given up), then yesterday's if that one was missed, then
+  // it waits for tomorrow; a daily in progress (today's or yesterday's) carries on from the button
   const today = dailyKey();
-  const done = s.word && s.word.daily && s.word.daily.day === today ? s.word.daily : null;
-  const inPlay = live === 'daily' && g.daily === today;
-  $('#btn-daily').disabled = !!done && !inPlay;
-  $('#daily-sub').textContent = inPlay ? `${describeSaved(g)} • Continue` : done ? (done.abandoned ? 'Given up today • Back tomorrow' : `Played today: ${done.score} points • Back tomorrow`) : 'Same for everyone • One try';
+  const yday = shiftDay(today, -1);
+  const recs = dailyRecords(s.word);
+  const target = dailyTarget(s.word, today);
+  const inPlay = live === 'daily' && (g.daily === today || g.daily === yday);
+  $('#btn-daily').disabled = !target && !inPlay;
+  let dailySub;
+  if (inPlay) dailySub = `${g.daily === yday ? "Yesterday's grid · " : ''}${describeSaved(g)} • Continue`;
+  else if (recs[today]) dailySub = `${recs[today].abandoned ? 'Given up today' : `Today's Score: ${recs[today].score} points`} • ${target ? "Play yesterday's grid" : 'Back tomorrow'}`;
+  else dailySub = 'Same for everyone • One try';
+  $('#daily-sub').textContent = dailySub;
   showScreen('screen-home'); // the figures live on the Stats screen
   if (!g && ui.word) ui.word.prefetch(1, boardSize()); // a new run's first board is chosen while the player is here
 }
@@ -152,11 +159,11 @@ function describeSaved(g) {
   return `${size === 6 ? '6×6 · ' : ''}${where}turn ${turn} of ${lim} · ${g.state.score || 0} points${perks}${g.practice && g.mode !== 'daily' ? ' · practice' : ''}`;
 }
 
-/** Start a fresh game of a mode; the saved game, if any, is gone by now. */
+/** Start a fresh game of a mode; the saved game, if any, is gone by now. The daily is today's grid, or yesterday's once today's is done. */
 function startMode(mode) {
   ui.store.wordGame = null;
   if (mode === 'levels') ui.word.start(false, { mode: 'levels', level: 1, size: boardSize() });
-  else if (mode === 'daily') ui.word.start(false, { mode: 'daily' });
+  else if (mode === 'daily') ui.word.start(false, { mode: 'daily', day: dailyTarget(ui.store.word) || dailyKey() });
   else ui.word.start(false, { mode: 'free', size: boardSize() });
 }
 
@@ -165,7 +172,8 @@ function giveUpSaved() {
   const g = ui.store.wordGame;
   if (g && g.mode === 'daily' && g.daily) {
     ui.store.word ||= { gamesPlayed: 0, best: null, history: [] };
-    ui.store.word.daily = { day: g.daily, size: g.size, score: null, abandoned: true, at: new Date().toISOString() };
+    ui.store.word.dailies ||= {};
+    ui.store.word.dailies[g.daily] = { size: g.size, score: null, abandoned: true, at: new Date().toISOString() };
   }
   ui.store.wordGame = null;
   saveStore(ui.store);
@@ -181,14 +189,15 @@ let resumeChoice = null; // the mode the player pressed while a game was saved
 function chooseMode(mode) {
   const g = ui.store.wordGame;
   if (!g || !g.state) return startMode(mode);
-  if (mode === 'daily' && g.mode === 'daily' && g.daily === dailyKey()) return ui.word.start(true);
+  if (mode === 'daily' && g.mode === 'daily' && (g.daily === dailyKey() || g.daily === shiftDay(dailyKey(), -1))) return ui.word.start(true); // a daily in progress is only ever continued
   const saved = MODE_NAMES[g.mode] || 'Game';
   const dailySaved = g.mode === 'daily' && g.daily;
   resumeChoice = mode;
   $('#resume-title').textContent = `${saved} in progress`;
   $('#resume-detail').textContent = describeSaved(g) + (dailySaved && g.daily !== dailyKey() ? ` · ${g.daily}` : '') + (dailySaved ? '. Giving it up counts as that day\'s try.' : '');
   $('#btn-resume-continue').textContent = `Continue ${saved}`;
-  $('#btn-resume-new').textContent = mode === g.mode ? (mode === 'levels' ? 'Start a new run' : mode === 'daily' ? "Start today's grid" : 'Start a new board') : `Start ${MODE_NAMES[mode]} instead`;
+  const target = dailyTarget(ui.store.word);
+  $('#btn-resume-new').textContent = mode === g.mode ? (mode === 'levels' ? 'Start a new run' : mode === 'daily' ? `Start ${target === dailyKey() ? "today's" : "yesterday's"} grid` : 'Start a new board') : `Start ${MODE_NAMES[mode]} instead`;
   openSheet($('#resume'));
 }
 
