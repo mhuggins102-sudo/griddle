@@ -2028,7 +2028,7 @@ export function initWordMode(ctx) {
       return;
     }
     w.over = true;
-    const perkGame = !!(g.perks && !g.perks.retry); // a run with perk cards: its own best level, nothing posted
+    const perkGame = !!(g.perks && !g.perks.retry); // a run with perk cards: its own best level and its own leaderboard boards
     const handSnap = perkGame ? { gold: g.perks.levelStart.gold, deck: (g.perks.levelStart.deck || g.perks.deck).slice() } : g.retry && g.retry.perks ? g.retry.perks : null;
     w.lastBoard = { seed: g.seed, drawSeed: g.drawSeed, size: g.size, retry: g.mode === 'levels' ? { level: g.level, goal: g.goal, botScore: g.botScore, perks: handSnap } : g.retry ? { ...g.retry, botScore: g.botScore } : null };
     w.pending = null;
@@ -2054,6 +2054,10 @@ export function initWordMode(ctx) {
       if (isBest) store.word[bestKey] = total;
       store.word.gamesPlayed++;
       if (passed && !perkGame) store.word.bestLevel = Math.max(store.word.bestLevel || 0, g.level);
+      if (perkGame) {
+        const key = `bestPerks${g.size}`; // the best score with perk cards per size, for the perk leaderboard; not a personal best
+        store.word[key] = Math.max(store.word[key] || 0, total);
+      }
       if (g.mode === 'levels' && perkGame) {
         const key = `bestReachedPerks${g.size}`; // a perk run's own ladder, kept apart from the plain runs
         store.word[key] = Math.max(store.word[key] || 0, passed ? g.level + 1 : g.level);
@@ -2079,9 +2083,18 @@ export function initWordMode(ctx) {
     }
     store.wordGame = null;
     ctx.saveStore(store);
-    // the leaderboard hears about every finished board; replays, retries and perk runs never count, and
-    // the name question waits for a board whose result is on screen
-    if (ctx.leaderboard) ctx.leaderboard.afterBoard({ size: g.size, score: total, levelReached: g.mode === 'levels' && !perkGame ? store.word[`bestReached${g.size}`] : 0, replay: !!g.replay || !!g.practice || perkGame, prompt: !silent });
+    // the leaderboard hears about every finished board; replays and retries never count, a perk run goes to
+    // the perk boards, and the name question waits for a board whose result is on screen
+    if (ctx.leaderboard) {
+      ctx.leaderboard.afterBoard({
+        size: g.size,
+        score: total,
+        levelReached: g.mode === 'levels' ? store.word[perkGame ? `bestReachedPerks${g.size}` : `bestReached${g.size}`] : 0,
+        perks: perkGame,
+        replay: !!g.replay || !!g.practice,
+        prompt: !silent,
+      });
+    }
     if (silent) return;
 
     $('#w-strip').hidden = true;

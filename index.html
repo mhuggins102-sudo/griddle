@@ -290,7 +290,7 @@
               </div>
             </div>
             <label class="toggle"><span>Show the words on the board <small>Practice: no stats saved</small></span><input type="checkbox" class="switch" role="switch" id="opt-show-words"></label>
-            <label class="toggle"><span>Perk cards <small>Experimental: earn gold for spare turns and buy one-use cards in the shop. New runs only; not posted to the leaderboard</small></span><input type="checkbox" class="switch" role="switch" id="opt-perks"></label>
+            <label class="toggle"><span>Perk cards <small>Experimental: earn gold for spare turns and buy one-use cards in the shop. New runs only; posted to the leaderboard’s own perk boards</small></span><input type="checkbox" class="switch" role="switch" id="opt-perks"></label>
             <label class="toggle" id="opt-numerals-row" hidden><span>Number game: numerals instead of dice pips</span><input type="checkbox" class="switch" role="switch" id="opt-numerals"></label>
           </div>
           <p class="footnote">Progress and settings stay on this device. Only the results you choose to post to the leaderboard leave it.</p>
@@ -335,7 +335,11 @@
               <label><input type="radio" name="lb-size" id="lb-size-5" value="5" checked><span>5×5</span></label>
               <label><input type="radio" name="lb-size" id="lb-size-6" value="6"><span>6×6</span></label>
             </div>
-            <div class="seg seg-small" role="radiogroup" aria-label="Board">
+            <div class="seg seg-small" role="radiogroup" aria-label="Perk cards">
+              <label><input type="radio" name="lb-perks" id="lb-perks-off" value="off" checked><span>No cards</span></label>
+              <label><input type="radio" name="lb-perks" id="lb-perks-on" value="on"><span>Perk cards</span></label>
+            </div>
+            <div class="seg seg-small lb-kind" role="radiogroup" aria-label="Board">
               <label><input type="radio" name="lb-kind" id="lb-kind-score" value="score" checked><span>High scores</span></label>
               <label><input type="radio" name="lb-kind" id="lb-kind-level" value="level"><span>Top level</span></label>
             </div>
@@ -467,14 +471,14 @@
           <details class="chapter">
             <summary><span class="chapter-num">8</span><span class="chapter-title">Leaderboard</span></summary>
             <div class="chapter-body">
-              <p>The trophy button shows four public top tens: the best single-board scores and the highest level reached, for 5×5 and for 6×6. After your first finished board the game asks for a name; post under it, or stay anonymous and nothing leaves your device. Replays never count. You can change or remove your name from the leaderboard sheet, and Reset device data lets you keep or forget it.</p>
+              <p>The trophy button shows eight public top tens: the best single-board scores and the highest level reached, for 5×5 and for 6×6, with and without perk cards. Pick the board size, whether perk cards were on, then high scores or top level. After your first finished board the game asks for a name; post under it, or stay anonymous and nothing leaves your device. Replays never count. You can change or remove your name from the leaderboard sheet, and Reset device data lets you keep or forget it.</p>
             </div>
           </details>
           <details class="chapter">
             <summary><span class="chapter-num">9</span><span class="chapter-title">Perk cards (experimental)</span></summary>
             <div class="chapter-body">
               <p>Switch <strong>Perk cards</strong> on in the settings and your next run of levels earns <strong>gold</strong>: every turn you have to spare when a level's goal is reached is one gold coin. The gold button in the header opens the <strong>shop</strong> at any time: every card not yet bought this run is on sale, by price or by type, and a card you buy is played at once (if you cancel a card that needs a target, its gold comes back).</p>
-              <p>Every card can be bought <strong>once per run</strong> and is <strong>one use</strong>; play as many as you like in a level. Cards the board cannot take right now say why. The goal is fixed by the level, and the board is chosen to fit it as always. A card's points show as their own line on the result card. A few cards cost less on 6×6, where they are worth less. Runs with perk cards keep their own best level in Stats and are not posted to the leaderboard.</p>
+              <p>Every card can be bought <strong>once per run</strong> and is <strong>one use</strong>; play as many as you like in a level. Cards the board cannot take right now say why. The goal is fixed by the level, and the board is chosen to fit it as always. A card's points show as their own line on the result card. A few cards cost less on 6×6, where they are worth less. Runs with perk cards keep their own best level in Stats and post to their own leaderboard boards, apart from the plain runs.</p>
               <ul id="help-perk-cards" class="perk-list"></ul>
             </div>
           </details>

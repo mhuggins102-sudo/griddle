@@ -1,6 +1,6 @@
-// GridLock leaderboard: four boards (5x5 and 6x6, best single-board score and highest level reached), each a
-// top 10 kept in Supabase and read and written with plain fetch through the functions in
-// supabase/schema.sql. The player is a random id made on the device plus a chosen name; results wait in
+// GridLock leaderboard: eight boards (5x5 and 6x6, with and without perk cards, best single-board score and
+// highest level reached), each a top 10 kept in Supabase and read and written with plain fetch through the
+// functions in supabase/schema.sql. The player is a random id made on the device plus a chosen name; results wait in
 // an outbox until the player has a name and the network is there. A player who stays anonymous sends
 // nothing. Replays never count.
 
@@ -35,16 +35,21 @@ export function defaultIdentity() {
   return { playerId: null, name: null, status: 'unasked', pending: [], removals: [], rename: null };
 }
 
-/** Put a result in the outbox, in place: one entry per board, the highest value wins. Returns true if anything changed. */
+/**
+ * Put a result in the outbox, in place: one entry per board (size, kind, perks), the highest value wins. An
+ * entry from before the perk boards has no perks flag and belongs to the plain boards. Returns true if
+ * anything changed.
+ */
 export function queueResult(pending, entry) {
   if (!entry || !(entry.value >= 0)) return false;
-  const i = pending.findIndex((e) => e.size === entry.size && e.kind === entry.kind);
+  const perks = !!entry.perks;
+  const i = pending.findIndex((e) => e.size === entry.size && e.kind === entry.kind && !!e.perks === perks);
   if (i < 0) {
-    pending.push({ size: entry.size, kind: entry.kind, value: entry.value });
+    pending.push({ size: entry.size, kind: entry.kind, perks, value: entry.value });
     return true;
   }
   if (entry.value <= pending[i].value) return false;
-  pending[i] = { size: entry.size, kind: entry.kind, value: entry.value };
+  pending[i] = { size: entry.size, kind: entry.kind, perks, value: entry.value };
   return true;
 }
 
@@ -55,36 +60,60 @@ export function queueResult(pending, entry) {
  */
 export function seedReached(word) {
   if (!word) return false;
-  const proven = bestReachedBySize(word);
   let moved = false;
-  for (const size of [5, 6]) {
-    const key = `bestReached${size}`;
-    if ((word[key] || 0) < proven[size]) {
-      word[key] = proven[size];
-      moved = true;
+  for (const perks of [false, true]) {
+    const proven = bestReachedBySize(word, perks);
+    for (const size of [5, 6]) {
+      const key = reachedKey(size, perks);
+      if ((word[key] || 0) < proven[size]) {
+        word[key] = proven[size];
+        moved = true;
+      }
     }
   }
   return moved;
 }
 
-/** The highest level reached per board size, from the per-size counters and the recent history. */
-export function bestReachedBySize(word) {
-  const out = { 5: word?.bestReached5 || 0, 6: word?.bestReached6 || 0 };
+/** The stats field holding the highest level reached on one board size: bestReached5/6 for plain runs, bestReachedPerks5/6 for runs with perk cards. */
+export function reachedKey(size, perks = false) {
+  return `bestReached${perks ? 'Perks' : ''}${size}`;
+}
+
+/** The highest level reached per board size, from the per-size counters and the recent history; the plain runs and the perk runs each keep their own ladder. */
+export function bestReachedBySize(word, perks = false) {
+  const out = { 5: word?.[reachedKey(5, perks)] || 0, 6: word?.[reachedKey(6, perks)] || 0 };
   for (const g of word?.history || []) {
-    if (g.mode !== 'levels' || g.perks) continue; // a perk run keeps its own ladder
+    if (g.mode !== 'levels' || !!g.perks !== perks) continue;
     const size = g.size === 6 ? 6 : 5;
     out[size] = Math.max(out[size], g.passed ? g.level + 1 : g.level);
   }
   return out;
 }
 
-/** Everything the local stats know that belongs on a board: the best score and highest level per size. */
+/** The best score of a board played with perk cards, per size: the stored figure (bestPerks5/6) or what the recent history shows; null when there is none. */
+export function bestPerkScore(word, size) {
+  let best = word?.[`bestPerks${size}`];
+  if (!(best >= 0)) best = null;
+  for (const g of word?.history || []) {
+    if (!g.perks || (g.size === 6 ? 6 : 5) !== size || !(g.score >= 0)) continue;
+    if (best == null || g.score > best) best = g.score;
+  }
+  return best;
+}
+
+/** Everything the local stats know that belongs on a board: the best score and highest level per size, with and without perk cards. */
 export function localBests(word) {
   const out = [];
-  if (word?.best != null) out.push({ size: 5, kind: 'score', value: word.best });
-  if (word?.best6 != null) out.push({ size: 6, kind: 'score', value: word.best6 });
-  const reached = bestReachedBySize(word);
-  for (const size of [5, 6]) if (reached[size] > 0) out.push({ size, kind: 'level', value: reached[size] });
+  if (word?.best != null) out.push({ size: 5, kind: 'score', perks: false, value: word.best });
+  if (word?.best6 != null) out.push({ size: 6, kind: 'score', perks: false, value: word.best6 });
+  for (const size of [5, 6]) {
+    const best = bestPerkScore(word, size);
+    if (best != null) out.push({ size, kind: 'score', perks: true, value: best });
+  }
+  for (const perks of [false, true]) {
+    const reached = bestReachedBySize(word, perks);
+    for (const size of [5, 6]) if (reached[size] > 0) out.push({ size, kind: 'level', perks, value: reached[size] });
+  }
   return out;
 }
 
@@ -109,14 +138,14 @@ function randomId() {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
 
-/** The leaderboard sheet, the name sheet and the outbox. ctx: { store, saveStore, showToast, boardSize }. */
+/** The leaderboard sheet, the name sheet and the outbox. ctx: { store, saveStore, showToast, boardSize, perksOn }. */
 export function initLeaderboard(ctx) {
   const $ = (sel) => document.querySelector(sel);
   const sheet = $('#leaderboard');
   const nameSheet = $('#lb-name');
   const configured = !!(SUPABASE_URL && SUPABASE_KEY);
   const base = String(SUPABASE_URL).replace(/\/+$/, '');
-  const view = { size: 5, kind: 'score', loadToken: 0 };
+  const view = { size: 5, kind: 'score', perks: false, loadToken: 0 };
   let flushing = null;
   let promptTimer = null;
 
@@ -202,7 +231,7 @@ export function initLeaderboard(ctx) {
         if (!id.pending.length) break;
         const e = id.pending[0];
         try {
-          await rpc('submit_score', { p_player: id.playerId, p_name: id.name, p_size: e.size, p_kind: e.kind, p_value: e.value });
+          await rpc('submit_score', { p_player: id.playerId, p_name: id.name, p_size: e.size, p_kind: e.kind, p_perks: !!e.perks, p_value: e.value });
           sent++;
         } catch (err) {
           if (!rejected(err)) break;
@@ -222,16 +251,17 @@ export function initLeaderboard(ctx) {
 
   /**
    * A board just finished. score is its final score; levelReached is the level the run stands at after this
-   * board (the next level if it was passed, this one if not), or 0 outside a run; replay marks a replay or
-   * retry, which never counts. The first time, the player is asked for a name (prompt false defers that
-   * question, for a board scored while leaving the screen); after that results go out.
+   * board (the next level if it was passed, this one if not), or 0 outside a run; perks marks a run with perk
+   * cards, which has boards of its own; replay marks a replay or retry, which never counts. The first time,
+   * the player is asked for a name (prompt false defers that question, for a board scored while leaving the
+   * screen); after that results go out.
    */
-  function afterBoard({ size, score, levelReached = 0, replay = false, prompt = true }) {
+  function afterBoard({ size, score, levelReached = 0, perks = false, replay = false, prompt = true }) {
     if (replay || !configured) return; // replays never count; without a project there is nothing to post to
     const id = identity();
     if (id.status === 'anonymous') return;
-    let changed = queueResult(id.pending, { size, kind: 'score', value: score });
-    if (levelReached > 0) changed = queueResult(id.pending, { size, kind: 'level', value: levelReached }) || changed;
+    let changed = queueResult(id.pending, { size, kind: 'score', perks: !!perks, value: score });
+    if (levelReached > 0) changed = queueResult(id.pending, { size, kind: 'level', perks: !!perks, value: levelReached }) || changed;
     if (changed) ctx.saveStore(ctx.store);
     if (id.status === 'unasked') {
       if (!prompt) return; // a board scored on the way out: the question waits for one whose result is on screen
@@ -325,7 +355,7 @@ export function initLeaderboard(ctx) {
   }
 
   function describe() {
-    return `${view.size}×${view.size} · ${view.kind === 'score' ? 'high scores' : 'top level'}`;
+    return `${view.size}×${view.size} · ${view.perks ? 'perk cards' : 'no cards'} · ${view.kind === 'score' ? 'high scores' : 'top level'}`;
   }
 
   async function load() {
@@ -344,7 +374,7 @@ export function initLeaderboard(ctx) {
     });
     let rows;
     try {
-      rows = await rpc('get_leaderboard', { p_size: view.size, p_kind: view.kind, p_player: id.status === 'named' ? id.playerId : null });
+      rows = await rpc('get_leaderboard', { p_size: view.size, p_kind: view.kind, p_perks: view.perks, p_player: id.status === 'named' ? id.playerId : null });
     } catch {
       if (token !== view.loadToken) return;
       status.textContent = 'Couldn’t reach the leaderboard. Check your connection and try again';
@@ -363,7 +393,7 @@ export function initLeaderboard(ctx) {
       }
       list.appendChild(li);
     }
-    if (!rows || !rows.length) status.textContent = `No ${view.kind === 'score' ? 'scores' : 'levels'} on the ${view.size}×${view.size} board yet`;
+    if (!rows || !rows.length) status.textContent = `No ${view.kind === 'score' ? 'scores' : 'levels'} on the ${view.size}×${view.size} board ${view.perks ? 'with' : 'without'} perk cards yet`;
     else if (id.status !== 'named') status.textContent = 'Join to post your own results';
     else status.textContent = '';
     list.setAttribute('aria-label', `Top ${TOP_N}, ${describe()}`);
@@ -371,7 +401,9 @@ export function initLeaderboard(ctx) {
 
   function open() {
     if (ctx.boardSize) view.size = ctx.boardSize() === 6 ? 6 : 5; // the board chosen on the home screen
+    if (ctx.perksOn) view.perks = !!ctx.perksOn(); // and the perk cards setting as it stands
     $(`#lb-size-${view.size}`).checked = true;
+    $(`#lb-perks-${view.perks ? 'on' : 'off'}`).checked = true;
     $(`#lb-kind-${view.kind}`).checked = true;
     renderFoot();
     openSheet(sheet);
@@ -394,6 +426,12 @@ export function initLeaderboard(ctx) {
   for (const r of document.querySelectorAll('input[name="lb-size"]')) {
     r.addEventListener('change', () => {
       view.size = Number(document.querySelector('input[name="lb-size"]:checked').value);
+      load();
+    });
+  }
+  for (const r of document.querySelectorAll('input[name="lb-perks"]')) {
+    r.addEventListener('change', () => {
+      view.perks = document.querySelector('input[name="lb-perks"]:checked').value === 'on';
       load();
     });
   }
