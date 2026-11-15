@@ -291,6 +291,13 @@
             </div>
             <label class="toggle"><span>Show the words on the board <small>Practice: no stats saved</small></span><input type="checkbox" class="switch" role="switch" id="opt-show-words"></label>
             <label class="toggle"><span>Perk cards <small>Experimental: earn gold for spare turns and buy one-use cards in the shop. New runs only; not posted to the leaderboard</small></span><input type="checkbox" class="switch" role="switch" id="opt-perks"></label>
+            <div class="toggle" id="opt-stats-row"><span>Stats layout <small>Trying three arrangements of the filters</small></span>
+              <div class="seg seg-small" role="radiogroup" aria-label="Stats layout">
+                <label><input type="radio" name="opt-stats" id="opt-stats-a" value="a" checked><span>A</span></label>
+                <label><input type="radio" name="opt-stats" id="opt-stats-b" value="b"><span>B</span></label>
+                <label><input type="radio" name="opt-stats" id="opt-stats-c" value="c"><span>C</span></label>
+              </div>
+            </div>
             <label class="toggle" id="opt-numerals-row" hidden><span>Number game: numerals instead of dice pips</span><input type="checkbox" class="switch" role="switch" id="opt-numerals"></label>
           </div>
           <p class="footnote">Progress and settings stay on this device. Only the results you choose to post to the leaderboard leave it.</p>
@@ -299,15 +306,29 @@
       </div>
     </div>
 
-    <!-- Stats sheet -->
+    <!-- Stats sheet: filtered by board size and perk cards; the layout is chosen in the settings for now -->
     <div id="stats" class="sheet" hidden>
       <div class="sheet-body">
         <div class="sheet-head"><h2>Stats</h2><button id="btn-stats-close" class="btn btn-icon" aria-label="Close">✕</button></div>
-        <div class="sheet-scroll"><div id="stats-body"></div></div>
+        <div class="sheet-scroll"><div id="stats-body" class="stats"></div></div>
         <div class="sheet-foot btn-row">
           <button id="btn-stats-reset" class="btn btn-quiet">Reset device data</button>
           <button id="btn-stats-done" class="btn btn-primary">Close</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Cards used: a popup over the stats listing every card played in the filtered runs -->
+    <div id="stats-cards" class="perkpick" role="dialog" aria-modal="true" aria-labelledby="stats-cards-title" hidden>
+      <div class="perkpick-card card-dialog stats-cards">
+        <button id="stats-cards-close" class="btn btn-icon card-dialog-close" aria-label="Close">✕</button>
+        <h3 id="stats-cards-title">Cards used</h3>
+        <p id="stats-cards-sub" class="hint"></p>
+        <div class="seg seg-small stats-cards-sort" role="radiogroup" aria-label="Sort the cards">
+          <label><input type="radio" name="stats-cards-sort" id="stats-cards-by-use" value="use" checked><span>By use</span></label>
+          <label><input type="radio" name="stats-cards-sort" id="stats-cards-by-pts" value="pts"><span>By points</span></label>
+        </div>
+        <div id="stats-cards-list" class="stats-cards-list"></div>
       </div>
     </div>
 

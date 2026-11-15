@@ -372,17 +372,20 @@ export function perkExtras(state, cells) {
   const p = state.perk;
   if (!p) return [];
   const out = [];
-  let squares = 0;
+  const squares = {}; // by the card that laid the square (Power Pair or Triple Up)
   let stickers = 0;
   let letters = 0;
   for (const c of cells) {
     const v = letterValue(state.board[c]);
     letters += v;
     const m = p.squares && p.squares[c];
-    if (m) squares += v * (m - 1);
+    if (m) {
+      const by = (p.squareCard && p.squareCard[c]) || 'squares';
+      squares[by] = (squares[by] || 0) + v * (m - 1);
+    }
     if (p.stickers && p.stickers[c]) stickers += p.stickers[c];
   }
-  if (squares) out.push({ card: 'squares', pts: squares });
+  for (const [card, pts] of Object.entries(squares)) if (pts) out.push({ card, pts });
   if (stickers) out.push({ card: 'sticker', pts: stickers });
   const len = cells.length;
   if (p.double) out.push({ card: 'double-down', pts: letters });
@@ -467,8 +470,11 @@ export function lockWord(state, candidate) {
   next.words.push(entry);
   next.score = state.score + score;
   if (state.perk) {
-    const p = { ...state.perk, squares: { ...(state.perk.squares || {}) }, log: (state.perk.log || []).slice() };
-    for (const c of candidate.cells) delete p.squares[c]; // a square pays once; a sticker pays every word through its cell
+    const p = { ...state.perk, squares: { ...(state.perk.squares || {}) }, squareCard: { ...(state.perk.squareCard || {}) }, log: (state.perk.log || []).slice() };
+    for (const c of candidate.cells) {
+      delete p.squares[c]; // a square pays once; a sticker pays every word through its cell
+      delete p.squareCard[c];
+    }
     const len = candidate.cells.length;
     if (p.double) p.double = false; // the next lock, whatever its length
     if (p.stretch && len >= 4) p.stretch = false; // waits for a word long enough

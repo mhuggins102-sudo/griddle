@@ -474,7 +474,47 @@ svg { display: block; }
 .stat-list li { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 14px; display: flex; justify-content: space-between; gap: 10px; }
 .stat-list li span:last-child { color: var(--muted); white-space: nowrap; }
 .stat-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.stat-summary div { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; }
+.stat-summary > div, .stat-summary > button { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; min-width: 0; }
+.stat-summary .hud-value { font-size: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stat-summary .hud-value.small { font-size: 15px; line-height: 1.5; }
+.stat-summary button { font: inherit; color: inherit; text-align: left; cursor: pointer; box-shadow: none; }
+.stat-summary button .hud-value { color: var(--accent); }
+.stat-summary button .hud-value::after { content: " ›"; }
+/* the stats filters */
+.stats-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.stats-filters .seg span { white-space: nowrap; }
+.stats-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
+.stats-tabs button { font: inherit; font-weight: 700; font-size: 14px; padding: 10px 4px; background: var(--panel); color: var(--muted); border: 0; cursor: pointer; white-space: nowrap; }
+.stats-tabs button + button { border-left: 1px solid var(--line); }
+.stats-tabs button.active { background: var(--accent); color: var(--accent-ink); }
+.stats-sizes { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+.stats-sizes .hud-label { flex: 0 0 auto; }
+.stats-grid { display: grid; grid-template-columns: auto 1fr 1fr; gap: 6px; align-items: stretch; margin-bottom: 12px; }
+.stats-grid .corner { display: flex; align-items: center; justify-content: center; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.stats-grid .col { text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding: 2px 0; }
+.stats-grid .row { display: flex; align-items: center; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding-right: 6px; }
+.stats-grid button.cell { font: inherit; color: inherit; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; box-shadow: none; }
+.stats-grid button.cell.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
+.stats-grid button.cell .big { font-size: 20px; font-weight: 800; }
+.stats-grid button.cell small { color: var(--muted); font-size: 12px; }
+.stats-grid button.cell:disabled { opacity: 0.5; cursor: default; }
+.stats .cards-link { margin: 10px 0 0; }
+.stats-empty { color: var(--muted); font-size: 14px; margin: 8px 0; }
+.stats h3 { margin: 16px 0 6px; }
+/* the cards popup */
+.stats-cards { width: min(100%, 420px); max-height: calc(100dvh - 32px); }
+.stats-cards-sort { align-self: flex-start; }
+.stats-cards-sort span { white-space: nowrap; }
+.stats-cards .hint { font-size: 13px; }
+.stats-cards-list { display: flex; flex-direction: column; gap: 6px; overflow: auto; min-height: 0; }
+.stats-card { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "name pts" "bar bar" "use pts2"; gap: 2px 10px; align-items: center; background: var(--bg); border-radius: 10px; padding: 8px 10px; }
+.stats-card .name { grid-area: name; font-weight: 700; }
+.stats-card .bar { grid-area: bar; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.stats-card .bar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.stats-card .use { grid-area: use; font-size: 12px; color: var(--muted); }
+.stats-card .pts { grid-area: pts / pts / pts2 / pts2; font-weight: 800; color: var(--gold); white-space: nowrap; text-align: right; }
+.stats-card .pts small { display: block; font-weight: 600; color: var(--muted); font-size: 11px; }
+.stats-card .pts.none { color: var(--muted); font-weight: 600; }
 
 /* Help sheet */
 .sheet {
