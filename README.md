@@ -30,7 +30,7 @@ Any static file server works; the page fetches `data/puzzles.json` so it needs H
 | `js/daily.js` | the daily grid: the day key (local date), and the size and seeds hashed from it |
 | `js/wordbot.js` | word bot that plays a board to set the level goal |
 | `js/wordbot-worker.js` | runs the bot in a Web Worker |
-| `data/words.txt` | 3-to-6-letter word list, most common first: ENABLE pruned of rarities plus modern words (about 20,300); built by `tools/build-words.js` |
+| `data/words.txt` | 3-to-6-letter word list: the whole of ENABLE (about 28,700 words) plus modern words, in two tiers: the common tier first, most common first, then a `#rare` line and the rest; built by `tools/build-words.js` |
 | `tools/build-words.js` | rebuilds `data/words.txt` from ENABLE and OpenSubtitles word counts (downloads the sources with curl) |
 | `data/puzzles.json` | the shipped bank (`data/puzzles-stats.json` holds generation stats) |
 | `tools/generate.js` | goal pairing, beam solver, IDA* calibration, bank writer (parallel over worker threads) |

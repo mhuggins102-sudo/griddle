@@ -4,7 +4,7 @@
 import { gridOfState } from './grid.js';
 import {
   dealLetters, createWordState, applyWordAction, findWords, lockWord, finalScore, isLocked, isBoardFull, turnLimit,
-} from './words.js';
+ isCommonWord } from './words.js';
 
 /**
  * The goal for a level is fixed by the level and the board size: 60, 70, 80… on 5x5 and 100, 115, 130… on
@@ -59,7 +59,7 @@ function bestLockable(state, dict) {
   let best = null;
   let bestValue = -1;
   for (const cand of findWords(state, dict)) {
-    if (!cand.lockable) continue;
+    if (!cand.lockable || !isCommonWord(dict, cand.word)) continue; // the bot plays everyday words only, so goals stay fair
     const v = lockValue(state, cand);
     if (v > bestValue) {
       bestValue = v;

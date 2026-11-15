@@ -47,3 +47,12 @@ test('bot plays a 6x6 board within 25 turns and its moves cover the whole 156-mo
   assert.ok(r.locked <= 36);
   for (const w of r.words) assert.ok(dict.has(w.word) && w.word.length <= 6);
 });
+
+test('the bot plays everyday words only: a word in the rare tier is never locked, the same word in the common tier is', () => {
+  const board = 'ZAXQQQQQQQQQQQQQQQQQQQQQQ'.split('');
+  const rare = botPlay(board, [], parseDictionary('#rare\nZAX\n'));
+  assert.equal(rare.words.length, 0);
+  assert.equal(rare.score, 0);
+  const common = botPlay(board, [], parseDictionary('ZAX\n'));
+  assert.ok(common.words.some((w) => w.word === 'ZAX') && common.score > 0, JSON.stringify(common.words));
+});

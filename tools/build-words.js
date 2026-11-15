@@ -1,7 +1,10 @@
 #!/usr/bin/env node
-// Builds data/words.txt: the public-domain ENABLE list (3 to 6 letters) pruned of words that hardly
-// ever occur in everyday English, plus a supplement of modern words ENABLE predates, ordered by how
-// common each word is (so a wild tile resolves to the word a player most likely means).
+// Builds data/words.txt: the whole public-domain ENABLE list (3 to 6 letters; the open stand-in for the
+// Scrabble dictionary) plus a supplement of modern words ENABLE predates, in two tiers. The common tier
+// comes first, ordered by how often each word occurs in everyday English (so a wild tile resolves to the
+// word a player most likely means); a "#rare" line follows, then every other ENABLE word, rarest last.
+// Every word in the file is accepted when a player locks it; the bot (which sets the level goals) and
+// anything that should prefer everyday words only use the common tier (dict.common in js/words.js).
 //
 //   node tools/build-words.js [--sources DIR] [--min 10] [--base 100]
 //
@@ -12,8 +15,9 @@
 //   lemmatization-en.txt  https://raw.githubusercontent.com/michmech/lemmatization-lists/master/lemmatization-en.txt
 //                (inflected form -> lemma; a word that is an inflection of another listed word is written as
 //                WORD>LEMMA so that locking DOOR then DOORS on the same tiles can be refused)
-// Rule: keep an ENABLE word when it occurs at least --min times, or at least twice when it is a plain
-// inflection (-s, -es, -ed, -ing, -er, -ly, ...) of an ENABLE word occurring at least --base times.
+// Common tier: an ENABLE word that occurs at least --min times, or at least twice when it is a plain
+// inflection (-s, -es, -ed, -ing, -er, -ly, ...) of an ENABLE word occurring at least --base times; the
+// supplement is common too. Everything else in ENABLE is the rare tier.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
@@ -84,15 +88,19 @@ function keep(w) {
   return false;
 }
 
-const words = new Set([...enable].filter(keep));
+const common = new Set([...enable].filter(keep));
 const supplementLemmas = new Map();
 for (const entry of SUPPLEMENT) {
   const [w, lemma] = entry.split('>');
   if (w.length < MIN_LEN || w.length > MAX_LEN || !/^[a-z]+$/.test(w)) throw new Error(`bad supplement word ${w}`);
-  words.add(w);
+  common.add(w);
   if (lemma) supplementLemmas.set(w, lemma);
 }
-const sorted = [...words].sort((a, b) => count(b) - count(a) || (a < b ? -1 : a > b ? 1 : 0));
+const byCount = (a, b) => count(b) - count(a) || (a < b ? -1 : a > b ? 1 : 0);
+const commonSorted = [...common].sort(byCount);
+const rareSorted = [...enable].filter((w) => !common.has(w)).sort(byCount);
+const sorted = commonSorted.concat(rareSorted);
+const words = new Set(sorted);
 const lemmas = new Map();
 for (const [w, lemma] of supplementLemmas) {
   if (!words.has(lemma)) throw new Error(`supplement lemma ${lemma} of ${w} is not a listed word`);
@@ -105,10 +113,11 @@ for (const line of readFileSync(join(dir, 'lemmatization-en.txt'), 'utf8').split
   lemmas.get(form).push(lemma);
 }
 const out = join(process.cwd(), 'data', 'words.txt');
-writeFileSync(out, sorted.map((w) => (lemmas.has(w) ? `${w}>${lemmas.get(w).join('/')}` : w).toUpperCase()).join('\n') + '\n');
+const line = (w) => (lemmas.has(w) ? `${w}>${lemmas.get(w).join('/')}` : w).toUpperCase();
+writeFileSync(out, commonSorted.map(line).concat(['#rare'], rareSorted.map(line)).join('\n') + '\n');
 
 const byLen = {};
 for (const w of sorted) byLen[w.length] = (byLen[w.length] || 0) + 1;
-console.error(`ENABLE ${MIN_LEN}-${MAX_LEN}: ${enable.size}; kept ${[...enable].filter(keep).length} (${(100 * [...enable].filter(keep).length / enable.size).toFixed(0)}%); supplement ${SUPPLEMENT.length}; written ${sorted.length} words to ${out}`);
+console.error(`ENABLE ${MIN_LEN}-${MAX_LEN}: ${enable.size}; common tier ${commonSorted.length} (${(100 * [...enable].filter(keep).length / enable.size).toFixed(0)}% of ENABLE, plus the supplement of ${SUPPLEMENT.length}); rare tier ${rareSorted.length}; written ${sorted.length} words to ${out}`);
 console.error('by length: ' + Object.entries(byLen).map(([n, k]) => `${n}: ${k}`).join('  ') + `; ${lemmas.size} words carry a lemma`);
 console.error('first 12: ' + sorted.slice(0, 12).join(' ') + ' ... last: ' + sorted.slice(-4).join(' '));
