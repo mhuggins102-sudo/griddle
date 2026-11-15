@@ -366,7 +366,7 @@ export function initWordMode(ctx) {
     if (!resume && !ctx.store.settings.tutorialSeen) {
       ctx.store.settings.tutorialSeen = true;
       ctx.saveStore(ctx.store);
-      ctx.openTutorial(w.game.size, { mode: w.game.mode, goal: w.game.goal });
+      ctx.openTutorial(w.game.size, { mode: w.game.mode, goal: w.game.goal, perks: !!w.game.perks });
     }
   }
 
@@ -2544,7 +2544,7 @@ export function initWordMode(ctx) {
   $('#w-help').addEventListener('click', () => {
     closeMenu();
     const g = w.game;
-    ctx.openTutorial(g ? g.size : 5, g ? { mode: g.mode, goal: g.goal } : {});
+    ctx.openTutorial(g ? g.size : 5, g ? { mode: g.mode, goal: g.goal, perks: !!g.perks } : {});
   });
   window.addEventListener('resize', positionMenu);
 
