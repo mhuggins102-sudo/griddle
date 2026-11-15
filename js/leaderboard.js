@@ -6,7 +6,7 @@
 
 import { SUPABASE_URL, SUPABASE_KEY } from './leaderboard-config.js';
 import { openSheet, closeSheet } from './sheet.js';
-import { dailyKey, shiftDay, dailySpec, isDailyKey } from './daily.js';
+import { dailyKey, shiftDay, dailySpec, isDailyKey, dailyRecords } from './daily.js';
 
 export const NAME_MAX = 16;
 export const TOP_N = 10;
@@ -127,8 +127,13 @@ export function localBests(word) {
     const reached = bestReachedBySize(word, perks);
     for (const size of [5, 6]) if (reached[size] > 0) out.push({ size, kind: 'level', perks, value: reached[size] });
   }
-  const d = word?.daily;
-  if (d && isDailyKey(d.day) && typeof d.score === 'number' && d.score >= 0) out.push({ kind: 'daily', day: d.day, size: d.size === 6 ? 6 : 5, value: d.score }); // a grid given up has no score
+  // the last days' daily grids (the server takes nothing older); a grid given up has no score
+  const recs = dailyRecords(word);
+  const floor = shiftDay(dailyKey(), -2);
+  for (const day of Object.keys(recs).sort()) {
+    const d = recs[day];
+    if (day >= floor && typeof d.score === 'number' && d.score >= 0) out.push({ kind: 'daily', day, size: d.size === 6 ? 6 : 5, value: d.score });
+  }
   return out;
 }
 
@@ -160,7 +165,7 @@ export function initLeaderboard(ctx) {
   const nameSheet = $('#lb-name');
   const configured = !!(SUPABASE_URL && SUPABASE_KEY);
   const base = String(SUPABASE_URL).replace(/\/+$/, '');
-  const view = { size: 5, kind: 'score', perks: false, day: 'today', loadToken: 0 };
+  const view = { size: 5, kind: 'score', perks: false, day: 'today', fixedDay: null, loadToken: 0 }; // fixedDay: one day's grid alone, from the result card
   let flushing = null;
   let promptTimer = null;
 
@@ -373,10 +378,12 @@ export function initLeaderboard(ctx) {
   }
 
   /** The day the daily view shows, as a key. */
-  const viewDay = () => (view.day === 'yesterday' ? shiftDay(dailyKey(), -1) : dailyKey());
+  const viewDay = () => view.fixedDay || (view.day === 'yesterday' ? shiftDay(dailyKey(), -1) : dailyKey());
+  /** "Today's", "Yesterday's" or the date, for a day key. */
+  const dayLabel = (key) => (key === dailyKey() ? "Today's" : key === shiftDay(dailyKey(), -1) ? "Yesterday's" : `${key}'s`);
 
   function describe() {
-    if (view.kind === 'daily') return `${view.day === 'today' ? 'today' : 'yesterday'}'s daily grid`;
+    if (view.kind === 'daily') return `${dayLabel(viewDay())} daily grid`;
     return `${view.size}×${view.size} · ${view.perks ? 'perk cards' : 'no cards'} · ${view.kind === 'score' ? 'high scores' : 'top level'}`;
   }
 
@@ -427,7 +434,7 @@ export function initLeaderboard(ctx) {
     }
     if (view.kind === 'daily') {
       const spec = dailySpec(dayKey);
-      const parts = [`${view.day === 'today' ? 'Today' : 'Yesterday'}'s grid · ${spec.size}×${spec.size}`];
+      const parts = [`${dayLabel(dayKey)} grid · ${spec.size}×${spec.size}`];
       if (!rows || !rows.length) parts.push('no scores yet');
       else if (id.status !== 'named') parts.push('join to post your own');
       status.textContent = parts.join(' · ');
@@ -438,13 +445,28 @@ export function initLeaderboard(ctx) {
   }
 
   function open() {
+    view.fixedDay = null;
     if (ctx.boardSize) view.size = ctx.boardSize() === 6 ? 6 : 5; // the board chosen on the home screen
     if (ctx.perksOn) view.perks = !!ctx.perksOn(); // and the perk cards setting as it stands
     $(`#lb-size-${view.size}`).checked = true;
     $(`#lb-perks-${view.perks ? 'on' : 'off'}`).checked = true;
     $(`#lb-day-${view.day}`).checked = true;
     $(`#lb-kind-${view.kind}`).checked = true;
+    $('#lb-title').textContent = 'Leaderboard';
+    $('#leaderboard .lb-controls').hidden = false;
     syncControls();
+    renderFoot();
+    openSheet(sheet);
+    load();
+  }
+
+  /** One day's daily grid alone, with no switches: from the result card of that grid. The next open from the home screen shows everything again. */
+  function openDaily(day) {
+    if (!isDailyKey(day)) return open();
+    view.kind = 'daily';
+    view.fixedDay = day;
+    $('#lb-title').textContent = `${dayLabel(day)} Daily Grid`;
+    $('#leaderboard .lb-controls').hidden = true;
     renderFoot();
     openSheet(sheet);
     load();
@@ -505,6 +527,7 @@ export function initLeaderboard(ctx) {
 
   return {
     open,
+    openDaily,
     close,
     afterBoard,
     flush,

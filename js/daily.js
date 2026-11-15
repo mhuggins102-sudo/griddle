@@ -25,6 +25,26 @@ export function dailySpec(key) {
   return { key, size, seed: hashString(`gridlock-daily-board:${key}`), drawSeed: hashString(`gridlock-daily-draws:${key}`) };
 }
 
+/**
+ * The days this device has played (or given up), as a map key → { size, score, abandoned, at }, from the
+ * word stats: the dailies map, plus the single daily field older saves kept.
+ */
+export function dailyRecords(word) {
+  const out = {};
+  if (word && word.daily && isDailyKey(word.daily.day)) out[word.daily.day] = word.daily;
+  if (word && word.dailies && typeof word.dailies === 'object') for (const [k, v] of Object.entries(word.dailies)) if (isDailyKey(k) && v) out[k] = v;
+  return out;
+}
+
+/** The grid the Daily Grid button offers: today's if not yet played, else yesterday's if not yet played, else null. */
+export function dailyTarget(word, today = dailyKey()) {
+  const recs = dailyRecords(word);
+  if (!recs[today]) return today;
+  const yday = shiftDay(today, -1);
+  if (!recs[yday]) return yday;
+  return null;
+}
+
 /** True for a well-formed key. */
 export function isDailyKey(key) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(key));

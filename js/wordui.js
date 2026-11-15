@@ -9,7 +9,7 @@
 // the words on the board and offers Undo; a practice board is not counted. The daily grid ignores it.
 
 import { randomSeed } from './rng.js';
-import { dailyKey, dailySpec } from './daily.js';
+import { dailyKey, dailySpec, shiftDay, isDailyKey } from './daily.js';
 import { openSheet, closeSheet } from './sheet.js';
 import { buildBoardSkeleton, tileIn, tileStep, animateAction, animateMoves, beginMoves, removeGhosts, clearTileEffects, wait, ANIM_MS } from './board.js';
 import {
@@ -290,7 +290,7 @@ export function initWordMode(ctx) {
       if (w.game.undoFloor === undefined) w.game.undoFloor = 0;
       if (showWordsOption() && w.game.mode !== 'daily') w.game.practice = true; // once the words have been shown, the board stays practice
     } else {
-      const daily = opts.mode === 'daily' ? dailySpec(dailyKey()) : null; // today's grid: the day decides its size, letters and draws
+      const daily = opts.mode === 'daily' ? dailySpec(isDailyKey(opts.day) ? opts.day : dailyKey()) : null; // a day's grid (today's unless told otherwise): the day decides its size, letters and draws
       const size = daily ? daily.size : SIZES.includes(opts.size) ? opts.size : 5;
       const level = opts.level || 1;
       // a level's board is chosen to fit its goal; the choice is usually made ahead of time
@@ -373,7 +373,7 @@ export function initWordMode(ctx) {
     if (opts.note) say(opts.note, 'good', 2800);
     else if (opts.retry) say(`Replaying the board that ended your run · goal ${opts.retry.goal} · not counted in stats`, '', 3500);
     else if (opts.replay) say('Replaying this board · not counted in your stats', '', 3000);
-    else if (w.game.mode === 'daily') say('Daily Grid · the same board for everyone today · one try', '', 3500);
+    else if (w.game.mode === 'daily') say(`${w.game.daily === dailyKey() ? "Today's" : w.game.daily === shiftDay(dailyKey(), -1) ? "Yesterday's" : w.game.daily} Daily Grid · the same board for everyone · one try`, '', 3500);
     else if (practiceLive()) say('Practice board · words and Undo on · not counted in stats', '', 3500);
     ensureBotData(w.game);
     if (isLevels() && !w.game.retry) prefetch(w.game.level + 1, w.game.size); // the next board is chosen while this one is played
@@ -2075,7 +2075,14 @@ export function initWordMode(ctx) {
       isBest = !perkGame && (store.word[bestKey] == null || total > store.word[bestKey]);
       if (isBest) store.word[bestKey] = total;
       store.word.gamesPlayed++;
-      if (g.mode === 'daily' && g.daily) store.word.daily = { day: g.daily, size: g.size, score: total, at: new Date().toISOString() }; // the day's one try
+      if (g.mode === 'daily' && g.daily) {
+        // the day's one try: kept per day (the last few days), and as the single field older code read
+        const rec = { size: g.size, score: total, at: new Date().toISOString() };
+        store.word.dailies ||= {};
+        store.word.dailies[g.daily] = rec;
+        for (const k of Object.keys(store.word.dailies).sort().slice(0, -10)) delete store.word.dailies[k];
+        store.word.daily = { day: g.daily, ...rec };
+      }
       if (passed && !perkGame) store.word.bestLevel = Math.max(store.word.bestLevel || 0, g.level);
       if (perkGame) {
         const key = `bestPerks${g.size}`; // the best score with perk cards per size, for the perk leaderboard; not a personal best
@@ -2164,6 +2171,7 @@ export function initWordMode(ctx) {
       next: showNext,
       again: !showNext && g.mode !== 'daily', // the daily grid is one try
       againText: levelsRun || g.retry ? 'New run' : 'New board',
+      lb: g.mode === 'daily' && !g.replay ? g.daily : null, // the trophy: that day's leaderboard
       replay: !(showNext || (g.retry && total >= g.goal)), // a lost board can be retried; a beaten retry cannot
     });
   }
@@ -2242,6 +2250,9 @@ export function initWordMode(ctx) {
     $('#w-again').hidden = !data.again;
     $('#w-again').textContent = data.againText || 'New board';
     $('#w-replay').hidden = !data.replay;
+    $('#w-result-lb').hidden = !data.lb;
+    $('#w-replay').textContent = data.lb ? 'Replay' : 'Replay board'; // four buttons share the row when the trophy is there
+    w.resultDay = data.lb || null;
     $('#screen-word').classList.add('sheet-up');
     openSheet(sheet);
     fitBoardAbove();
@@ -2469,6 +2480,9 @@ export function initWordMode(ctx) {
   $('#w-undo').addEventListener('click', undo);
   $('#w-pop').addEventListener('click', () => ($('#w-pop').hidden = true));
   $('#w-share').addEventListener('click', copyShare);
+  $('#w-result-lb').addEventListener('click', () => {
+    if (w.resultDay && ctx.leaderboard) ctx.leaderboard.openDaily(w.resultDay); // over the result card; closing it returns there
+  });
   $('#w-next').addEventListener('click', () => {
     if (w.game && !w.over) advanceEarly(); // the goal was reached mid-board: score it and move on
     else startNextLevel(w.nextLevel || 1);
