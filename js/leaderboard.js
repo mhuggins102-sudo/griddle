@@ -211,13 +211,15 @@ export function initLeaderboard(ctx) {
   /**
    * Send what is waiting: removals first, then a pending rename, then results oldest first. An entry the
    * server refused (HTTP 400) is dropped; anything else (no network, a server error, a missing key or grant,
-   * a rate limit) keeps it for next time. The identity is read afresh at every step, so a reset or a change
+   * a rate limit) keeps it for next time. A daily entry kept that way does not hold up the plain entries
+   * behind it (the daily functions may not be on the server yet); the other dailies wait for the next pass. The identity is read afresh at every step, so a reset or a change
    * of mind while a request is in flight is honoured. Resolves to the number of requests that went through.
    */
   function flush() {
     if (flushing) return flushing;
     flushing = (async () => {
       let sent = 0;
+      let skipDaily = false; // a daily entry the server kept us waiting on this pass: the rest still go
       if (!configured) return sent;
       for (;;) {
         const id = identity();
@@ -248,14 +250,18 @@ export function initLeaderboard(ctx) {
           ctx.saveStore(ctx.store);
           continue;
         }
-        if (!id.pending.length) break;
-        const e = id.pending[0];
+        const e = skipDaily ? id.pending.find((x) => x.kind !== 'daily') : id.pending[0];
+        if (!e) break;
         try {
           if (e.kind === 'daily') await rpc('submit_daily', { p_player: id.playerId, p_name: id.name, p_day: e.day, p_size: e.size, p_value: e.value });
           else await rpc('submit_score', { p_player: id.playerId, p_name: id.name, p_size: e.size, p_kind: e.kind, p_perks: !!e.perks, p_value: e.value });
           sent++;
         } catch (err) {
-          if (!rejected(err)) break;
+          if (!rejected(err)) {
+            if (e.kind !== 'daily') break;
+            skipDaily = true; // the daily functions may not be on the server yet: the plain entries behind it still go out
+            continue;
+          }
         }
         const now = identity();
         if (now !== id) continue; // the identity changed under the request: start over with the new one

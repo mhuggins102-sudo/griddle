@@ -25,7 +25,7 @@ export const CARDS = [
   { id: 'fresh-deal', name: 'Fresh Deal', cost: 3, family: 'board', target: 'none', turn: 0, text: 'Before your first move: a new board, chosen for the same goal.' },
   { id: 'long-swap', name: 'Long Swap', cost: 5, family: 'board', target: 'pair', turn: 1, text: 'Swap two unlocked tiles in the same row or column, any distance apart. One turn.' },
   { id: 'rotate', name: 'Rotate', cost: 5, family: 'board', target: 'block', turn: 1, text: 'Turn a 2×2 block of unlocked tiles a quarter, half or three-quarter turn. One turn.' },
-  { id: 'unlock', name: 'Unlock', cost: 3, family: 'board', target: 'tile', turn: 0, text: 'Free a locked tile so it can move again. Its word keeps its points. No turn.' },
+  { id: 'unlock', name: 'Unlock', cost: 3, family: 'board', target: 'tile', turn: 0, text: 'Free a locked tile so it can move again. Its word keeps its points, but the tile counts for the tile bonus only once it is locked again. No turn.' },
   { id: 'long-flick', name: 'Long Flick', cost: 5, family: 'board', target: 'flick', turn: 1, text: 'Flick a row or column and choose how far it slides, two steps or more. One turn.' },
   { id: 'letter-trade', name: 'Letter Trade', cost: 7, cost6: 6, family: 'board', target: 'pair', turn: 1, text: 'Swap the letters of any two tiles, locked or not. Locks stay where they are. One turn.' },
   { id: 'fresh-line', name: 'Fresh Line', cost: 4, family: 'board', target: 'line', turn: 1, text: 'Redraw every unlocked tile in one row or column from the bag. One turn.' },
@@ -54,7 +54,7 @@ export const CARDS = [
   { id: 'rewind', name: 'Rewind', cost: 4, family: 'tempo', target: 'none', turn: 0, text: 'Take back your last move or lock, even a Draw. After a Draw is taken back, the next draw is rerolled.' },
   // information
   { id: 'peek', name: 'Peek', cost: 3, family: 'info', target: 'none', turn: 0, text: 'For the rest of this level, see which letter the bag will give before you Draw.' },
-  { id: 'hint', name: 'Hint', cost: 4, family: 'info', target: 'none', turn: 0, text: 'Lights up the highest-scoring word you could lock right now.' },
+  { id: 'hint', name: 'Hint', cost: 4, family: 'info', target: 'none', turn: 0, text: 'Lights up the highest-scoring word you could lock right now, for a few seconds.' },
   // economy
   { id: 'gold-rush', name: 'Gold Rush', cost: 3, family: 'economy', target: 'none', turn: 0, text: 'This level’s spare turns pay double gold.' },
 ];

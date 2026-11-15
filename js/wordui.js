@@ -1319,7 +1319,7 @@ export function initWordMode(ctx) {
       case 'rewind':
         return perkRewind();
       case 'hint':
-        return showHint();
+        return showHint(paid);
       case 'gold-rush':
         g.perks.goldRush = true;
         spendCard(id);
@@ -1927,6 +1927,7 @@ export function initWordMode(ctx) {
   /** Fresh Deal: a new board chosen for the same goal, like the one it replaces. */
   async function freshDeal() {
     const g = w.game;
+    const prevPerk = g.state.perk; // what cards laid before the first move; nothing in it is tied to the letters
     spendCard('fresh-deal');
     w.animating = true; // nothing moves while the bot chooses
     say('Fresh Deal: choosing a new board…', 'good', 6000);
@@ -1936,7 +1937,7 @@ export function initWordMode(ctx) {
     const { board, bag } = dealLetters(prep.seed, g.size);
     g.seed = prep.seed;
     g.state = createWordState(board, bag, g.drawSeed);
-    g.state.perk = emptyPerk();
+    g.state.perk = { ...(prevPerk || emptyPerk()), log: [] }; // cards played before the first move (extra turns, squares, flags) carry over to the new board
     g.history = [];
     g.undoFloor = 0;
     Object.assign(g, { botScore: prep.botScore, botFinal: prep.botFinal, botWords: prep.botWords });
@@ -1985,11 +1986,14 @@ export function initWordMode(ctx) {
   }
 
   /** Hint: light up the best word that can be locked right now, until the board changes. */
-  function showHint() {
+  function showHint(paid = 0) {
     const st = w.game.state;
     const best = findWords(st, w.dict).find((c) => c.lockable);
+    if (!best) {
+      refund(paid, 'hint'); // nothing to light: the gold comes back and the card returns to the shop
+      return say('Hint: no word can be locked right now', '', 3000);
+    }
     spendCard('hint');
-    if (!best) return say('Hint: no word can be locked right now', '', 3000);
     w.hint = { cells: best.cells, word: best.word, score: best.score };
     clearTimeout(w.hintTimer);
     w.hintTimer = setTimeout(clearHint, 8000);
