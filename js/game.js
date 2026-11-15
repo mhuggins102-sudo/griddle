@@ -13,7 +13,7 @@ export function defaultStore() {
     bestTotal: null,
     history: [],
     beatPar: [],
-    settings: { numerals: false, showWords: false, sound: true },
+    settings: { numerals: false, practice: false, showWords: false, sound: true }, // practice: Undo on, nothing counted; showWords: its word list
     currentGame: null,
     word: { gamesPlayed: 0, best: null, history: [] },
     wordGame: null,
@@ -26,7 +26,9 @@ export function loadStore(storage = globalThis.localStorage) {
     const raw = storage && storage.getItem(STORAGE_KEY);
     if (!raw) return defaultStore();
     const parsed = JSON.parse(raw);
-    return { ...defaultStore(), ...parsed, settings: { ...defaultStore().settings, ...(parsed.settings || {}) }, word: { ...defaultStore().word, ...(parsed.word || {}) } };
+    const store = { ...defaultStore(), ...parsed, settings: { ...defaultStore().settings, ...(parsed.settings || {}) }, word: { ...defaultStore().word, ...(parsed.word || {}) } };
+    if (parsed.settings && parsed.settings.practice === undefined && parsed.settings.showWords) store.settings.practice = true; // the word list used to be practice mode itself
+    return store;
   } catch {
     return defaultStore();
   }

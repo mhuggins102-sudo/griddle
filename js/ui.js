@@ -43,7 +43,9 @@ async function boot() {
   buildBoardSkeleton($('#board'), makeDiceFace);
   wireEvents();
   $('#opt-numerals').checked = !!ui.store.settings.numerals;
+  $('#opt-practice').checked = !!ui.store.settings.practice;
   $('#opt-show-words').checked = !!ui.store.settings.showWords;
+  syncPracticeSub();
   $('#opt-perks').checked = !!ui.store.settings.perks;
   $('#opt-sound').checked = ui.store.settings.sound !== false;
   setSoundEnabled(ui.store.settings.sound !== false);
@@ -70,12 +72,17 @@ async function boot() {
     setSoundEnabled(e.target.checked);
     saveStore(ui.store);
   });
-  $('#opt-show-words').addEventListener('change', (e) => {
-    ui.store.settings.showWords = e.target.checked;
+  $('#opt-practice').addEventListener('change', (e) => {
+    ui.store.settings.practice = e.target.checked;
     if (e.target.checked && ui.store.wordGame && !ui.store.wordGame.practice && ui.store.wordGame.mode !== 'daily') {
       ui.store.wordGame.practice = true; // the board in progress becomes practice, for good
-      showHome(); // the Continue button says so
+      showHome(); // its button says so
     }
+    syncPracticeSub();
+    saveStore(ui.store);
+  });
+  $('#opt-show-words').addEventListener('change', (e) => {
+    ui.store.settings.showWords = e.target.checked; // practice mode's word list; nothing else changes
     saveStore(ui.store);
   });
   $('#opt-perks').addEventListener('change', (e) => {
@@ -113,6 +120,13 @@ async function boot() {
 function showScreen(id) {
   for (const s of document.querySelectorAll('.screen')) s.hidden = s.id !== id;
   window.scrollTo(0, 0);
+}
+
+/** The word-list switch belongs to practice mode: dimmed and inert while practice mode is off. */
+function syncPracticeSub() {
+  const on = !!ui.store.settings.practice;
+  $('#opt-show-words-row').classList.toggle('off', !on);
+  $('#opt-show-words').disabled = !on;
 }
 
 function showHome() {
@@ -787,7 +801,9 @@ function resetData() {
   saveStore(ui.store);
   ui.leaderboard.flush();
   $('#opt-numerals').checked = false;
+  $('#opt-practice').checked = false;
   $('#opt-show-words').checked = false;
+  syncPracticeSub();
   $('#opt-perks').checked = false;
   $('#opt-sound').checked = true;
   $('#opt-size-5').checked = true;
