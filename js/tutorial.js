@@ -197,8 +197,10 @@ export function initTutorial() {
       html: `<p><strong>Perk cards</strong> are on. Every turn you have to spare when a level's goal is reached is one <strong>gold</strong> (◆): pass with 3 turns left and you earn 3. The gold button in the header opens the <strong>shop</strong> at any time.</p><p>Each card is bought once per run, for ${Math.min(...costs)} to ${Math.max(...costs)} gold, and is played the moment you buy it. A card that changes the board or its letters still costs that turn; Tempo cards add turns; scoring cards add points, shown on their own line of the result card.</p>`,
     };
     const goalLine = opts.mode === 'levels'
-      ? `<p>This is a <strong>level run</strong>: reach the goal score and the level is passed at once${opts.goal ? ` (this board's goal is <strong>${opts.goal}</strong>)` : ''}. Run out of turns below it and the run ends.</p>`
-      : '<p>This is <strong>free play</strong>: no goal, just score as much as you can before the turns run out.</p>';
+      ? `<p>This is <strong>Multi Round</strong>: reach the goal score and the level is passed at once${opts.goal ? ` (this board's goal is <strong>${opts.goal}</strong>)` : ''}. Run out of turns below it and the run ends.</p>`
+      : opts.mode === 'daily'
+        ? '<p>This is the <strong>Daily grid</strong>: one board, the same for everyone today, and one go at it. Score as much as you can before the turns run out.</p>'
+        : '<p>This is a <strong>Single Round</strong>: no goal, just score as much as you can before the turns run out.</p>';
     return [
       {
         title: 'Turns and the goal',

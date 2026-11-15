@@ -8,6 +8,7 @@ import { ANIM_MS, wait, neighbours, buildBoardSkeleton, tileIn, animateAction, c
 import { initWordMode } from './wordui.js';
 import { initTutorial } from './tutorial.js';
 import { initLeaderboard, bestReachedBySize, seedReached } from './leaderboard.js';
+import { dailyKey, dailySpec } from './daily.js';
 import { openSheet, closeSheet } from './sheet.js';
 import { setSoundEnabled, audioState } from './sound.js';
 import { TURNS_BY_SIZE } from './words.js';
@@ -71,7 +72,7 @@ async function boot() {
   });
   $('#opt-show-words').addEventListener('change', (e) => {
     ui.store.settings.showWords = e.target.checked;
-    if (e.target.checked && ui.store.wordGame && !ui.store.wordGame.practice) {
+    if (e.target.checked && ui.store.wordGame && !ui.store.wordGame.practice && ui.store.wordGame.mode !== 'daily') {
       ui.store.wordGame.practice = true; // the board in progress becomes practice, for good
       showHome(); // the Continue button says so
     }
@@ -121,7 +122,7 @@ function showHome() {
   $('#btn-continue').hidden = !ui.store.currentGame;
   const s = ui.store;
   const g = s.wordGame;
-  // a game in progress takes the primary slot; New game steps down to secondary
+  // a game in progress takes the primary slot; Multi Round steps down to secondary
   $('#btn-word-continue').hidden = !g;
   $('#btn-word').classList.toggle('btn-primary', !g);
   $('#btn-word .btn-sub').textContent = s.settings.perks ? 'Levels with a goal to beat · perk cards' : 'Levels with a goal to beat';
@@ -130,10 +131,36 @@ function showHome() {
     const lim = (TURNS_BY_SIZE[size] || 20) + ((g.state.perk && g.state.perk.extraTurns) || 0);
     const turn = Math.min((g.state.turns || 0) + 1, lim);
     const perks = g.perks && !g.perks.retry ? ` · ◆ ${g.perks.gold}` : '';
-    $('#continue-sub').textContent = `${size === 6 ? '6×6 · ' : ''}${g.mode === 'levels' ? `Level ${g.level || 1}` : 'Free play'} · turn ${turn} of ${lim} · ${g.state.score || 0} points${perks}${g.practice ? ' · practice' : ''}`;
+    const what = g.mode === 'levels' ? `Level ${g.level || 1}` : g.mode === 'daily' ? 'Daily grid' : 'Single Round';
+    $('#continue-sub').textContent = `${size === 6 ? '6×6 · ' : ''}${what} · turn ${turn} of ${lim} · ${g.state.score || 0} points${perks}${g.practice && g.mode !== 'daily' ? ' · practice' : ''}`;
   }
+  // the daily grid: today's size on the button; once played (or given up) it waits for tomorrow
+  const today = dailyKey();
+  const spec = dailySpec(today);
+  const done = s.word && s.word.daily && s.word.daily.day === today ? s.word.daily : null;
+  const inPlay = g && g.mode === 'daily' && g.daily === today;
+  $('#btn-daily').disabled = !!done && !inPlay;
+  $('#daily-sub').textContent = inPlay ? `${spec.size}×${spec.size} · in progress` : done ? (done.abandoned ? 'Given up today · back tomorrow' : `Played today: ${done.score} points · back tomorrow`) : `${spec.size}×${spec.size} today · the same board for everyone · one go`;
   showScreen('screen-home'); // the figures live on the Stats screen
   if (!g && ui.word) ui.word.prefetch(1, boardSize()); // a new run's first board is chosen while the player is here
+}
+
+/**
+ * Before a new board replaces the saved game: the player confirms, and a daily grid given up counts as the
+ * day's one go (so it cannot be restarted for a better run). Returns false when the player keeps the game.
+ */
+function abandonSaved(what) {
+  const g = ui.store.wordGame;
+  if (!g) return true;
+  const daily = g.mode === 'daily' && g.daily;
+  if (!confirm(daily ? `Give up today's grid and start ${what}? The daily counts as played.` : `Abandon the game in progress and start ${what}?`)) return false;
+  if (daily) {
+    ui.store.word ||= { gamesPlayed: 0, best: null, history: [] };
+    ui.store.word.daily = { day: g.daily, size: g.size, score: null, abandoned: true, at: new Date().toISOString() };
+  }
+  ui.store.wordGame = null;
+  saveStore(ui.store);
+  return true;
 }
 
 function startNewGame() {
@@ -636,7 +663,7 @@ function tilesHtml(sum, withCards) {
 /** The recent boards, folded away until asked for, so the sheet opens at the same size whatever the filter. */
 function recentHtml(entries) {
   const rows = entries.slice(0, 40)
-    .map((g) => `<li><span>${g.size === 6 ? '6×6 · ' : ''}${g.perks ? '◆ ' : ''}${g.mode === 'levels' ? `L${g.level} ${g.passed ? '✓' : '✗'} ` : ''}${g.score}${g.goal ? ` / ${g.goal}` : ''} · ${g.words.length ? g.words.map((x) => escapeHtml(x.word)).join(', ') : 'no words'}</span><span>${new Date(g.at).toLocaleDateString()}</span></li>`)
+    .map((g) => `<li><span>${g.size === 6 ? '6×6 · ' : ''}${g.perks ? '◆ ' : ''}${g.mode === 'levels' ? `L${g.level} ${g.passed ? '✓' : '✗'} ` : g.mode === 'daily' ? 'Daily ' : ''}${g.score}${g.goal ? ` / ${g.goal}` : ''} · ${g.words.length ? g.words.map((x) => escapeHtml(x.word)).join(', ') : 'no words'}</span><span>${new Date(g.at).toLocaleDateString()}</span></li>`)
     .join('');
   return `<details class="stats-recent"${stats.recentOpen ? ' open' : ''}><summary><span>Recent games</span><small>${entries.length ? `${Math.min(entries.length, 40)} of ${entries.length}` : 'none'}</small></summary>${rows ? `<ul class="stat-list">${rows}</ul>` : '<p class="stats-empty">No boards match.</p>'}</details>`;
 }
@@ -763,14 +790,18 @@ function wireEvents() {
   });
   $('#btn-continue').addEventListener('click', continueGame);
   $('#btn-word').addEventListener('click', () => {
-    if (ui.store.wordGame && !confirm('Abandon the word game in progress and start a new one?')) return;
-    ui.store.wordGame = null;
+    if (!abandonSaved('a Multi Round')) return;
     ui.word.start(false, { mode: 'levels', level: 1, size: boardSize() });
   });
   $('#btn-free').addEventListener('click', () => {
-    if (ui.store.wordGame && !confirm('Abandon the game in progress and start free play?')) return;
-    ui.store.wordGame = null;
+    if (!abandonSaved('a Single Round')) return;
     ui.word.start(false, { mode: 'free', size: boardSize() });
+  });
+  $('#btn-daily').addEventListener('click', () => {
+    const g = ui.store.wordGame;
+    if (g && g.mode === 'daily' && g.daily === dailyKey()) return ui.word.start(true); // today's grid is the saved game: carry on
+    if (!abandonSaved("today's grid")) return;
+    ui.word.start(false, { mode: 'daily' });
   });
   $('#btn-word-continue').addEventListener('click', () => ui.word.start(true));
   $('#btn-help-home').addEventListener('click', openHelp);
