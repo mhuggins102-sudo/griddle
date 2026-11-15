@@ -101,7 +101,7 @@ async function boot() {
   }
   ui.tutorial = initTutorial();
   seedReached(ui.store.word); // the per-size top levels catch up with the history; the next save keeps it
-  ui.leaderboard = initLeaderboard({ store: ui.store, saveStore, showToast, boardSize });
+  ui.leaderboard = initLeaderboard({ store: ui.store, saveStore, showToast, boardSize, perksOn: () => !!ui.store.settings.perks });
   ui.word = initWordMode({ store: ui.store, saveStore, showScreen, showHome, showToast, openHelp, openTutorial: (size, opts) => ui.tutorial.open(size, opts), leaderboard: ui.leaderboard });
   showHome();
 }
