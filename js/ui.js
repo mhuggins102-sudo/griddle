@@ -122,10 +122,10 @@ function showScreen(id) {
   window.scrollTo(0, 0);
 }
 
-/** The word-list switch belongs to practice mode: dimmed and inert while practice mode is off. */
+/** The word-list switch belongs to practice mode: shown only while practice mode is on. */
 function syncPracticeSub() {
   const on = !!ui.store.settings.practice;
-  $('#opt-show-words-row').classList.toggle('off', !on);
+  $('#opt-show-words-row').hidden = !on;
   $('#opt-show-words').disabled = !on;
 }
 
@@ -237,10 +237,20 @@ function persist() {
 }
 
 /** Light, dark, or follow the system (the default). */
+const WILD_FONT_URL = 'https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap';
+
 function applyTheme(theme) {
   const root = document.documentElement;
-  if (theme === 'light' || theme === 'dark') root.dataset.theme = theme;
+  if (theme === 'light' || theme === 'dark' || theme === 'wild') root.dataset.theme = theme;
   else delete root.dataset.theme;
+  if (theme === 'wild' && !document.getElementById('wild-font')) {
+    // the Wild look's rounded face comes from Google Fonts, fetched only when the look is chosen; without it the system font stands in
+    const link = document.createElement('link');
+    link.id = 'wild-font';
+    link.rel = 'stylesheet';
+    link.href = WILD_FONT_URL;
+    document.head.appendChild(link);
+  }
 }
 
 /** The board size chosen on the home screen (5 unless 6x6 is selected). */
