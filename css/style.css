@@ -335,7 +335,8 @@ svg { display: block; }
   border: 1px solid var(--tile-edge);
   background: var(--tile);
   --tile-edge-h: 3px; /* the 3D lip under the tile */
-  box-shadow: inset 0 calc(-1 * var(--tile-edge-h)) 0 rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.12);
+  /* a look may set --tile-shadow; the highlight rings below still win, as they outrank .tile */
+  box-shadow: var(--tile-shadow, inset 0 calc(-1 * var(--tile-edge-h)) 0 rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.12));
   cursor: pointer;
   transition: transform 220ms cubic-bezier(0.2, 0.9, 0.3, 1.1), opacity 200ms ease, box-shadow 120ms ease, background-color 300ms ease;
   display: grid;
@@ -724,7 +725,7 @@ svg { display: block; }
 .board.plain:not(.mini) .tile.locked::after { left: 8cqw; top: 8cqw; width: 11cqw; height: 11cqw; }
 .board.plain:not(.mini)[data-size="6"] .tile.locked::after { left: 8cqw; top: 8cqw; width: 12cqw; height: 12cqw; }
 .face.letter.wild .ch { color: var(--region); }
-.tile.locked { background: var(--locked); border-color: var(--locked-edge); box-shadow: inset 0 calc(-1 * var(--tile-edge-h)) 0 rgba(0, 0, 0, 0.12); }
+.tile.locked { background: var(--locked); border-color: var(--locked-edge); box-shadow: var(--tile-shadow-locked, inset 0 calc(-1 * var(--tile-edge-h)) 0 rgba(0, 0, 0, 0.12)); }
 .tile.locked::after { content: ""; position: absolute; left: 5px; top: 5px; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
 .tile.locked.wild { background: var(--wild); border-color: var(--wild-edge); }
 .tile.first-pick { box-shadow: 0 0 0 3px var(--target), inset 0 calc(-1 * var(--tile-edge-h)) 0 rgba(0, 0, 0, 0.08); z-index: 2; }
@@ -1292,7 +1293,7 @@ button.rs-tile:active { background: var(--line); }
 .card-dialog-foot .btn { margin-left: auto; }
 
 /* ===========================================================================
-   Playful looks chosen in the settings: Candy, Neon and Citrus. Each sets every colour token the dark
+   Playful looks chosen in the settings: Candy, Neon and Sky. Each sets every colour token the dark
    block sets (these rules come last, so they win over the system preference), its own face from Google
    Fonts (fetched when chosen; the system font stands in otherwise) and a few flourishes of its own; the
    bouncier moves and the arcade sounds are shared by all three. */
@@ -1304,13 +1305,12 @@ button.rs-tile:active { background: var(--line); }
   --ok: #0aa37a; --ok-bg: #d9f7ea; --locked: #bff2dc; --locked-edge: #2fcf96; --wild: #e9d6ff; --wild-edge: #b388ff;
   --no-bg: #fff0f6; --danger: #ff5a36; --gold: #b8860b; --gold-bg: #fff2b8; --sq2: #00b8d9; --sq3: #ff5a36;
   --radius: 20px; --tile-radius: 14px;
+  --tile-shadow: 0 4px 0 var(--tile-edge); --tile-shadow-locked: 0 4px 0 var(--locked-edge);
   --shadow: 0 2px 0 rgba(58, 17, 64, 0.1), 0 8px 20px rgba(255, 45, 138, 0.14);
 }
 :root[data-theme="candy"] body { font-family: "Fredoka", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
 :root[data-theme="candy"] .btn, :root[data-theme="candy"] .seg, :root[data-theme="candy"] .seg span { border-radius: 999px; }
 :root[data-theme="candy"] .btn-big { border-radius: 24px; }
-:root[data-theme="candy"] .tile { box-shadow: 0 4px 0 var(--tile-edge); }
-:root[data-theme="candy"] .tile.locked { box-shadow: 0 4px 0 var(--locked-edge); }
 
 :root[data-theme="neon"] {
   color-scheme: dark;
@@ -1319,60 +1319,58 @@ button.rs-tile:active { background: var(--line); }
   --accent: #39ff88; --accent-ink: #0a0a1a; --select: #00e5ff; --target: #ffd166; --region: #ff6ad5;
   --ok: #39ff88; --ok-bg: #163d2b; --locked: #1f6a4a; --locked-edge: #39ff88; --wild: #4a1d8a; --wild-edge: #ff6ad5;
   --no-bg: #1a1040; --danger: #ff4d6d; --gold: #ffd166; --gold-bg: #3b2f14; --sq2: #00e5ff; --sq3: #ff6ad5;
+  --tile-shadow: 0 4px 0 #4a2a9a, 0 0 10px rgba(123, 63, 228, 0.45); --tile-shadow-locked: 0 4px 0 #0f6a3a, 0 0 14px rgba(57, 255, 136, 0.55);
   --shadow: 0 0 0 1px rgba(123, 63, 228, 0.35), 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 :root[data-theme="neon"] body { font-family: "Baloo 2", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: radial-gradient(circle at 20% 0%, #2a1a5e 0%, #140b2e 55%); }
 :root[data-theme="neon"] .btn, :root[data-theme="neon"] .seg, :root[data-theme="neon"] .seg span { border-radius: 999px; }
 :root[data-theme="neon"] .btn-big { border-radius: 24px; }
-:root[data-theme="neon"] .tile { box-shadow: 0 4px 0 #4a2a9a, 0 0 10px rgba(123, 63, 228, 0.45); }
-:root[data-theme="neon"] .tile.locked { box-shadow: 0 4px 0 #0f6a3a, 0 0 14px rgba(57, 255, 136, 0.55); }
 :root[data-theme="neon"] .btn-primary { box-shadow: 0 0 16px rgba(57, 255, 136, 0.45); }
 :root[data-theme="neon"] .seg input:checked + span { box-shadow: 0 0 12px rgba(57, 255, 136, 0.6); }
 :root[data-theme="neon"] .logo-tile { box-shadow: 0 4px 0 #4a2a9a, 0 0 12px rgba(123, 63, 228, 0.5); }
 
-:root[data-theme="citrus"] {
+:root[data-theme="sky"] {
   color-scheme: light;
-  --bg: #fff3c4; --panel: #fffdf0; --tray: #ffe08a; --ink: #1d2b53; --muted: #7a6a2a; --line: #f5c542;
-  --tile: #ffffff; --tile-edge: #ff9f1c; --tile-ink: #1d2b53; --tile-val: #ff6b00; --pip: #1d2b53;
-  --accent: #ff6b00; --accent-ink: #ffffff; --select: #2ec4b6; --target: #ff3366; --region: #9b5de5;
-  --ok: #2a9d4f; --ok-bg: #dff5e3; --locked: #c6f0cc; --locked-edge: #2a9d4f; --wild: #e0d4ff; --wild-edge: #9b5de5;
-  --no-bg: #fff8dc; --danger: #e63946; --gold: #b45f06; --gold-bg: #ffe7a8; --sq2: #2ec4b6; --sq3: #ff3366;
-  --radius: 18px; --tile-radius: 12px;
-  --shadow: 0 3px 0 rgba(29, 43, 83, 0.12), 0 8px 18px rgba(255, 107, 0, 0.12);
+  --bg: #e8f4ff; --panel: #ffffff; --tray: #cfe6ff; --ink: #14305a; --muted: #5b7aa3; --line: #bcdcff;
+  --tile: #ffffff; --tile-edge: #8ccbff; --tile-ink: #14305a; --tile-val: #ff7a59; --pip: #14305a;
+  --accent: #ff7a59; --accent-ink: #ffffff; --select: #2b8cff; --target: #ff7a59; --region: #8c6bd6;
+  --ok: #1fa66a; --ok-bg: #dcf5e8; --locked: #fff0a8; --locked-edge: #f5b800; --wild: #e9d6ff; --wild-edge: #b388ff;
+  --no-bg: #f3f9ff; --danger: #e63946; --gold: #b8860b; --gold-bg: #fff2b8; --sq2: #2b8cff; --sq3: #ff7a59;
+  --radius: 22px; --tile-radius: 14px;
+  --tile-shadow: 0 4px 0 var(--tile-edge); --tile-shadow-locked: 0 4px 0 var(--locked-edge);
+  --shadow: 0 2px 0 rgba(20, 48, 90, 0.08), 0 8px 20px rgba(43, 140, 255, 0.14);
 }
-:root[data-theme="citrus"] body { font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-:root[data-theme="citrus"] .tile { box-shadow: 0 5px 0 var(--tile-edge); }
-:root[data-theme="citrus"] .tile.locked { box-shadow: 0 5px 0 var(--locked-edge); }
-:root[data-theme="citrus"] .btn { box-shadow: 0 4px 0 var(--line); }
-:root[data-theme="citrus"] .btn-primary { box-shadow: 0 4px 0 #c24f00; }
-:root[data-theme="citrus"] .btn-big, :root[data-theme="citrus"] .btn, :root[data-theme="citrus"] .seg, :root[data-theme="citrus"] .seg span { border-radius: 14px; }
+:root[data-theme="sky"] body { font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: linear-gradient(180deg, #d6ecff 0%, #e8f4ff 45%, #f6fbff 100%) fixed; }
+:root[data-theme="sky"] .btn, :root[data-theme="sky"] .seg, :root[data-theme="sky"] .seg span { border-radius: 18px; }
+:root[data-theme="sky"] .btn-big { border-radius: 22px; }
+:root[data-theme="sky"] .btn-primary { box-shadow: 0 4px 0 #d4502f; }
 
 /* Shared by the playful looks: a wobbling logo, a bouncier lock, buttons that squash when pressed, a shimmer on the goal bar */
-:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .logo-tile { animation: wildWobble 3.2s ease-in-out infinite; }
-:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .logo-row .logo-tile:nth-child(2) { animation-delay: 0.4s; }
-:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .logo-row .logo-tile:nth-child(3) { animation-delay: 0.8s; }
-:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .logo-row .logo-tile:nth-child(4) { animation-delay: 1.2s; }
-:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .logo-row:last-child .logo-tile { animation-delay: 0.2s; }
-:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .logo-row:last-child .logo-tile:nth-child(2) { animation-delay: 0.6s; }
-:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .logo-row:last-child .logo-tile:nth-child(3) { animation-delay: 1s; }
-:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .logo-row:last-child .logo-tile:nth-child(4) { animation-delay: 1.4s; }
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="sky"]) .logo-tile { animation: wildWobble 3.2s ease-in-out infinite; }
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="sky"]) .logo-row .logo-tile:nth-child(2) { animation-delay: 0.4s; }
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="sky"]) .logo-row .logo-tile:nth-child(3) { animation-delay: 0.8s; }
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="sky"]) .logo-row .logo-tile:nth-child(4) { animation-delay: 1.2s; }
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="sky"]) .logo-row:last-child .logo-tile { animation-delay: 0.2s; }
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="sky"]) .logo-row:last-child .logo-tile:nth-child(2) { animation-delay: 0.6s; }
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="sky"]) .logo-row:last-child .logo-tile:nth-child(3) { animation-delay: 1s; }
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="sky"]) .logo-row:last-child .logo-tile:nth-child(4) { animation-delay: 1.4s; }
 @keyframes wildWobble {
   0%, 100% { transform: rotate(var(--tilt, 0deg)); }
   50% { transform: rotate(calc(var(--tilt, 0deg) + 3deg)) translateY(-3px); }
 }
-:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .tile.lock-pop { animation: wildPop 520ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="sky"]) .tile.lock-pop { animation: wildPop 520ms cubic-bezier(0.34, 1.56, 0.64, 1); }
 @keyframes wildPop {
   0% { transform: scale(1) rotate(0deg); }
   40% { transform: scale(1.22) rotate(-5deg); }
   70% { transform: scale(0.94) rotate(3deg); }
   100% { transform: scale(1) rotate(0deg); }
 }
-:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .btn:active { transform: scale(0.95); }
-:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .goalbar-fill { background-image: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.35) 50%, transparent 100%); background-size: 200% 100%; animation: shimmer 2.4s linear infinite; }
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="sky"]) .btn:active { transform: scale(0.95); }
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="sky"]) .goalbar-fill { background-image: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.35) 50%, transparent 100%); background-size: 200% 100%; animation: shimmer 2.4s linear infinite; }
 @media (prefers-reduced-motion: reduce) {
-  :root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .logo-tile,
-  :root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .goalbar-fill,
-  :root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .tile.lock-pop { animation: none; }
+  :root:is([data-theme="candy"], [data-theme="neon"], [data-theme="sky"]) .logo-tile,
+  :root:is([data-theme="candy"], [data-theme="neon"], [data-theme="sky"]) .goalbar-fill,
+  :root:is([data-theme="candy"], [data-theme="neon"], [data-theme="sky"]) .tile.lock-pop { animation: none; }
 }
 
 /* The appearance dropdown in the settings */
