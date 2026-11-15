@@ -106,9 +106,25 @@ for (const [w, lemma] of supplementLemmas) {
   if (!words.has(lemma)) throw new Error(`supplement lemma ${lemma} of ${w} is not a listed word`);
   lemmas.set(w, [lemma]);
 }
+// A word the grammar table treats as a headword (some other form, of any length, points to it: LIVERS to
+// LIVER, MATTERED to MATTER) is a word in its own right even when the table also lists it as a form of a
+// shorter word (LIVER as the comparative of LIVE); such a word carries no ending link, so LIVE then LIVER
+// is allowed while PLAY then PLAYS (nothing points to PLAYS) is refused.
+const headwords = new Set(supplementLemmas.values());
+const table = [];
 for (const line of readFileSync(join(dir, 'lemmatization-en.txt'), 'utf8').split(/\r?\n/)) {
   const [lemma, form] = line.replace(/^\ufeff/, '').split('\t').map((x) => (x || '').trim().toLowerCase());
-  if (!form || !lemma || form === lemma || !words.has(form) || !words.has(lemma)) continue;
+  if (!form || !lemma || form === lemma) continue;
+  headwords.add(lemma);
+  table.push([form, lemma]);
+}
+let dropped = 0;
+for (const [form, lemma] of table) {
+  if (!words.has(form) || !words.has(lemma)) continue;
+  if (headwords.has(form)) {
+    dropped++;
+    continue;
+  }
   if (!lemmas.has(form)) lemmas.set(form, []);
   lemmas.get(form).push(lemma);
 }
@@ -119,5 +135,5 @@ writeFileSync(out, commonSorted.map(line).concat(['#rare'], rareSorted.map(line)
 const byLen = {};
 for (const w of sorted) byLen[w.length] = (byLen[w.length] || 0) + 1;
 console.error(`ENABLE ${MIN_LEN}-${MAX_LEN}: ${enable.size}; common tier ${commonSorted.length} (${(100 * [...enable].filter(keep).length / enable.size).toFixed(0)}% of ENABLE, plus the supplement of ${SUPPLEMENT.length}); rare tier ${rareSorted.length}; written ${sorted.length} words to ${out}`);
-console.error('by length: ' + Object.entries(byLen).map(([n, k]) => `${n}: ${k}`).join('  ') + `; ${lemmas.size} words carry a lemma`);
+console.error('by length: ' + Object.entries(byLen).map(([n, k]) => `${n}: ${k}`).join('  ') + `; ${lemmas.size} words carry a lemma; ${dropped} links dropped from headwords`);
 console.error('first 12: ' + sorted.slice(0, 12).join(' ') + ' ... last: ' + sorted.slice(-4).join(' '));
