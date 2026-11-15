@@ -123,9 +123,9 @@ function showHome() {
   const s = ui.store;
   const g = s.wordGame;
   // the mode with a game in progress takes the primary slot and says so under its name; pressing it offers
-  // to continue or start over (Multi Round is primary when nothing is in progress)
+  // to continue or start over (no button is primary when nothing is in progress)
   const live = g && g.state ? g.mode : null;
-  $('#btn-word').classList.toggle('btn-primary', !live || live === 'levels');
+  $('#btn-word').classList.toggle('btn-primary', live === 'levels');
   $('#btn-free').classList.toggle('btn-primary', live === 'free');
   $('#btn-daily').classList.toggle('btn-primary', live === 'daily');
   $('#word-sub').textContent = live === 'levels' ? `${describeSaved(g)} · Continue` : s.settings.perks ? 'Levels with a goal to beat · perk cards' : 'Levels with a goal to beat';
