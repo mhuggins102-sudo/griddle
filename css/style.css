@@ -1292,45 +1292,89 @@ button.rs-tile:active { background: var(--line); }
 .card-dialog-foot .btn { margin-left: auto; }
 
 /* ===========================================================================
-   Wild appearance: a playful look chosen in the settings (candy colours, a rounded face, chunky tiles) */
-:root[data-theme="wild"] {
+   Playful looks chosen in the settings: Candy, Neon and Citrus. Each sets every colour token the dark
+   block sets (these rules come last, so they win over the system preference), its own face from Google
+   Fonts (fetched when chosen; the system font stands in otherwise) and a few flourishes of its own; the
+   bouncier moves and the arcade sounds are shared by all three. */
+:root[data-theme="candy"] {
   color-scheme: light;
-  --bg: #ffe9f3;
-  --panel: #ffffff;
-  --tray: #ffd3e6;
-  --ink: #3a1140;
-  --muted: #8a5a93;
-  --line: #f3b6d2;
-  --tile: #fff8e1;
-  --tile-edge: #f7a8c9;
-  --tile-ink: #3a1140;
-  --tile-val: #a04fa8;
-  --pip: #3a1140;
-  --accent: #ff2d8a;
-  --accent-ink: #ffffff;
-  --select: #00b8d9;
-  --target: #ffb703;
-  --region: #8c6bd6;
-  --ok: #0aa37a;
-  --ok-bg: #d9f7ea;
-  --locked: #bff2dc;
-  --locked-edge: #2fcf96;
-  --wild: #e9d6ff;
-  --wild-edge: #b388ff;
-  --no-bg: #fff0f6;
-  --danger: #ff5a36;
-  --gold: #b8860b;
-  --gold-bg: #fff2b8;
-  --sq2: #00b8d9;
-  --sq3: #ff5a36;
-  --radius: 20px;
-  --tile-radius: 14px;
+  --bg: #ffe9f3; --panel: #ffffff; --tray: #ffd3e6; --ink: #3a1140; --muted: #8a5a93; --line: #f3b6d2;
+  --tile: #fff8e1; --tile-edge: #f7a8c9; --tile-ink: #3a1140; --tile-val: #a04fa8; --pip: #3a1140;
+  --accent: #ff2d8a; --accent-ink: #ffffff; --select: #00b8d9; --target: #ffb703; --region: #8c6bd6;
+  --ok: #0aa37a; --ok-bg: #d9f7ea; --locked: #bff2dc; --locked-edge: #2fcf96; --wild: #e9d6ff; --wild-edge: #b388ff;
+  --no-bg: #fff0f6; --danger: #ff5a36; --gold: #b8860b; --gold-bg: #fff2b8; --sq2: #00b8d9; --sq3: #ff5a36;
+  --radius: 20px; --tile-radius: 14px;
   --shadow: 0 2px 0 rgba(58, 17, 64, 0.1), 0 8px 20px rgba(255, 45, 138, 0.14);
 }
-:root[data-theme="wild"] body { font-family: "Fredoka", "Baloo 2", "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-:root[data-theme="wild"] .btn, :root[data-theme="wild"] .seg, :root[data-theme="wild"] .seg span { border-radius: 999px; }
-:root[data-theme="wild"] .btn-big { border-radius: 24px; }
-:root[data-theme="wild"] .tile { box-shadow: 0 4px 0 var(--tile-edge); }
-:root[data-theme="wild"] .tile.locked { box-shadow: 0 4px 0 var(--locked-edge); }
-:root[data-theme="wild"] .logo-tile:nth-child(odd) { transform: rotate(-4deg); }
-:root[data-theme="wild"] .logo-tile:nth-child(even) { transform: rotate(3deg); }
+:root[data-theme="candy"] body { font-family: "Fredoka", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+:root[data-theme="candy"] .btn, :root[data-theme="candy"] .seg, :root[data-theme="candy"] .seg span { border-radius: 999px; }
+:root[data-theme="candy"] .btn-big { border-radius: 24px; }
+:root[data-theme="candy"] .tile { box-shadow: 0 4px 0 var(--tile-edge); }
+:root[data-theme="candy"] .tile.locked { box-shadow: 0 4px 0 var(--locked-edge); }
+
+:root[data-theme="neon"] {
+  color-scheme: dark;
+  --bg: #140b2e; --panel: #221447; --tray: #0d0720; --ink: #f4f0ff; --muted: #b7a9e6; --line: #3e2a7a;
+  --tile: #2a1a5e; --tile-edge: #7b3fe4; --tile-ink: #ffffff; --tile-val: #ffd166; --pip: #ffffff;
+  --accent: #39ff88; --accent-ink: #0a0a1a; --select: #00e5ff; --target: #ffd166; --region: #ff6ad5;
+  --ok: #39ff88; --ok-bg: #163d2b; --locked: #1f6a4a; --locked-edge: #39ff88; --wild: #4a1d8a; --wild-edge: #ff6ad5;
+  --no-bg: #1a1040; --danger: #ff4d6d; --gold: #ffd166; --gold-bg: #3b2f14; --sq2: #00e5ff; --sq3: #ff6ad5;
+  --shadow: 0 0 0 1px rgba(123, 63, 228, 0.35), 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+:root[data-theme="neon"] body { font-family: "Baloo 2", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: radial-gradient(circle at 20% 0%, #2a1a5e 0%, #140b2e 55%); }
+:root[data-theme="neon"] .btn, :root[data-theme="neon"] .seg, :root[data-theme="neon"] .seg span { border-radius: 999px; }
+:root[data-theme="neon"] .btn-big { border-radius: 24px; }
+:root[data-theme="neon"] .tile { box-shadow: 0 4px 0 #4a2a9a, 0 0 10px rgba(123, 63, 228, 0.45); }
+:root[data-theme="neon"] .tile.locked { box-shadow: 0 4px 0 #0f6a3a, 0 0 14px rgba(57, 255, 136, 0.55); }
+:root[data-theme="neon"] .btn-primary { box-shadow: 0 0 16px rgba(57, 255, 136, 0.45); }
+:root[data-theme="neon"] .seg input:checked + span { box-shadow: 0 0 12px rgba(57, 255, 136, 0.6); }
+:root[data-theme="neon"] .logo-tile { box-shadow: 0 4px 0 #4a2a9a, 0 0 12px rgba(123, 63, 228, 0.5); }
+
+:root[data-theme="citrus"] {
+  color-scheme: light;
+  --bg: #fff3c4; --panel: #fffdf0; --tray: #ffe08a; --ink: #1d2b53; --muted: #7a6a2a; --line: #f5c542;
+  --tile: #ffffff; --tile-edge: #ff9f1c; --tile-ink: #1d2b53; --tile-val: #ff6b00; --pip: #1d2b53;
+  --accent: #ff6b00; --accent-ink: #ffffff; --select: #2ec4b6; --target: #ff3366; --region: #9b5de5;
+  --ok: #2a9d4f; --ok-bg: #dff5e3; --locked: #c6f0cc; --locked-edge: #2a9d4f; --wild: #e0d4ff; --wild-edge: #9b5de5;
+  --no-bg: #fff8dc; --danger: #e63946; --gold: #b45f06; --gold-bg: #ffe7a8; --sq2: #2ec4b6; --sq3: #ff3366;
+  --radius: 18px; --tile-radius: 12px;
+  --shadow: 0 3px 0 rgba(29, 43, 83, 0.12), 0 8px 18px rgba(255, 107, 0, 0.12);
+}
+:root[data-theme="citrus"] body { font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+:root[data-theme="citrus"] .tile { box-shadow: 0 5px 0 var(--tile-edge); }
+:root[data-theme="citrus"] .tile.locked { box-shadow: 0 5px 0 var(--locked-edge); }
+:root[data-theme="citrus"] .btn { box-shadow: 0 4px 0 var(--line); }
+:root[data-theme="citrus"] .btn-primary { box-shadow: 0 4px 0 #c24f00; }
+:root[data-theme="citrus"] .btn-big, :root[data-theme="citrus"] .btn, :root[data-theme="citrus"] .seg, :root[data-theme="citrus"] .seg span { border-radius: 14px; }
+
+/* Shared by the playful looks: a wobbling logo, a bouncier lock, buttons that squash when pressed, a shimmer on the goal bar */
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .logo-tile { animation: wildWobble 3.2s ease-in-out infinite; }
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .logo-row .logo-tile:nth-child(2) { animation-delay: 0.4s; }
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .logo-row .logo-tile:nth-child(3) { animation-delay: 0.8s; }
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .logo-row .logo-tile:nth-child(4) { animation-delay: 1.2s; }
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .logo-row:last-child .logo-tile { animation-delay: 0.2s; }
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .logo-row:last-child .logo-tile:nth-child(2) { animation-delay: 0.6s; }
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .logo-row:last-child .logo-tile:nth-child(3) { animation-delay: 1s; }
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .logo-row:last-child .logo-tile:nth-child(4) { animation-delay: 1.4s; }
+@keyframes wildWobble {
+  0%, 100% { transform: rotate(var(--tilt, 0deg)); }
+  50% { transform: rotate(calc(var(--tilt, 0deg) + 3deg)) translateY(-3px); }
+}
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .tile.lock-pop { animation: wildPop 520ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes wildPop {
+  0% { transform: scale(1) rotate(0deg); }
+  40% { transform: scale(1.22) rotate(-5deg); }
+  70% { transform: scale(0.94) rotate(3deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .btn:active { transform: scale(0.95); }
+:root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .goalbar-fill { background-image: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.35) 50%, transparent 100%); background-size: 200% 100%; animation: shimmer 2.4s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  :root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .logo-tile,
+  :root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .goalbar-fill,
+  :root:is([data-theme="candy"], [data-theme="neon"], [data-theme="citrus"]) .tile.lock-pop { animation: none; }
+}
+
+/* The appearance dropdown in the settings */
+.select { min-height: 40px; padding: 0 36px 0 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6f7a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center / 16px 16px; color: var(--ink); font: inherit; font-weight: 700; font-size: 15px; appearance: none; -webkit-appearance: none; cursor: pointer; }
+.select:focus-visible { outline: 3px solid var(--select); outline-offset: 2px; }

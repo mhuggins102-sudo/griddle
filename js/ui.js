@@ -10,7 +10,7 @@ import { initTutorial } from './tutorial.js';
 import { initLeaderboard, bestReachedBySize, seedReached } from './leaderboard.js';
 import { dailyKey, shiftDay, dailyRecords, dailyTarget } from './daily.js';
 import { openSheet, closeSheet } from './sheet.js';
-import { setSoundEnabled, audioState } from './sound.js';
+import { setSoundEnabled, setSoundStyle, audioState } from './sound.js';
 import { TURNS_BY_SIZE } from './words.js';
 import { CARDS, CARD_BY_ID, FAMILIES, cardText, cardCost } from './perks.js';
 import {
@@ -49,15 +49,14 @@ async function boot() {
   $('#opt-perks').checked = !!ui.store.settings.perks;
   $('#opt-sound').checked = ui.store.settings.sound !== false;
   setSoundEnabled(ui.store.settings.sound !== false);
+  if (ui.store.settings.theme === 'wild') ui.store.settings.theme = 'candy'; // the first playful look, before it had a name
   applyTheme(ui.store.settings.theme);
-  for (const r of document.querySelectorAll('input[name="opt-theme"]')) {
-    r.checked = r.value === (ui.store.settings.theme || 'system');
-    r.addEventListener('change', () => {
-      ui.store.settings.theme = document.querySelector('input[name="opt-theme"]:checked').value;
-      applyTheme(ui.store.settings.theme);
-      saveStore(ui.store);
-    });
-  }
+  $('#opt-theme').value = THEMES.includes(ui.store.settings.theme) ? ui.store.settings.theme : 'system';
+  $('#opt-theme').addEventListener('change', (e) => {
+    ui.store.settings.theme = THEMES.includes(e.target.value) ? e.target.value : 'system';
+    applyTheme(ui.store.settings.theme);
+    saveStore(ui.store);
+  });
   $('#opt-size-6').checked = ui.store.settings.boardSize === 6;
   $('#opt-size-5').checked = ui.store.settings.boardSize !== 6;
   for (const r of document.querySelectorAll('input[name="opt-size"]')) {
@@ -237,20 +236,28 @@ function persist() {
 }
 
 /** Light, dark, or follow the system (the default). */
-const WILD_FONT_URL = 'https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap';
+const THEMES = ['system', 'light', 'dark', 'candy', 'neon', 'citrus'];
+const PLAYFUL = ['candy', 'neon', 'citrus']; // the looks with their own face, bouncier moves and brighter sounds
+const THEME_FONTS = {
+  candy: 'https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap',
+  neon: 'https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap',
+  citrus: 'https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&display=swap',
+};
 
 function applyTheme(theme) {
   const root = document.documentElement;
-  if (theme === 'light' || theme === 'dark' || theme === 'wild') root.dataset.theme = theme;
+  if (theme === 'wild') theme = 'candy';
+  if (THEMES.includes(theme) && theme !== 'system') root.dataset.theme = theme;
   else delete root.dataset.theme;
-  if (theme === 'wild' && !document.getElementById('wild-font')) {
-    // the Wild look's rounded face comes from Google Fonts, fetched only when the look is chosen; without it the system font stands in
+  if (THEME_FONTS[theme] && !document.getElementById(`font-${theme}`)) {
+    // a playful look's face comes from Google Fonts, fetched only when that look is chosen; without it the system font stands in
     const link = document.createElement('link');
-    link.id = 'wild-font';
+    link.id = `font-${theme}`;
     link.rel = 'stylesheet';
-    link.href = WILD_FONT_URL;
+    link.href = THEME_FONTS[theme];
     document.head.appendChild(link);
   }
+  setSoundStyle(PLAYFUL.includes(theme) ? 'playful' : 'plain');
 }
 
 /** The board size chosen on the home screen (5 unless 6x6 is selected). */
@@ -821,7 +828,7 @@ function resetData() {
   $('#opt-perks').checked = false;
   $('#opt-sound').checked = true;
   $('#opt-size-5').checked = true;
-  $('#opt-theme-system').checked = true;
+  $('#opt-theme').value = 'system';
   applyTheme('system');
   setSoundEnabled(true);
   closeSheet($('#reset'));

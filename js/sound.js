@@ -191,10 +191,63 @@ export function unlockAudio() {
 }
 if (typeof document !== 'undefined') document.addEventListener('pointerdown', unlockAudio, { passive: true, capture: true });
 
+// The playful looks' cues: square and triangle waves, arpeggios and boings, like a small arcade machine
+const PLAYFUL = {
+  slide: (ac) => {
+    tone(ac, { freq: 300, to: 900, type: 'square', dur: 0.12, gain: 0.05 });
+    tone(ac, { freq: 900, to: 450, type: 'triangle', start: 0.1, dur: 0.12, gain: 0.08 });
+  },
+  swap: (ac) => {
+    [660, 990, 660].forEach((f, i) => tone(ac, { freq: f, type: 'square', start: i * 0.07, dur: 0.06, gain: 0.05 }));
+  },
+  nudge: (ac) => {
+    tone(ac, { freq: 700, to: 1100, type: 'square', dur: 0.07, gain: 0.05 });
+  },
+  nudgeDown: (ac) => {
+    tone(ac, { freq: 1100, to: 700, type: 'square', dur: 0.07, gain: 0.05 });
+  },
+  draw: (ac) => {
+    [523, 659, 784, 1046, 1319].forEach((f, i) => tone(ac, { freq: f, type: 'square', start: i * 0.05, dur: 0.08, gain: 0.045 }));
+    tone(ac, { freq: 1568, type: 'triangle', start: 0.3, dur: 0.3, gain: 0.08 });
+  },
+  lock: (ac) => {
+    [523, 659, 784, 1046].forEach((f, i) => tone(ac, { freq: f, type: 'square', start: i * 0.06, dur: 0.12, gain: 0.05 }));
+    tone(ac, { freq: 1568, type: 'triangle', start: 0.26, dur: 0.4, gain: 0.08 });
+  },
+  wild: (ac) => {
+    for (let i = 0; i < 6; i++) tone(ac, { freq: 800 + i * 220, type: 'square', start: i * 0.04, dur: 0.06, gain: 0.045 });
+  },
+  fanfare: (ac) => {
+    [523, 659, 784, 1046, 784, 1046, 1319].forEach((f, i) => tone(ac, { freq: f, type: 'square', start: i * 0.09, dur: 0.16, gain: 0.05 }));
+    tone(ac, { freq: 2093, type: 'triangle', start: 0.66, dur: 0.6, gain: 0.08 });
+  },
+  win: (ac) => {
+    [659, 784, 988, 1319, 1568].forEach((f, i) => tone(ac, { freq: f, type: 'square', start: i * 0.07, dur: 0.14, gain: 0.05 }));
+  },
+  fail: (ac) => {
+    [440, 415, 392, 330].forEach((f, i) => tone(ac, { freq: f, type: 'square', start: i * 0.12, dur: 0.16, gain: 0.05 }));
+  },
+  undo: (ac) => {
+    tone(ac, { freq: 900, to: 400, type: 'square', dur: 0.14, gain: 0.045 });
+  },
+  tap: (ac) => {
+    tone(ac, { freq: 1400, type: 'square', dur: 0.03, gain: 0.035 });
+  },
+  buzz: (ac) => {
+    tone(ac, { freq: 140, to: 100, type: 'sawtooth', dur: 0.14, gain: 0.05 });
+  },
+};
+
+let style = 'plain';
+/** 'playful' swaps in the arcade cues (the Candy, Neon and Citrus looks); 'plain' is the usual set. */
+export function setSoundStyle(s) {
+  style = s === 'playful' ? 'playful' : 'plain';
+}
+
 /** Play a named cue; silently does nothing when sound is off or unavailable. */
 export function play(name) {
   if (!enabled) return;
-  const cue = CUES[name];
+  const cue = (style === 'playful' && PLAYFUL[name]) || CUES[name];
   if (!cue) return;
   try {
     const ac = audio();
