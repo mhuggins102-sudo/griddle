@@ -2251,6 +2251,7 @@ export function initWordMode(ctx) {
     $('#w-again').textContent = data.againText || 'New board';
     $('#w-replay').hidden = !data.replay;
     $('#w-result-lb').hidden = !data.lb;
+    $('#w-replay').textContent = data.lb ? 'Replay' : 'Replay board'; // four buttons share the row when the trophy is there
     w.resultDay = data.lb || null;
     $('#screen-word').classList.add('sheet-up');
     openSheet(sheet);
