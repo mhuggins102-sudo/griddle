@@ -796,6 +796,10 @@ function resetData() {
   const fresh = defaultStore();
   fresh.settings.tutorialSeen = true; // a player clearing their data already knows the game
   fresh.leaderboard = kept; // the name and player id stay, or only the removals still owed to the server
+  if (!forget && ui.store.word) { // a reset that keeps the name keeps the daily grids played: one try stays one try
+    if (ui.store.word.dailies) fresh.word.dailies = ui.store.word.dailies;
+    if (ui.store.word.daily) fresh.word.daily = ui.store.word.daily;
+  }
   for (const k of Object.keys(ui.store)) delete ui.store[k];
   Object.assign(ui.store, fresh);
   saveStore(ui.store);
@@ -870,7 +874,9 @@ function wireEvents() {
   $('#btn-help-done').addEventListener('click', closeHelp);
   $('#btn-help-tutorial').addEventListener('click', () => {
     closeHelp();
-    ui.tutorial.open(boardSize(), { perks: !!ui.store.settings.perks }); // the perk page when the setting is on
+    const saved = ui.store.wordGame; // the saved game's mode, if any, so page 1 names the right one
+    const perks = !!ui.store.settings.perks || !!(saved && saved.perks && !saved.perks.retry); // the perk page when the setting is on, or the saved run has cards
+    ui.tutorial.open(boardSize(), saved ? { mode: saved.mode, goal: saved.goal, perks } : { perks });
   });
   // the rules read as chapters: opening one closes the others, and its title snaps to the top of the sheet
   const chapters = document.querySelectorAll('#help .chapter');
