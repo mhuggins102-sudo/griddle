@@ -285,7 +285,8 @@
         <div class="sheet-scroll">
           <div class="settings">
             <label class="toggle"><span>Perk cards <small>Earn gold for spare turns and buy one-time action cards in the shop</small></span><input type="checkbox" class="switch" role="switch" id="opt-perks"></label>
-            <label class="toggle"><span>Practice mode <small>Show available words; stats not saved</small></span><input type="checkbox" class="switch" role="switch" id="opt-show-words"></label>
+            <label class="toggle"><span>Practice mode <small>Unlimited undos; no stats/leaderboard</small></span><input type="checkbox" class="switch" role="switch" id="opt-practice"></label>
+            <label class="toggle toggle-sub off" id="opt-show-words-row"><span>Show available words</span><input type="checkbox" class="switch" role="switch" id="opt-show-words" disabled></label>
             <label class="toggle"><span>Sound effects</span><input type="checkbox" class="switch" role="switch" id="opt-sound" checked></label>
             <div class="toggle"><span>Appearance</span>
               <div class="seg seg-small" role="radiogroup" aria-label="Appearance">
@@ -485,7 +486,7 @@
           <details class="chapter">
             <summary><span class="chapter-num">7</span><span class="chapter-title">Options and stats</span></summary>
             <div class="chapter-body">
-              <p><strong>Practice mode</strong>, in the settings (gear button), lists the words currently on the board with their points, as a hint (tap a listed word, then Lock), and offers <strong>Undo</strong>, in Multi Round and Single Round alike. It is off by default, and a board played with it on is practice: nothing from it is saved to your stats or posted to the leaderboard. The Daily Grid ignores it: no words, no undo. Sounds can be switched off there too.</p>
+              <p><strong>Practice mode</strong>, in the settings (gear button), offers <strong>Undo</strong> in Multi Round and Single Round alike, and its <strong>Show available words</strong> switch lists the words currently on the board with their points, as a hint (tap a listed word, then Lock). It is off by default, and a board played with it on is practice: nothing from it is saved to your stats or posted to the leaderboard. The Daily Grid ignores it: no undo, no words. Sounds can be switched off there too.</p>
               <p>After a Single Round, a Daily Grid or the board that ended a run, you can <strong>replay the same board</strong> (same letters, same draws). Replays do not count towards your stats or personal best, but the game remembers your best score on that board and tells you when you beat it. Your best scores and recent games are kept on this device; see Stats.</p>
             </div>
           </details>

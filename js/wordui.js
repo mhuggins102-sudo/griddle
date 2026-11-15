@@ -103,9 +103,10 @@ export function initWordMode(ctx) {
     face.classList.toggle('wild', ch === WILD);
   }
   const tileEl = (cell) => tileIn(boardEl, cell);
-  const showWordsOption = () => !!(ctx.store.settings && ctx.store.settings.showWords);
-  /** Practice mode as it applies to the board in play: the words are listed and Undo is offered. Never on the daily grid. */
-  const practiceLive = () => !!(w.game && w.game.practice && w.game.mode !== 'daily' && showWordsOption());
+  const practiceOption = () => !!(ctx.store.settings && ctx.store.settings.practice);
+  const wordsOption = () => !!(ctx.store.settings && ctx.store.settings.showWords); // practice mode's word list
+  /** Practice mode as it applies to the board in play: Undo is offered (and the words listed, if that switch is on). Never on the daily grid. */
+  const practiceLive = () => !!(w.game && w.game.practice && w.game.mode !== 'daily' && practiceOption());
   /** Whether Undo has a move to take back: never past a draw (random) or past a card played (its purchase stays). */
   function undoable() {
     const g = w.game;
@@ -288,7 +289,7 @@ export function initWordMode(ctx) {
       if (w.game.perks && !w.game.state.perk) w.game.state.perk = emptyPerk();
       if (w.game.daily === undefined) w.game.daily = null;
       if (w.game.undoFloor === undefined) w.game.undoFloor = 0;
-      if (showWordsOption() && w.game.mode !== 'daily') w.game.practice = true; // once the words have been shown, the board stays practice
+      if (practiceOption() && w.game.mode !== 'daily') w.game.practice = true; // once played in practice mode, the board stays practice
     } else {
       const daily = opts.mode === 'daily' ? dailySpec(isDailyKey(opts.day) ? opts.day : dailyKey()) : null; // a day's grid (today's unless told otherwise): the day decides its size, letters and draws
       const size = daily ? daily.size : SIZES.includes(opts.size) ? opts.size : 5;
@@ -328,7 +329,7 @@ export function initWordMode(ctx) {
         botWords: prepared ? prepared.botWords : null,
         history: [], // states to undo back to; emptied by a draw, since a draw cannot be undone
         replay: !!opts.replay,
-        practice: !daily && showWordsOption(), // practice mode: the words on show and Undo offered; nothing saved to stats or the leaderboard
+        practice: !daily && practiceOption(), // practice mode: Undo offered (and the words, if switched on); nothing saved to stats or the leaderboard
         daily: daily ? daily.key : null, // the day a daily grid belongs to
         undoFloor: 0, // the history length when a card was last played: Undo never goes back past it
         retry: null, // a single-round replay of the board that ended a run: its goal stays on show
@@ -374,7 +375,7 @@ export function initWordMode(ctx) {
     else if (opts.retry) say(`Replaying the board that ended your run · goal ${opts.retry.goal} · not counted in stats`, '', 3500);
     else if (opts.replay) say('Replaying this board · not counted in your stats', '', 3000);
     else if (w.game.mode === 'daily') say(`${w.game.daily === dailyKey() ? "Today's" : w.game.daily === shiftDay(dailyKey(), -1) ? "Yesterday's" : w.game.daily} Daily Grid · the same board for everyone · one try`, '', 3500);
-    else if (practiceLive()) say('Practice board · words and Undo on · not counted in stats', '', 3500);
+    else if (practiceLive()) say(`Practice board · Undo on${wordsOption() ? ' · words shown' : ''} · not counted in stats`, '', 3500);
     ensureBotData(w.game);
     if (isLevels() && !w.game.retry) prefetch(w.game.level + 1, w.game.size); // the next board is chosen while this one is played
     // a board saved in its last moment (full, or a level run out of turns) is scored straight away
@@ -503,7 +504,7 @@ export function initWordMode(ctx) {
     const st = w.game.state;
     w.found = findWords(st, w.dict);
     const wrap = $('#w-found-wrap');
-    wrap.hidden = !practiceLive() || w.over;
+    wrap.hidden = !practiceLive() || !wordsOption() || w.over || $('#screen-word').classList.contains('sheet-up'); // never under a result sheet
     const el = $('#w-found');
     el.innerHTML = '';
     if (wrap.hidden) return;
@@ -2214,6 +2215,7 @@ export function initWordMode(ctx) {
       again: false,
       replay: false,
     });
+    $('#w-found-wrap').hidden = true; // the word list would push the board under the sheet
   }
 
   /** Fill and open the result sheet. data: { state, title, line, rows, total, next, again, againText, replay }. */

@@ -198,6 +198,8 @@ svg { display: block; }
 .toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; cursor: pointer; }
 .toggle + .toggle { border-top: 1px solid var(--line); }
 .toggle small { display: block; color: var(--muted); font-size: 12.5px; }
+.toggle.toggle-sub { padding-left: 18px; min-height: 46px; } /* a sub-option of the switch above */
+.toggle.toggle-sub.off { opacity: 0.45; }
 .switch {
   appearance: none;
   -webkit-appearance: none;
@@ -912,6 +914,7 @@ svg { display: block; }
 
 /* Board over: the board stays full size; only the strip goes */
 .word-screen.over .strip, .word-screen.sheet-up .strip { display: none; }
+.word-screen.sheet-up #w-found-wrap { display: none; } /* practice mode's word list never sits under a result sheet */
 
 /* Action animations */
 .tile.swap-arc { animation: swapArc 240ms ease-in-out; }
