@@ -49,7 +49,7 @@ async function boot() {
   $('#opt-perks').checked = !!ui.store.settings.perks;
   $('#opt-sound').checked = ui.store.settings.sound !== false;
   setSoundEnabled(ui.store.settings.sound !== false);
-  if (ui.store.settings.theme === 'wild') ui.store.settings.theme = 'candy'; // the first playful look, before it had a name
+  if (THEME_ALIASES[ui.store.settings.theme]) ui.store.settings.theme = THEME_ALIASES[ui.store.settings.theme]; // a look renamed or replaced since the save
   applyTheme(ui.store.settings.theme);
   $('#opt-theme').value = THEMES.includes(ui.store.settings.theme) ? ui.store.settings.theme : 'system';
   $('#opt-theme').addEventListener('change', (e) => {
@@ -236,17 +236,19 @@ function persist() {
 }
 
 /** Light, dark, or follow the system (the default). */
-const THEMES = ['system', 'light', 'dark', 'candy', 'neon', 'citrus'];
-const PLAYFUL = ['candy', 'neon', 'citrus']; // the looks with their own face, bouncier moves and brighter sounds
+const THEMES = ['system', 'light', 'dark', 'candy', 'neon', 'sky'];
+const PLAYFUL = ['candy', 'neon', 'sky']; // the looks with their own face, bouncier moves and brighter sounds
 const THEME_FONTS = {
   candy: 'https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap',
   neon: 'https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap',
-  citrus: 'https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&display=swap',
+  sky: 'https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&display=swap',
 };
+/** Names earlier builds saved for a look that was renamed or replaced. */
+const THEME_ALIASES = { wild: 'candy', citrus: 'sky' };
 
 function applyTheme(theme) {
   const root = document.documentElement;
-  if (theme === 'wild') theme = 'candy';
+  theme = THEME_ALIASES[theme] || theme;
   if (THEMES.includes(theme) && theme !== 'system') root.dataset.theme = theme;
   else delete root.dataset.theme;
   if (THEME_FONTS[theme] && !document.getElementById(`font-${theme}`)) {
