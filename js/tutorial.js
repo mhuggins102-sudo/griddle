@@ -205,12 +205,12 @@ export function initTutorial() {
       {
         title: 'Turns and the goal',
         rows: ex.slide.rows,
-        html: `<p>Every move costs <strong>one turn</strong>, and you get <strong>${turns} turns</strong> on this ${n}×${n} board. Words lock in to bank their points.</p>${goalLine}<p>Next: each of the five moves, with a board where it pays off.</p>`,
+        html: `<p>Every move costs <strong>one turn</strong> (Wild costs two), and you get <strong>${turns} turns</strong> on this ${n}×${n} board. Words lock in to bank their points.</p>${goalLine}<p>Next: each of the five moves, with a board where it pays off.</p>`,
       },
       { title: 'Slide', demo: 'slide', rows: ex.slide.rows, ex: ex.slide, html: `<p><strong>Flick</strong> a row or column: a quick swipe of any of its tiles. The whole line moves one step and the tile pushed off the end wraps round to the start. A slow drag swaps instead.</p><p>${ex.slide.note}</p>` },
       { title: 'Swap', demo: 'swap', rows: ex.swap.rows, ex: ex.swap, html: `<p><strong>Drag</strong> a tile onto one of its four neighbours and let go to swap them. Locked tiles cannot move.</p><p>${ex.swap.note}</p>` },
       { title: 'Nudge', demo: 'nudge', rows: ex.nudge.rows, ex: ex.nudge, html: `<p><strong>Hold</strong> a tile for a menu, then pick the letter before or after it in the alphabet. A and Z wrap round, so an A is one nudge from a Z. The same menu on a <em>locked</em> tile offers <strong>Wild</strong>: for two turns, once per board, the tile reads as any letter but scores nothing.</p><p>${ex.nudge.note}</p>` },
-      { title: 'Draw', demo: 'draw', rows: ex.draw.rows, ex: ex.draw, html: `<p><strong>Hold</strong> a tile and choose <em>Draw</em> to swap it for a random letter from the bag. The bag button in the header shows what is left. Draw cannot be undone.</p><p>${ex.draw.note}</p>` },
+      { title: 'Draw', demo: 'draw', rows: ex.draw.rows, ex: ex.draw, html: `<p><strong>Hold</strong> a tile and choose <em>Draw</em> to swap it for a random letter from the bag. The bag button in the header shows what is left. Draw cannot be undone, even in Practice mode.</p><p>${ex.draw.note}</p>` },
       { title: 'Lock', demo: 'lock', rows: lockEx.rows, ex: lockEx, html: `<p><strong>Tap</strong> the first letter of a word, then its last. Words run along rows, columns and diagonals, in either direction.</p><p>${lockEx.note} Lines still slide around locked tiles, and a locked tile can still be nudged, drawn over, or made wild for ${WILD_COST} turns. New words may cross locked tiles as long as they add a fresh one.</p>` },
       {
         title: 'Word points',
@@ -223,7 +223,7 @@ export function initTutorial() {
         title: 'Filling the board',
         rows: lockEx.rows,
         locked: manyLocked,
-        html: `<p>From the <strong>${firstRung}th locked tile</strong> the bonus climbs by 1, 3, 5, 7… per tile: the tiles past ${firstRung - 1}, squared (${ladderText(n)}). Lock all ${cells} with turns to spare and each spare turn adds +${FULL_COVER_TURN_BONUS}. The board here has ${manyLocked.length} locked: +${COVERAGE_LADDER[n][manyLocked.length] || 0}.</p><p>In a level run the goal is fixed by the level: ${GOAL_SCHEDULE[n].start} at level 1 and ${GOAL_SCHEDULE[n].step} more each level, with no ceiling. Each board is chosen to fit its goal: a bot plays a few candidates and the one kept is the board whose word points make the goal ${GOAL_START_PERCENT}% of them at level 1 and ${GOAL_STEP_PERCENT} points more each level. Your fill bonuses count toward the goal, so crossing words through locked tiles to cover the board is what carries a run.</p>`,
+        html: `<p>From the <strong>${firstRung}th locked tile</strong> the bonus climbs by 1, 3, 5, 7… per tile: the tiles past ${firstRung - 1}, squared (${ladderText(n)}). Lock all ${cells} with turns to spare and each spare turn adds +${FULL_COVER_TURN_BONUS}. The board here has ${manyLocked.length} locked: +${COVERAGE_LADDER[n][manyLocked.length] || 0}.</p><p>In Multi Round the goal is fixed by the level: ${GOAL_SCHEDULE[n].start} at level 1 and ${GOAL_SCHEDULE[n].step} more each level, with no ceiling. Each board is chosen to fit its goal: a bot plays a few candidates and the one kept is the board whose word points make the goal ${GOAL_START_PERCENT}% of them at level 1 and ${GOAL_STEP_PERCENT} percentage points more each level. Your fill bonuses count toward the goal, so crossing words through locked tiles to cover the board is what carries a run.</p>`,
       },
       ...(opts.perks ? [perkPage] : []), // the mode's own page, last
     ];

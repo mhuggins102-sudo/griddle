@@ -376,11 +376,12 @@ export function initWordMode(ctx) {
     else if (opts.replay) say('Replaying this board · not counted in your stats', '', 3000);
     else if (w.game.mode === 'daily') say(`${w.game.daily === dailyKey() ? "Today's" : w.game.daily === shiftDay(dailyKey(), -1) ? "Yesterday's" : w.game.daily} Daily Grid · the same board for everyone · one try`, '', 3500);
     else if (practiceLive()) say(`Practice board · Undo on${wordsOption() ? ' · words shown' : ''} · not counted in stats`, '', 3500);
+    else if (w.game.practice && w.game.mode !== 'daily') say('Practice board · not counted in stats', '', 3500); // marked practice earlier, the setting since switched off
     ensureBotData(w.game);
     if (isLevels() && !w.game.retry) prefetch(w.game.level + 1, w.game.size); // the next board is chosen while this one is played
     // a board saved in its last moment (full, or a level run out of turns) is scored straight away
     const st = w.game.state;
-    if (!goalReached() && (isBoardFull(st) || (st.turns >= turnLimit(st) && isLevels()) || (w.game.retry && finalScore(st) >= w.game.goal))) finish(true);
+    if (!goalReached() && (isBoardFull(st) || st.turns >= turnLimit(st) || (w.game.retry && finalScore(st) >= w.game.goal))) finish(true); // any mode: a board saved with its last turn spent is scored on resume
     // the very first game on this device opens the tutorial once; the ? button brings it back any time
     if (!resume && !ctx.store.settings.tutorialSeen) {
       ctx.store.settings.tutorialSeen = true;
@@ -421,7 +422,7 @@ export function initWordMode(ctx) {
     });
     const undo = $('#w-undo');
     undo.hidden = w.over || !practiceLive(); // Undo belongs to practice mode
-    undo.disabled = !undoable();
+    undo.disabled = !undoable() || goalReached(); // a level passed is settled: no taking the pass back
     undo.title = undoable() ? 'Undo the last move' : 'Nothing to undo (a draw or a card cannot be undone)';
     const bagBtn = $('#w-bag-btn');
     bagBtn.hidden = w.over;
@@ -1223,8 +1224,9 @@ export function initWordMode(ctx) {
   /** Practice mode's Undo: the last move or lock comes back, as far back as the last draw or card. */
   function undo() {
     const g = w.game;
-    if (!g || w.over || w.animating || !practiceLive() || !undoable()) return;
+    if (!g || w.over || w.animating || w.perk || goalReached() || !practiceLive() || !undoable()) return;
     cancelGesture();
+    clearHint();
     g.state = g.history.pop();
     persist();
     play('undo');
@@ -1936,6 +1938,7 @@ export function initWordMode(ctx) {
     g.state = createWordState(board, bag, g.drawSeed);
     g.state.perk = emptyPerk();
     g.history = [];
+    g.undoFloor = 0;
     Object.assign(g, { botScore: prep.botScore, botFinal: prep.botFinal, botWords: prep.botWords });
     g.goalCelebrated = false;
     w.wordCount = 0;
@@ -1964,6 +1967,7 @@ export function initWordMode(ctx) {
     if (!g.history.length) return say('Nothing to take back', 'bad');
     cancelGesture();
     const prev = g.history.pop();
+    g.undoFloor = Math.min(g.undoFloor || 0, g.history.length); // the floor never sits above a shrunken history
     if (prev.undoneDraw) {
       // the draw is taken back and the bag's next letter is rolled afresh, so it is not simply dealt again
       delete prev.undoneDraw;
@@ -2587,7 +2591,7 @@ export function initWordMode(ctx) {
   $('#w-help').addEventListener('click', () => {
     closeMenu();
     const g = w.game;
-    ctx.openTutorial(g ? g.size : 5, g ? { mode: g.mode, goal: g.goal, perks: !!g.perks } : {});
+    ctx.openTutorial(g ? g.size : 5, g ? { mode: g.mode, goal: g.goal, perks: !!(g.perks && !g.perks.retry) } : {}); // a retry keeps its shop but earns no gold
   });
   window.addEventListener('resize', positionMenu);
 

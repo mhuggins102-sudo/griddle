@@ -149,7 +149,7 @@
           <button class="hud-item hud-button" id="w-score-item" aria-label="Score; tap for the breakdown"><span class="hud-label">Score</span><span id="w-score" class="hud-value">0</span></button>
           <div class="hud-tools">
             <button id="w-hand" class="btn btn-icon hand-btn" aria-label="Shop" hidden><span class="hand-gold" id="w-hand-goldface">◆ 0</span></button>
-            <button id="w-undo" class="btn btn-icon" aria-label="Undo the last move (once per game)">
+            <button id="w-undo" class="btn btn-icon" aria-label="Undo the last move">
               <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 4 8l3.5 3.5M4.5 8H12a4 4 0 0 1 0 8H9"/></svg>
             </button>
             <button id="w-bag-btn" class="btn btn-icon" aria-label="Show the letters left in the bag" aria-pressed="false">
@@ -416,7 +416,7 @@
           <details class="chapter" open>
             <summary><span class="chapter-num">1</span><span class="chapter-title">The idea</span></summary>
             <div class="chapter-body">
-              <p>You get a grid of letter tiles and a fixed number of turns: a <strong>5×5</strong> board with <strong>20 turns</strong>, or a <strong>6×6</strong> board with <strong>25 turns</strong> (pick on the home screen). Every move costs one turn.</p>
+              <p>You get a grid of letter tiles and a fixed number of turns: a <strong>5×5</strong> board with <strong>20 turns</strong>, or a <strong>6×6</strong> board with <strong>25 turns</strong> (pick on the home screen). Every move costs one turn (Wild costs two).</p>
               <p>Rearrange the grid into words, <strong>lock</strong> the words in to bank their points, and lock as many tiles as you can before the turns run out. The score counts at the end of the board; the header always shows it as it stands.</p>
               <p><strong>Multi Round</strong> is a run of levels, each with a goal score to reach. <strong>Single Round</strong> is one board with no goal. The <strong>Daily Grid</strong> is one board a day, the same for everyone, 5×5 or 6×6 as the day decides, with one try at it and a leaderboard of its own.</p>
             </div>
@@ -424,7 +424,7 @@
           <details class="chapter">
             <summary><span class="chapter-num">2</span><span class="chapter-title">Controls</span></summary>
             <div class="chapter-body">
-              <p>Everything happens on the board. Each move costs <strong>one turn</strong>:</p>
+              <p>Everything happens on the board. Each move costs <strong>one turn</strong> (Wild costs two):</p>
               <ul class="controls">
                 <li><strong>Swap</strong>: drag a tile onto one of its four neighbours and let go. Locked tiles cannot move.</li>
                 <li><strong>Slide</strong>: flick any tile of a row or column, a quick swipe along the line. The whole line moves one step and the tile pushed off the edge wraps round to the other end. Locked tiles stay put and the rest slide around them. A slow drag is always a swap, however far it goes.</li>
@@ -442,7 +442,7 @@
             <div class="chapter-body">
               <ul>
                 <li>A word is 3 to 5 letters (3 to 6 on a 6×6 board) in a straight line: a row, a column, or a diagonal. It may be read in either direction, so tap the letters in the order you read them. A word may sit inside a longer run of letters.</li>
-                <li>Words are checked against a list of about 20,000 everyday English words, ordered by how common they are. No proper nouns or abbreviations. When a wild tile could complete several words, the most common one is taken.</li>
+                <li>Words are checked against a list of about 20,000 everyday English words, ordered by how common they are. No proper nouns or abbreviations. When a wild tile could complete several words, tapping takes the most common one (the Practice mode list shows every reading, and you can lock any of them).</li>
                 <li>Locking banks the word's points and marks its tiles green. Locked tiles never move again: a line still slides, but its locked tiles stay put and the other tiles slide around them, and they cannot be swapped. They can still be changed in place: nudged, drawn over, or made wild.</li>
                 <li>You may lock a new word that reuses locked tiles, as long as it adds at least one tile that was not locked yet. Crossing words is the main way to lock the whole board.</li>
                 <li>Any listed word can be locked, whatever you have locked before, with two exceptions: an exact repeat, and a word that merely adds an ending to a word already locked on those same tiles (DOOR then DOORS, PLAY then PLAYED, FAST then FASTER): you choose one form. A different word that happens to contain a locked one is fine (CAR then CARROT), and so is the plural on other tiles.</li>
@@ -487,20 +487,20 @@
             <summary><span class="chapter-num">7</span><span class="chapter-title">Options and stats</span></summary>
             <div class="chapter-body">
               <p><strong>Practice mode</strong>, in the settings (gear button), offers <strong>Undo</strong> in Multi Round and Single Round alike, and its <strong>Show available words</strong> switch lists the words currently on the board with their points, as a hint (tap a listed word, then Lock). It is off by default, and a board played with it on is practice: nothing from it is saved to your stats or posted to the leaderboard. The Daily Grid ignores it: no undo, no words. Sounds can be switched off there too.</p>
-              <p>After a Single Round, a Daily Grid or the board that ended a run, you can <strong>replay the same board</strong> (same letters, same draws). Replays do not count towards your stats or personal best, but the game remembers your best score on that board and tells you when you beat it. Your best scores and recent games are kept on this device; see Stats.</p>
+              <p>After a Single Round, a Daily Grid or the board that ended a run, you can <strong>replay the same board</strong> (same letters, same draws). Replays do not count towards your stats or personal best; on a replay of a Single Round the result card compares your score with your previous best on that board, which this device remembers. Your best scores and recent games are kept on this device; see Stats.</p>
             </div>
           </details>
           <details class="chapter">
             <summary><span class="chapter-num">8</span><span class="chapter-title">Leaderboard</span></summary>
             <div class="chapter-body">
-              <p>The trophy button shows the public top tens: the best single-board scores and the highest level reached, for 5×5 and for 6×6, with and without perk cards, and the Daily Grid's own board for today and yesterday. Pick the board size, whether perk cards were on, then high scores, top level or daily. After your first finished board the game asks for a name; post under it, or stay anonymous and nothing leaves your device. Replays never count. You can change or remove your name from the leaderboard sheet, and Reset device data lets you keep or forget it.</p>
+              <p>The trophy button shows the public top tens: the best single-board scores and the highest level reached, for 5×5 and for 6×6, with and without perk cards, and the Daily Grid's own board for today and yesterday. Pick the board size, whether perk cards were on, then high scores, top level or daily. The first time a board you played for real ends with its result on screen (a Single Round, a Daily Grid, a lost level or the board that ends a run) the game asks for a name; post under it, or stay anonymous and nothing leaves your device. If you stayed anonymous you can join later from the leaderboard sheet. Replays never count. You can change or remove your name from the leaderboard sheet, and Reset device data lets you keep or forget it.</p>
             </div>
           </details>
           <details class="chapter">
-            <summary><span class="chapter-num">9</span><span class="chapter-title">Perk cards (experimental)</span></summary>
+            <summary><span class="chapter-num">9</span><span class="chapter-title">Perk cards</span></summary>
             <div class="chapter-body">
-              <p>Switch <strong>Perk cards</strong> on in the settings and your next run of levels earns <strong>gold</strong>: every turn you have to spare when a level's goal is reached is one tryld coin. The gold button in the header opens the <strong>shop</strong> at any time: every card not yet bought this run is on sale, by price or by type, and a card you buy is played at once (if you cancel a card that needs a target, its gold comes back).</p>
-              <p>Every card can be bought <strong>once per run</strong> and is <strong>one use</strong>; play as many as you like in a level. Cards the board cannot take right now say why. The goal is fixed by the level, and the board is chosen to fit it as always. A card's points show as their own line on the result card. A few cards cost less on 6×6, where they are worth less. Runs with perk cards keep their own best level in Stats and post to their own leaderboard boards, apart from the plain runs.</p>
+              <p>Switch <strong>Perk cards</strong> on in the settings and your next run of levels earns <strong>gold</strong>: every turn you have to spare when a level's goal is reached is one gold coin. The gold button in the header opens the <strong>shop</strong> at any time: every card not yet bought this run is on sale, in one list by price or (on a phone) under type headings, and a card you buy is played at once (if you cancel a card that needs a target, its gold comes back).</p>
+              <p>Every card can be bought <strong>once per run</strong> and is <strong>one use</strong>; play as many as you like in a level. Cards the board cannot take right now are dimmed, most with the reason. The goal is fixed by the level, and the board is chosen to fit it as always. A card's points show as their own line on the result card. A few cards cost less on 6×6, where they are worth less. Runs with perk cards keep their own best level in Stats and post to their own leaderboard boards, apart from the plain runs.</p>
               <ul id="help-perk-cards" class="perk-list"></ul>
             </div>
           </details>
