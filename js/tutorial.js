@@ -199,7 +199,7 @@ export function initTutorial() {
     const goalLine = opts.mode === 'levels'
       ? `<p>This is <strong>Multi Round</strong>: reach the goal score and the level is passed at once${opts.goal ? ` (this board's goal is <strong>${opts.goal}</strong>)` : ''}. Run out of turns below it and the run ends.</p>`
       : opts.mode === 'daily'
-        ? '<p>This is the <strong>Daily grid</strong>: one board, the same for everyone today, and one go at it. Score as much as you can before the turns run out.</p>'
+        ? '<p>This is the <strong>Daily Grid</strong>: one board, the same for everyone today, and one try at it. Score as much as you can before the turns run out.</p>'
         : '<p>This is a <strong>Single Round</strong>: no goal, just score as much as you can before the turns run out.</p>';
     return [
       {

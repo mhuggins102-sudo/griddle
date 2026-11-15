@@ -5,7 +5,7 @@
 //   press and hold a tile         -> menu: nudge down, nudge up, draw, wild (locked tiles)
 //   tap the first and last letter -> lock the word between them
 // Modes: levels (Multi Round: a fixed goal per board, pass to advance), free (Single Round: one board, no goal)
-// and daily (the Daily grid: one board a day, the same for everyone, one go). Practice mode (a setting) lists
+// and daily (the Daily Grid: one board a day, the same for everyone, one try). Practice mode (a setting) lists
 // the words on the board and offers Undo; a practice board is not counted. The daily grid ignores it.
 
 import { randomSeed } from './rng.js';
@@ -373,7 +373,7 @@ export function initWordMode(ctx) {
     if (opts.note) say(opts.note, 'good', 2800);
     else if (opts.retry) say(`Replaying the board that ended your run · goal ${opts.retry.goal} · not counted in stats`, '', 3500);
     else if (opts.replay) say('Replaying this board · not counted in your stats', '', 3000);
-    else if (w.game.mode === 'daily') say('Daily grid · the same board for everyone today · one go', '', 3500);
+    else if (w.game.mode === 'daily') say('Daily Grid · the same board for everyone today · one try', '', 3500);
     else if (practiceLive()) say('Practice board · words and Undo on · not counted in stats', '', 3500);
     ensureBotData(w.game);
     if (isLevels() && !w.game.retry) prefetch(w.game.level + 1, w.game.size); // the next board is chosen while this one is played
@@ -2075,7 +2075,7 @@ export function initWordMode(ctx) {
       isBest = !perkGame && (store.word[bestKey] == null || total > store.word[bestKey]);
       if (isBest) store.word[bestKey] = total;
       store.word.gamesPlayed++;
-      if (g.mode === 'daily' && g.daily) store.word.daily = { day: g.daily, size: g.size, score: total, at: new Date().toISOString() }; // the day's one go
+      if (g.mode === 'daily' && g.daily) store.word.daily = { day: g.daily, size: g.size, score: total, at: new Date().toISOString() }; // the day's one try
       if (passed && !perkGame) store.word.bestLevel = Math.max(store.word.bestLevel || 0, g.level);
       if (perkGame) {
         const key = `bestPerks${g.size}`; // the best score with perk cards per size, for the perk leaderboard; not a personal best
@@ -2144,11 +2144,11 @@ export function initWordMode(ctx) {
     } else {
       const best = store.word[bestKey];
       line = isBest ? 'New personal best!' : total === best ? 'Ties your personal best' : `Personal best: ${best}`;
-      if (g.mode === 'daily') title = 'Daily grid';
+      if (g.mode === 'daily') title = 'Daily Grid';
     }
     if (g.practice) line = `${levelsRun ? (passed ? `Goal ${g.goal} reached` : `Reached level ${g.level}`) + ' · ' : ''}Practice board · not counted in stats`;
     play(levelsRun ? (passed ? 'fanfare' : 'fail') : isBoardFull(st) ? 'fanfare' : 'lock');
-    w.shareText = (levelsRun ? `Level ${g.level} ${passed ? 'passed' : 'failed'} · ` : g.retry ? `Level ${g.retry.level} retry · ` : g.mode === 'daily' ? `Daily grid ${g.daily} · ` : '') + wordShareLine(total, st.words, g.size === 6 ? 'GridLock 6×6' : 'GridLock');
+    w.shareText = (levelsRun ? `Level ${g.level} ${passed ? 'passed' : 'failed'} · ` : g.retry ? `Level ${g.retry.level} retry · ` : g.mode === 'daily' ? `Daily Grid ${g.daily} · ` : '') + wordShareLine(total, st.words, g.size === 6 ? 'GridLock 6×6' : 'GridLock');
     const showNext = levelsRun && passed && !g.replay;
     w.nextLevel = passed ? g.level + 1 : 1;
     renderHud();
@@ -2162,7 +2162,7 @@ export function initWordMode(ctx) {
       total,
       board: st,
       next: showNext,
-      again: !showNext && g.mode !== 'daily', // the daily grid is one go
+      again: !showNext && g.mode !== 'daily', // the daily grid is one try
       againText: levelsRun || g.retry ? 'New run' : 'New board',
       replay: !(showNext || (g.retry && total >= g.goal)), // a lost board can be retried; a beaten retry cannot
     });
