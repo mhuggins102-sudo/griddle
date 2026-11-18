@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cleanName, queueResult, bestReachedBySize, bestPerkScore, localBests, listRows, seedReached, defaultIdentity, NAME_MAX } from '../js/leaderboard.js';
+import { dailyKey, shiftDay } from '../js/daily.js';
 
 test('cleanName trims, collapses spaces, strips control characters and caps the length', () => {
   assert.equal(cleanName('  Mia   Huggins '), 'Mia Huggins');
@@ -97,23 +98,26 @@ test('queueResult keeps one entry per board, the perk boards apart, and reads ol
 });
 
 test('the daily grid has an outbox entry per day and a local best of its own', () => {
+  const today = dailyKey();
+  const yday = shiftDay(today, -1);
   const pending = [];
-  assert.equal(queueResult(pending, { kind: 'daily', day: '2026-11-15', size: 6, value: 120 }), true);
-  assert.equal(queueResult(pending, { kind: 'daily', day: '2026-11-15', size: 6, value: 100 }), false); // lower: nothing
-  assert.equal(queueResult(pending, { kind: 'daily', day: '2026-11-15', size: 6, value: 130 }), true); // higher: replaces
-  assert.equal(queueResult(pending, { kind: 'daily', day: '2026-11-14', size: 5, value: 90 }), true); // another day
+  assert.equal(queueResult(pending, { kind: 'daily', day: today, size: 6, value: 120 }), true);
+  assert.equal(queueResult(pending, { kind: 'daily', day: today, size: 6, value: 100 }), false); // lower: nothing
+  assert.equal(queueResult(pending, { kind: 'daily', day: today, size: 6, value: 130 }), true); // higher: replaces
+  assert.equal(queueResult(pending, { kind: 'daily', day: yday, size: 5, value: 90 }), true); // another day
   assert.equal(queueResult(pending, { kind: 'daily', day: 'today', size: 5, value: 90 }), false); // not a day
   assert.equal(queueResult(pending, { size: 6, kind: 'score', value: 130 }), true); // the plain board is separate
   assert.deepEqual(pending, [
-    { kind: 'daily', day: '2026-11-15', size: 6, value: 130 },
-    { kind: 'daily', day: '2026-11-14', size: 5, value: 90 },
+    { kind: 'daily', day: today, size: 6, value: 130 },
+    { kind: 'daily', day: yday, size: 5, value: 90 },
     { size: 6, kind: 'score', perks: false, value: 130 },
   ]);
-  assert.deepEqual(localBests({ best6: 130, daily: { day: '2026-11-15', size: 6, score: 130 } }), [
+  assert.deepEqual(localBests({ best6: 130, daily: { day: today, size: 6, score: 130 } }), [
     { size: 6, kind: 'score', perks: false, value: 130 },
-    { kind: 'daily', day: '2026-11-15', size: 6, value: 130 },
+    { kind: 'daily', day: today, size: 6, value: 130 },
   ]);
-  assert.deepEqual(localBests({ daily: { day: '2026-11-15', size: 6, score: null, abandoned: true } }), []); // a grid given up posts nothing
+  assert.deepEqual(localBests({ daily: { day: today, size: 6, score: null, abandoned: true } }), []); // a grid given up posts nothing
+  assert.deepEqual(localBests({ dailies: { '2020-01-01': { size: 5, score: 50 } } }), []); // a day the server would refuse is not offered
 });
 
 test('listRows puts a gap before a player row that sits outside the top 10', () => {

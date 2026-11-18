@@ -194,7 +194,7 @@ export function initTutorial() {
       gold: 3,
       rows: lockEx.rows,
       locked: lockEx.cells,
-      html: `<p><strong>Perk cards</strong> are on. In Multi Round, every turn you have to spare when a level's goal is reached is one <strong>gold</strong> (◆): pass with 3 turns left and you earn 3. The gold button in the header opens the <strong>shop</strong> while a board is in play.</p><p>Each card is bought once per run, for ${Math.min(...costs)} to ${Math.max(...costs)} gold, and plays at once (a cancelled card is refunded). Cards that make a move for you cost that turn; the rest cost none. Extra Turn and Borrowed Time add turns, Rewind takes a move back, and card points are added up in the result card's perks tile.</p>`,
+      html: `<p><strong>Perk cards</strong> are on. In Multi Round, every turn you have to spare when a level's goal is reached is one <strong>gold</strong> (◆): pass with 3 turns left and you earn 3. The gold button in the header opens the <strong>shop</strong> while a board is in play.</p><p>Each card is bought once per run, for ${Math.min(...costs)} to ${Math.max(...costs)} gold, and plays at once (a cancelled card is refunded). Cards that make a move for you cost that turn; the rest cost none. Extra Turn and Borrowed Time add turns, Rewind takes any number of moves back, and card points are added up in the result card's perks tile.</p>`,
     };
     const goalLine = opts.mode === 'levels'
       ? `<p>This is <strong>Multi Round</strong>: reach the goal score and the level is passed at once${opts.goal ? ` (this board's goal is <strong>${opts.goal}</strong>)` : ''}. Run out of turns below it and the run ends.</p>`
