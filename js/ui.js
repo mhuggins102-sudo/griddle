@@ -207,7 +207,10 @@ function chooseMode(mode) {
   const dailySaved = g.mode === 'daily' && g.daily;
   resumeChoice = mode;
   $('#resume-title').textContent = `${saved} in progress`;
-  $('#resume-detail').textContent = describeSaved(g) + (dailySaved && g.daily !== dailyKey() ? ` · ${g.daily}` : '') + (dailySaved ? '. Giving it up counts as that day\'s try.' : '');
+  // the day named as the home screen and the leaderboard name it; giving a daily up spends that day's one try, whatever the day
+  const dayName = !dailySaved ? '' : g.daily === dailyKey() ? "Today's" : g.daily === shiftDay(dailyKey(), -1) ? "Yesterday's" : `${g.daily}'s`;
+  const tryOf = dayName === "Today's" ? "today's" : dayName === "Yesterday's" ? "yesterday's" : "that day's";
+  $('#resume-detail').textContent = (dailySaved ? `${dayName} grid · ` : '') + describeSaved(g) + (dailySaved ? `. Giving it up counts as ${tryOf} try.` : '');
   $('#btn-resume-continue').textContent = `Continue ${saved}`;
   const target = dailyTarget(ui.store.word);
   $('#btn-resume-new').textContent = mode === g.mode ? (mode === 'levels' ? 'Start a new run' : mode === 'daily' ? `Start ${target === dailyKey() ? "today's" : "yesterday's"} grid` : 'Start a new board') : `Start ${MODE_NAMES[mode]} instead`;
