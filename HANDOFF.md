@@ -1,4 +1,9 @@
-# Handoff notes (session of 15 Nov 2026)
+# Handoff notes (session of 15 Nov 2026, updated 18 Nov)
+
+18 Nov: Rewind steps back through cards played as well as moves and unplays them (gold refunded, card back in
+the shop); every card play now leaves a tagged history snapshot and the old `undoFloor` is gone. Hint lights the
+best lockable word for the rest of the level. New cards Lock (lock one tile, 5) and Diagonal Swap (corner-to-corner
+swaps for the level, 5); Gold Rush costs 5. 31 cards, 86 tests; the perks and shop probes cover the new cards.
 
 Where the work stands, what the two background checks found, and what is left for a later session.
 Branch: `claude/gesture-ui` (deployed from there). Everything below is committed and pushed.
@@ -70,7 +75,7 @@ retry of a perk-run board (undoable() already refuses a draw snapshot).
 
 ## How to verify things here
 
-- `npm test` (82 node:test tests).
+- `npm test` (86 node:test tests).
 - Browser probes in `.scratch/*.cjs` (gitignored): start the dev server with `node tools/serve.js 8080`,
   then `node .scratch/<name>.cjs`; they print PASS/FAIL lines and screenshots next to themselves. The ones
   touched this session: leaderboard, tutorial, undo, endscreens, resultshots, round5, perks, search, shop,

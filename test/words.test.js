@@ -91,6 +91,26 @@ test('findWords reads forward and backward on rows, columns and diagonals, score
   assert.ok(findWords(full, dict).find((w) => w.word === 'USE'));
 });
 
+test('swap: orthogonal neighbours only, unless the Diagonal Swap card is in play, which adds the corner neighbours', () => {
+  const s0 = createWordState(boardFrom(['ABCDE', 'FGHIJ', 'KLMNO', 'PQRST', 'UVWXY']), { A: 1 }, 5);
+  assert.equal(applyWordAction(s0, { type: 'swap', r: 1, c: 1, r2: 1, c2: 2 }).board[idx(1, 1)], 'H');
+  assert.throws(() => applyWordAction(s0, { type: 'swap', r: 0, c: 0, r2: 1, c2: 1 }), /orthogonal/);
+  const withDiag = { ...s0, perk: { diagonalSwap: true } };
+  const d1 = applyWordAction(withDiag, { type: 'swap', r: 0, c: 0, r2: 1, c2: 1 });
+  assert.equal(d1.board[idx(0, 0)], 'G');
+  assert.equal(d1.board[idx(1, 1)], 'A');
+  assert.equal(d1.turns, 1, 'a diagonal swap is a turn like any other');
+  assert.equal(applyWordAction(withDiag, { type: 'swap', r: 2, c: 2, r2: 1, c2: 3 }).board[idx(1, 3)], 'M', 'up and to the right too');
+  assert.equal(applyWordAction(withDiag, { type: 'swap', r: 1, c: 1, r2: 1, c2: 2 }).board[idx(1, 1)], 'H', 'orthogonal swaps still work');
+  for (const bad of [
+    { type: 'swap', r: 0, c: 0, r2: 2, c2: 2 }, // two steps along the diagonal
+    { type: 'swap', r: 0, c: 0, r2: 1, c2: 2 }, // a knight's move
+    { type: 'swap', r: 0, c: 0, r2: 0, c2: 2 },
+  ]) assert.throws(() => applyWordAction(withDiag, bad), /neighbours/, JSON.stringify(bad));
+  assert.throws(() => applyWordAction({ ...s0, perk: { diagonalSwap: false } }, { type: 'swap', r: 0, c: 0, r2: 1, c2: 1 }), /orthogonal/);
+  assert.throws(() => applyWordAction({ ...withDiag, locked: [6] }, { type: 'swap', r: 0, c: 0, r2: 1, c2: 1 }), /Locked/, 'a locked corner neighbour stays put');
+});
+
 test('locking: tiles stop moving, same cells cannot be locked twice, nudge turns a locked tile wild', () => {
   const board = boardFrom(['CATXX', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']);
   let s = createWordState(board, { A: 1, B: 1 }, 5);

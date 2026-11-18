@@ -1007,7 +1007,7 @@ svg { display: block; }
 
 @media (prefers-reduced-motion: reduce) {
   .tile { transition: none; }
-  .tile.bump, .tile.swap-arc, .tile.flip, .tile.flip-down, .tile.spin, .tile.lock-pop, .tile.wild-pop, .tile.shake, .tile.hinted, .goalbar.celebrate, .btn-advance, .goalbar.reached .goalbar-fill, .tilemenu, .strip-msg, .strip-action { animation: none; }
+  .tile.bump, .tile.swap-arc, .tile.flip, .tile.flip-down, .tile.spin, .tile.lock-pop, .tile.wild-pop, .tile.shake, .goalbar.celebrate, .btn-advance, .goalbar.reached .goalbar-fill, .tilemenu, .strip-msg, .strip-action { animation: none; }
   .float { animation: floatStill 1100ms linear forwards; }
 }
 
@@ -1246,8 +1246,7 @@ button.rs-tile:active { background: var(--line); }
 .board.line-focus .tile.line-on { box-shadow: 0 0 0 3px var(--select), inset 0 calc(-1 * var(--tile-edge-h)) 0 rgba(0, 0, 0, 0.08); z-index: 2; }
 .tile.perk-ok { box-shadow: 0 0 0 3px var(--accent), inset 0 calc(-1 * var(--tile-edge-h)) 0 rgba(0, 0, 0, 0.08); z-index: 2; cursor: pointer; }
 .tile.perk-picked { box-shadow: 0 0 0 3px var(--region), inset 0 calc(-1 * var(--tile-edge-h)) 0 rgba(0, 0, 0, 0.08); z-index: 2; }
-.tile.hinted { box-shadow: 0 0 0 3px var(--ok), inset 0 calc(-1 * var(--tile-edge-h)) 0 rgba(0, 0, 0, 0.08); animation: hintGlow 900ms ease-in-out infinite alternate; z-index: 2; }
-@keyframes hintGlow { from { filter: brightness(1); } to { filter: brightness(1.12); } }
+.tile.hinted { box-shadow: 0 0 0 3px var(--ok), inset 0 calc(-1 * var(--tile-edge-h)) 0 rgba(0, 0, 0, 0.08); z-index: 2; }
 /* power squares and stickers: a badge in the top-right corner, in container units so it shrinks with the tile */
 .tile .pbadge { position: absolute; top: max(2px, 5cqw); right: max(2px, 5cqw); font-size: max(9px, 16cqw); line-height: 1; font-weight: 800; padding: max(1px, 2.5cqw) max(3px, 4.5cqw); border-radius: 999px; color: var(--badge-ink); pointer-events: none; z-index: 2; }
 .tile .pbadge.sq2 { background: var(--sq2); }

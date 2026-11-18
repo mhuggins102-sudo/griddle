@@ -23,12 +23,14 @@ function stateWith(rows, extra = {}) {
 const sum = (bag) => bagTotal(bag);
 const lock = (st, first, last) => lockWord(st, findWordAt(st, dict, first, last));
 
-test('catalogue: 29 unique cards priced 3 to 12 averaging about 6, a few cheaper on 6x6, every family represented', () => {
-  assert.equal(CARDS.length, 29);
-  assert.equal(new Set(CARDS.map((c) => c.id)).size, 29);
+test('catalogue: 31 unique cards priced 3 to 12 averaging about 6, a few cheaper on 6x6, every family represented', () => {
+  assert.equal(CARDS.length, 31);
+  assert.equal(new Set(CARDS.map((c) => c.id)).size, 31);
   const avg = CARDS.reduce((a, c) => a + c.cost, 0) / CARDS.length;
   assert.ok(avg > 5.3 && avg < 6.2, String(avg));
-  assert.equal(CARD_BY_ID['gold-rush'].cost, 3);
+  assert.equal(CARD_BY_ID['gold-rush'].cost, 5);
+  assert.deepEqual([CARD_BY_ID['lock-tile'].cost, CARD_BY_ID['diagonal-swap'].cost, CARD_BY_ID.hint.cost, CARD_BY_ID.rewind.cost], [5, 5, 4, 6]);
+  assert.deepEqual([CARD_BY_ID['lock-tile'].target, CARD_BY_ID['lock-tile'].turn, CARD_BY_ID['diagonal-swap'].target, CARD_BY_ID['diagonal-swap'].turn], ['tile', 0, 'none', 0]);
   assert.equal(cardCost('long-haul', 5), 8);
   assert.equal(cardCost('long-haul', 6), 5);
   assert.equal(cardCost('pick-letter', 6), 5);
@@ -53,7 +55,7 @@ test('a new run: no gold, every card on sale, prices by its board size', () => {
   const run = newPerkRun(6);
   assert.equal(run.size, 6);
   assert.equal(run.gold, 0);
-  assert.equal(run.deck.length, 29);
+  assert.equal(run.deck.length, 31);
   assert.deepEqual(run.levelStart, { gold: 0, deck: run.deck });
 });
 
@@ -216,6 +218,25 @@ test('perk actions: long swap, rotate, big nudge, pick a letter, unlock, trade, 
   assert.equal(st.perk.extraTurns, 0, 'input untouched');
 });
 
+test('Lock locks one unlocked tile in place for no turn; the Hint and Diagonal Swap flags are set like the others', () => {
+  const st = stateWith(['CATXX', 'DOGXX', 'XXXXX', 'XXXXX', 'XXXXX'], { locked: [0, 1, 2] });
+  const locked = applyPerkAction(st, { type: 'locktile', cell: 7 });
+  assert.deepEqual(locked.locked, [0, 1, 2, 7]);
+  assert.equal(locked.turns, st.turns, 'no turn');
+  assert.deepEqual(locked.board, st.board);
+  assert.deepEqual(st.locked, [0, 1, 2], 'the input is untouched');
+  assert.throws(() => applyPerkAction(st, { type: 'locktile', cell: 1 }), /locked/);
+  assert.throws(() => applyPerkAction(st, { type: 'locktile', cell: 25 }), /out of range/);
+  assert.throws(() => applyWordAction(locked, { type: 'swap', r: 1, c: 2, r2: 1, c2: 3 }), /Locked/, 'the locked tile cannot move');
+  assert.equal(emptyPerk().hint, false);
+  assert.equal(emptyPerk().diagonalSwap, false);
+  const hinted = applyPerkAction(st, { type: 'flag', key: 'hint', value: true });
+  assert.equal(hinted.perk.hint, true);
+  const diag = applyPerkAction(st, { type: 'flag', key: 'diagonalSwap', value: true });
+  assert.equal(diag.perk.diagonalSwap, true);
+  assert.equal(diag.turns, st.turns);
+});
+
 test('perk actions: choice draw, exchange, fresh line and slide2 keep the bag whole and match the engine draws', () => {
   const { board, bag } = dealLetters(11);
   const st = createWordState(board, bag, 99);
@@ -259,6 +280,14 @@ test('playability reasons and power pair picks', () => {
   assert.match(playBlock('open-field', { ...st, perk: { ...st.perk, openField: true } }), /Already/);
   assert.match(playBlock('rewind', st, { historyLength: 0 }), /Nothing to take back/);
   assert.equal(playBlock('rewind', st, { historyLength: 2 }), '');
+  assert.equal(playBlock('fresh-deal', st, { historyLength: 2, moves: 0 }), '', 'cards that only changed what is in play are no move');
+  assert.match(playBlock('fresh-deal', st, { historyLength: 2, moves: 1 }), /first move/);
+  assert.match(playBlock('fresh-deal', { ...st, locked: [0] }, { historyLength: 1, moves: 0 }), /first move/, 'a tile locked by the Lock card is a move');
+  assert.equal(playBlock('lock-tile', st), '');
+  assert.match(playBlock('lock-tile', { ...st, locked: st.board.map((_, i) => i) }), /No unlocked tile/);
+  assert.equal(playBlock('diagonal-swap', st), '');
+  assert.match(playBlock('diagonal-swap', { ...st, perk: { ...st.perk, diagonalSwap: true } }), /Already in play/);
+  assert.match(playBlock('hint', { ...st, perk: { ...st.perk, hint: true } }), /Already in play/);
   st.perk.stretch = true;
   assert.match(playBlock('stretch', st), /Already waiting/);
   assert.equal(playBlock('double-down', st), '', 'the two bonuses wait independently');

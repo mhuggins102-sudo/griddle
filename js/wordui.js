@@ -33,6 +33,8 @@ const LINE_FOCUS_LINGER_MS = 1500; // a line held with two fingers stays lit thi
 const TAP_SLOP = 8; // movement below this is a tap
 const SWAP_TRAVEL = 0.4; // tiles: minimum travel towards a neighbour to drop onto it
 const SWAP_CROSS = 0.7; // tiles: maximum sideways wobble for a drop
+const DIAG_TRAVEL = 0.35; // tiles, each way: a corner-to-corner drag at least this far along and across drops onto the diagonal neighbour (Diagonal Swap)
+const DIAG_RATIO = 0.5; // the shorter leg of such a drag is at least this share of the longer: nearer the corner than the side
 /**
  * Flick or drag? Speed decides, read over the whole movement rather than its last instant. A flick is
  * quick and usually longer than a tile; a drag is slow, and a slow drag is always a swap with the
@@ -55,7 +57,7 @@ const PASS_PAUSE_MS = 900; // between the goal being reached and the result card
 export function initWordMode(ctx) {
   const w = {
     dict: null,
-    game: null, // { seed, drawSeed, size, state, mode: 'levels'|'free'|'daily', level, goal, botScore, history, replay, retry, practice, daily, undoFloor }
+    game: null, // { seed, drawSeed, size, state, mode: 'levels'|'free'|'daily', level, goal, botScore, history, replay, retry, practice, daily }
     first: null, // first letter tapped for a lock
     pending: null, // candidate chosen from the found-words list, awaiting Lock
     found: [],
@@ -72,8 +74,6 @@ export function initWordMode(ctx) {
     workerJob: 0,
     preparing: null, // { level, size, promise } for the board being chosen in the background
     perk: null, // a card being targeted on the board: { id, picked: [cells] }
-    hint: null, // the word lit up by a Hint card: { cells, word, score }
-    hintTimer: null,
     preview: null, // a card's choice being shown on the board before it is locked in (openPreview)
     lineFocus: null, // { cells, pointers: Set, timer }: two fingers on the ends of a line, the rest of the board dimmed
   };
@@ -110,10 +110,10 @@ export function initWordMode(ctx) {
   const wordsOption = () => !!(ctx.store.settings && ctx.store.settings.showWords); // practice mode's word list
   /** Practice mode as it applies to the board in play: Undo is offered (and the words listed, if that switch is on). Never on the daily grid. */
   const practiceLive = () => !!(w.game && w.game.practice && w.game.mode !== 'daily' && practiceOption());
-  /** Whether Undo has a move to take back: never past a draw (random) or past a card played (its purchase stays). */
+  /** Whether Undo has a move to take back: never past a draw (random) or past a card played (only Rewind takes a card back). */
   function undoable() {
     const g = w.game;
-    if (!g || !g.history.length || g.history.length <= (g.undoFloor || 0)) return false;
+    if (!g || !g.history.length) return false;
     const top = g.history[g.history.length - 1];
     return !top.undoneDraw && !top.card;
   }
@@ -291,7 +291,8 @@ export function initWordMode(ctx) {
       if (w.game.perks === undefined) w.game.perks = null;
       if (w.game.perks && !w.game.state.perk) w.game.state.perk = emptyPerk();
       if (w.game.daily === undefined) w.game.daily = null;
-      if (w.game.undoFloor === undefined) w.game.undoFloor = 0;
+      if (w.game.undoFloor > 0 && w.game.history[w.game.undoFloor - 1] && !w.game.history[w.game.undoFloor - 1].card) w.game.history[w.game.undoFloor - 1].card = 'played'; // a save from the undo-floor days: the card played there is a tag now
+      delete w.game.undoFloor;
       if (practiceOption() && w.game.mode !== 'daily') w.game.practice = true; // once played in practice mode, the board stays practice
     } else {
       const daily = opts.mode === 'daily' ? dailySpec(isDailyKey(opts.day) ? opts.day : dailyKey()) : null; // a day's grid (today's unless told otherwise): the day decides its size, letters and draws
@@ -334,7 +335,6 @@ export function initWordMode(ctx) {
         replay: !!opts.replay,
         practice: !daily && practiceOption(), // practice mode: Undo offered (and the words, if switched on); nothing saved to stats or the leaderboard
         daily: daily ? daily.key : null, // the day a daily grid belongs to
-        undoFloor: 0, // the history length when a card was last played: Undo never goes back past it
         retry: null, // a single-round replay of the board that ended a run: its goal stays on show
       };
       if (opts.retry) {
@@ -357,7 +357,6 @@ export function initWordMode(ctx) {
     clearTransient();
     closeMenu();
     w.perk = null;
-    clearHint();
     clearLineFocus();
     closePreview();
     closeCardDialog();
@@ -467,6 +466,7 @@ export function initWordMode(ctx) {
     const inert = !canInteract();
     const valid = w.perk && !w.preview ? perkValidCells() : null;
     const pk = st.perk || null;
+    const hint = pv || w.perk ? null : hintWord(st); // Hint's word stays lit while nothing else is being chosen on the board
     removeGhosts(boardEl);
     for (let i = 0; i < st.board.length; i++) {
       const t = tileEl(i);
@@ -484,7 +484,7 @@ export function initWordMode(ctx) {
       setBadge(t, sq ? `×${sq}` : stick ? `+${stick}` : '', sq ? `sq${sq}` : 'sticker');
       t.classList.toggle('perk-ok', !!valid && valid.has(i));
       t.classList.toggle('perk-picked', !!w.perk && w.perk.picked.includes(i));
-      t.classList.toggle('hinted', !!w.hint && w.hint.cells.includes(i));
+      t.classList.toggle('hinted', !!hint && hint.cells.includes(i));
       t.classList.toggle('preview-on', !!pv && !!pv.cells && pv.cells.includes(i));
       const extra = sq ? `, letter ×${sq}` : stick ? `, +${stick} when locked` : '';
       t.setAttribute('aria-label', `Row ${rowOf(i) + 1} column ${colOf(i) + 1}: ${st.board[i] === WILD ? 'wild' : st.board[i]}${locked ? ', locked' : ''}${extra}`);
@@ -661,8 +661,9 @@ export function initWordMode(ctx) {
     }
     if (w.pending) return action(`Lock ${w.pending.word} for ${w.pending.score}?`, { label: 'Lock', fn: () => commitLock(w.pending) }, { label: 'Cancel', fn: () => setPending(null) });
     if (w.first !== null) return message('Now tap the last letter of the word');
-    if (w.hint) return message(`Hint: ${w.hint.word} for ${w.hint.score}`, 'good');
     if (w.transient) return message(w.transient.text, w.transient.cls);
+    const hint = hintWord(w.game && w.game.state);
+    if (hint) return message(`Hint: ${hint.word} for ${hint.score}`, 'good');
     show(legend);
   }
 
@@ -815,6 +816,40 @@ export function initWordMode(ctx) {
     return idx(r, c);
   }
 
+  /** The cell dr rows and dc columns from cell, or null off the board. */
+  function neighbourAt(cell, dr, dc) {
+    const { rowOf, colOf, idx, inRange } = grid();
+    const r = rowOf(cell) + dr;
+    const c = colOf(cell) + dc;
+    if (!inRange(r) || !inRange(c)) return null;
+    return idx(r, c);
+  }
+
+  const diagonalSwaps = () => !!(w.game && w.game.state.perk && w.game.state.perk.diagonalSwap); // the Diagonal Swap card is in play
+
+  /**
+   * The neighbour a drag would drop the tile onto, as { cell, dr, dc } (its offset from the dragged cell), or null.
+   * Along the dominant axis the drag must have travelled SWAP_TRAVEL without too much wobble. With Diagonal Swap in
+   * play, a drag that goes nearly as far across as along (DIAG_RATIO), at least DIAG_TRAVEL each way, takes the
+   * corner instead; from an edge where that corner is off the board, the side neighbour as usual.
+   */
+  function dropTarget(g, geo) {
+    const { dx, dy, axis, dir, travel, cross } = geo;
+    if (diagonalSwaps()) {
+      const ux = Math.abs(dx) / g.step;
+      const uy = Math.abs(dy) / g.step;
+      if (Math.min(ux, uy) >= DIAG_TRAVEL && Math.min(ux, uy) >= DIAG_RATIO * Math.max(ux, uy)) {
+        const dr = Math.sign(dy);
+        const dc = Math.sign(dx);
+        const cell = neighbourAt(g.cell, dr, dc);
+        if (cell !== null) return { cell, dr, dc };
+      }
+    }
+    if (travel < SWAP_TRAVEL || cross >= SWAP_CROSS) return null;
+    const cell = neighbourIn(g.cell, axis, dir);
+    return cell === null ? null : { cell, dr: axis === 'col' ? dir : 0, dc: axis === 'row' ? dir : 0 };
+  }
+
   function swapLegal(a, b) {
     const st = w.game.state;
     return !st.locked.includes(a) && !st.locked.includes(b);
@@ -906,7 +941,8 @@ export function initWordMode(ctx) {
       cancelGesture(); // the board changed under the finger (goal reached, board scored)
       return;
     }
-    const { dx, dy, axis, dir, travel, cross } = geometry(g);
+    const geo = geometry(g);
+    const { dx, dy, travel } = geo;
     if (g.mode === 'press') {
       if (Math.hypot(dx, dy) < TAP_SLOP) return;
       clearTimeout(g.timer);
@@ -928,13 +964,15 @@ export function initWordMode(ctx) {
     // Pausing over the neighbour lowers the average, so a hover confirms too. Coming back near the start
     // reopens the decision.
     tileEl(g.cell).style.transform = `translate(${dx}px, ${dy}px) scale(1.08)`;
-    if (travel < SWAP_TRAVEL) g.intent = null;
-    else if (cross < SWAP_CROSS && tilesPerSecond(g, travel) < FLICK_MIN_SPEED) g.intent = 'drag';
-    const target = g.intent === 'drag' && cross < SWAP_CROSS ? neighbourIn(g.cell, axis, dir) : null;
-    setDropTarget(g, target, axis, dir);
+    const drop = dropTarget(g, geo);
+    if (!drop && travel < SWAP_TRAVEL) g.intent = null;
+    else if (drop && tilesPerSecond(g, travel) < FLICK_MIN_SPEED) g.intent = 'drag';
+    setDropTarget(g, g.intent === 'drag' ? drop : null);
   }
 
-  function setDropTarget(g, cell, axis, dir) {
+  /** Light the neighbour a drag sits over (drop: { cell, dr, dc } from dropTarget, or null) and slide it towards the dragged tile's place. */
+  function setDropTarget(g, drop) {
+    const cell = drop ? drop.cell : null;
     if (g.target === cell) return;
     if (g.target !== null) {
       const old = tileEl(g.target);
@@ -947,7 +985,7 @@ export function initWordMode(ctx) {
     if (swapLegal(g.cell, cell)) {
       t.classList.add('drop-target');
       // the neighbour slips into the dragged tile's old place: a preview of the swap
-      t.style.transform = axis === 'row' ? `translate(${-dir * g.step}px, 0)` : `translate(0, ${-dir * g.step}px)`;
+      t.style.transform = `translate(${-drop.dc * g.step}px, ${-drop.dr * g.step}px)`;
     } else {
       t.classList.add('no-drop');
     }
@@ -1067,7 +1105,8 @@ export function initWordMode(ctx) {
     g.x = e.clientX;
     g.y = e.clientY;
     pushSample(g, e);
-    const { axis, dir, travel, cross, index } = geometry(g);
+    const geo = geometry(g);
+    const { axis, dir, travel, index } = geo;
     const t = tileEl(g.cell);
     if (g.intent !== 'drag' && isFlick(g, travel)) {
       if (canSlideLine(axis, index)) {
@@ -1083,7 +1122,8 @@ export function initWordMode(ctx) {
       }
       return;
     }
-    const target = travel >= SWAP_TRAVEL && cross < SWAP_CROSS ? neighbourIn(g.cell, axis, dir) : null;
+    const drop = dropTarget(g, geo);
+    const target = drop ? drop.cell : null;
     if (target !== null && !g.lockedTile && swapLegal(g.cell, target)) {
       const { rowOf, colOf } = grid();
       t.classList.remove('dragging');
@@ -1213,6 +1253,15 @@ export function initWordMode(ctx) {
     return JSON.parse(JSON.stringify(state));
   }
 
+  /**
+   * The snapshot a card's play leaves for Rewind: the state before it, tagged with the card (practice mode's Undo
+   * stops at it), what was paid (refunded if Rewind takes it back) and, for a card that changed only what is in
+   * play rather than the letters (record), that it does not count as a move for Fresh Deal.
+   */
+  function cardSnapshot(state, id, paid, record = false) {
+    return Object.assign(snapshotForUndo(state), { card: id, bought: id, paid }, record ? { record: true } : {});
+  }
+
   async function doAction(action) {
     if (!canInteract()) {
       renderBoard(); // drop any drag or preview visuals
@@ -1227,7 +1276,6 @@ export function initWordMode(ctx) {
       say(e.message, 'bad');
       return;
     }
-    clearHint();
     // A draw is random, so Undo cannot go back past one; a perk run keeps the snapshot for Rewind, which
     // rerolls the next draw when it takes one back.
     if (action.type !== 'draw') w.game.history.push(snapshotForUndo(before));
@@ -1265,7 +1313,6 @@ export function initWordMode(ctx) {
       say(e.message, 'bad');
       return;
     }
-    clearHint();
     w.game.history.push(snapshotForUndo(w.game.state));
     w.game.state = next;
     w.pending = null;
@@ -1318,7 +1365,6 @@ export function initWordMode(ctx) {
     const g = w.game;
     if (!g || w.over || w.animating || w.perk || goalReached() || !practiceLive() || !undoable()) return;
     cancelGesture();
-    clearHint();
     g.state = g.history.pop();
     persist();
     play('undo');
@@ -1353,7 +1399,7 @@ export function initWordMode(ctx) {
     if (goalReached()) return 'The goal is reached';
     if (w.animating) return 'Wait a moment';
     if (g.state.turns >= turnLimit(g.state)) return 'The turns are spent';
-    return playBlock(id, g.state, { historyLength: g.history.length });
+    return playBlock(id, g.state, { historyLength: g.history.length, moves: g.history.filter((h) => !h.record).length });
   }
 
   const costOf = (c) => cardCost(c, w.game ? w.game.size : 5);
@@ -1373,7 +1419,6 @@ export function initWordMode(ctx) {
     const paid = opts.paid || 0;
     cancelGesture();
     closeMenu();
-    clearHint();
     w.first = null;
     w.pending = null;
     const g = w.game;
@@ -1411,8 +1456,11 @@ export function initWordMode(ctx) {
       case 'rewind':
         return perkRewind(paid);
       case 'hint':
-        return showHint(paid);
+        return flag('hint', true, 'Hint: the best word you could lock is lit up for the rest of the level');
+      case 'diagonal-swap':
+        return flag('diagonalSwap', true, 'Diagonal Swap: drag a tile corner to corner to swap with a diagonal neighbour');
       case 'gold-rush':
+        g.history.push(cardSnapshot(st, id, paid, true)); // so Rewind can take the card back
         g.perks.goldRush = true;
         spendCard(id);
         return say('Gold Rush: this level’s spare turns pay double gold', 'good', 3000);
@@ -1436,8 +1484,8 @@ export function initWordMode(ctx) {
       refund(paid, id);
       return say(e.message, 'bad');
     }
+    g.history.push(cardSnapshot(g.state, id, paid, true)); // Rewind can take the card back; practice mode's Undo stops here
     g.state = next;
-    g.undoFloor = g.history.length; // practice mode's Undo stops here: a card played stays played
     spendCard(id);
     renderAll();
     if (action.type === 'squares') for (const { cell } of action.cells) tileEl(cell).classList.add('lock-pop');
@@ -1459,8 +1507,10 @@ export function initWordMode(ctx) {
     }
     // a redraw is random: Rewind may take it back, and then rerolls the bag's next letter
     const random = action.type === 'draw3' || action.type === 'exchange' || action.type === 'freshline';
-    // (the card tag keeps practice mode's Undo from taking the card's move back: the card would stay spent)
-    g.history.push(Object.assign(snapshotForUndo(before), random ? { undoneDraw: true } : {}, id ? { card: id } : {}));
+    // (the card tag keeps practice mode's Undo from taking the card's move back; Rewind takes the move and the
+    // purchase back together when the card was just bought for it)
+    const record = next.turns === before.turns; // a no-turn card (a square, a sticker, a lock) changed only what is in play, no move for Fresh Deal
+    g.history.push(Object.assign(w.perk ? cardSnapshot(before, id, w.perk.paid, record) : snapshotForUndo(before), random ? { undoneDraw: true } : {}, id ? { card: id } : {}));
     g.state = next;
     w.perk = null;
     if (id && !opts.keepCard) spendCard(id);
@@ -1552,6 +1602,7 @@ export function initWordMode(ctx) {
         return;
       }
       case 'unlock':
+      case 'locktile':
       case 'squares':
       case 'sticker': {
         const cells = action.type === 'squares' ? action.cells.map((x) => x.cell) : [action.cell];
@@ -1596,6 +1647,7 @@ export function initWordMode(ctx) {
         add(all.filter((i) => st.board[i] !== WILD));
         break;
       case 'pick-letter':
+      case 'lock-tile':
         add(all.filter(free));
         break;
       case 'sticker':
@@ -1630,6 +1682,7 @@ export function initWordMode(ctx) {
       unlock: 'Unlock: tap a locked tile',
       'big-nudge': 'Big Nudge: tap a tile',
       'pick-letter': 'Pick a Letter: tap an unlocked tile',
+      'lock-tile': 'Lock: tap the tile to lock in place',
       'triple-up': 'Triple Up: tap an unlocked tile',
       sticker: 'Gold Sticker: tap an unlocked tile',
       'wild-card': 'Wild Card: tap any tile',
@@ -1670,8 +1723,8 @@ export function initWordMode(ctx) {
   /** A shop purchase that came to nothing: the gold comes back and the card returns to the deck. */
   function refund(amount, id) {
     const run = perks();
-    if (!run || !amount) return;
-    run.gold += amount;
+    if (!run || (!amount && !id)) return;
+    run.gold += amount || 0;
     if (id && !run.deck.includes(id)) run.deck.push(id);
     if (id && run.played) run.played = run.played.filter((x) => x !== id);
     persist();
@@ -1768,7 +1821,7 @@ export function initWordMode(ctx) {
   }
 
   /** Cards whose timing rule is plain enough that the shop only dims them, with no note. */
-  const QUIET_REASONS = new Set(['fresh-deal', 'unlock']);
+  const QUIET_REASONS = new Set(['fresh-deal', 'unlock', 'rewind']);
 
   /** Whether a shop card is used, blocked by the board (why, or '' when the card is only dimmed) or short of gold; blocked covers all three. */
   function shopState(c) {
@@ -1905,6 +1958,9 @@ export function initWordMode(ctx) {
       }
       case 'unlock':
         doPerkAction({ type: 'unlock', cell }, { note: 'Unlocked: the tile can move again' });
+        return;
+      case 'lock-tile':
+        doPerkAction({ type: 'locktile', cell }, { note: 'Locked: the tile stays where it is' });
         return;
       case 'triple-up':
         doPerkAction({ type: 'squares', cells: [{ cell, mult: 3 }], card: 'triple-up' }, { note: 'Triple Letter: pays when a word locks that cell' });
@@ -2190,7 +2246,6 @@ export function initWordMode(ctx) {
     g.state = createWordState(board, bag, g.drawSeed);
     g.state.perk = { ...(prevPerk || emptyPerk()), log: [] }; // cards played before the first move (extra turns, squares, flags) carry over to the new board
     g.history = [];
-    g.undoFloor = 0;
     Object.assign(g, { botScore: prep.botScore, botFinal: prep.botFinal, botWords: prep.botWords });
     g.goalCelebrated = false;
     w.wordCount = 0;
@@ -2213,16 +2268,14 @@ export function initWordMode(ctx) {
     say('Fresh Deal: a new board for the same goal', 'good', 3000);
   }
 
-  /** Rewind, bought as a card: the player picks how many moves to take back, up to the start of the level. */
+  /** Rewind, bought as a card: the player steps back through the level's turns, cards played included, and locks in. */
   function perkRewind(paid = 0) {
     const g = w.game;
     const n = g.history.length;
-    if (!n) {
-      refund(paid, 'rewind');
-      return say('Nothing to take back', 'bad');
-    }
+    if (!n) return refund(paid, 'rewind'); // the shop dims the card when there is nothing to take back
     cancelGesture();
-    const at = (k) => (k ? g.history[g.history.length - k] : g.state); // the board k moves back
+    const at = (k) => (k ? g.history[g.history.length - k] : g.state); // the board k steps back
+    const cardsIn = (k) => g.history.slice(g.history.length - k).filter((h) => h.bought).length; // cards those steps would unplay
     openPreview({
       id: 'rewind',
       title: 'Rewind',
@@ -2231,12 +2284,13 @@ export function initWordMode(ctx) {
       max: n,
       index: 1,
       reverse: true, // ◀ goes further back, ▶ comes forward again
-      prevLabel: 'One move earlier',
-      nextLabel: 'One move later',
-      labels: Array.from({ length: n + 1 }, (_, k) => (k === 0 ? 'As it is now' : k === n ? 'Start of the level' : `${k} move${k === 1 ? '' : 's'} back`)),
+      prevLabel: 'One step earlier',
+      nextLabel: 'One step later',
+      labels: Array.from({ length: n + 1 }, (_, k) => (k === 0 ? 'As it is now' : k === n ? 'Start of the level' : `${k} step${k === 1 ? '' : 's'} back`)),
       note: (k) => {
         const s = at(k);
-        return `Turn ${Math.min(s.turns + 1, turnLimit(s))} of ${turnLimit(s)} · ${s.score} points`;
+        const cards = cardsIn(k);
+        return `Turn ${Math.min(s.turns + 1, turnLimit(s))} of ${turnLimit(s)} · ${s.score} points${cards ? ` · ${cards} card${cards === 1 ? '' : 's'} back in the shop` : ''}`;
       },
       preview: (k) => ({ state: at(k) }),
       extra: { label: 'Start over', fn: () => setPreviewIndex(n), disabled: (k) => k === n },
@@ -2246,57 +2300,44 @@ export function initWordMode(ctx) {
     });
   }
 
-  /** Take back that many moves: the snapshots come off the history, newest first; a draw among them rerolls the bag's next letter. */
+  /**
+   * Take back that many steps: the snapshots come off the history, newest first; a draw among them rerolls the
+   * bag's next letter, and a card bought in them is unplayed (its gold comes back and it returns to the shop).
+   */
   function rewindSteps(steps) {
     const g = w.game;
     let prev = null;
     let rerolled = false;
+    const unplayed = [];
     for (let i = 0; i < steps && g.history.length; i++) {
       prev = g.history.pop();
       if (prev.undoneDraw) rerolled = true;
+      if (prev.bought) unplayed.push({ id: prev.bought, paid: prev.paid });
     }
     if (!prev) return;
-    g.undoFloor = Math.min(g.undoFloor || 0, g.history.length); // the floor never sits above a shrunken history
-    delete prev.undoneDraw;
-    delete prev.card;
+    for (const tag of ['undoneDraw', 'card', 'bought', 'paid', 'record']) delete prev[tag]; // the snapshot becomes the state again
     if (rerolled) prev.rngState = randomSeed(); // a draw was taken back: the next letter is rolled afresh, not simply dealt again
     g.state = prev;
     spendCard('rewind');
+    for (const h of unplayed) {
+      if (h.id === 'gold-rush') g.perks.goldRush = false; // the one card whose effect lives outside the board state
+      refund(h.paid !== undefined ? h.paid : costOf(CARD_BY_ID[h.id]), h.id);
+    }
     w.first = null;
     w.pending = null;
     closeMenu();
-    clearHint();
     renderAll();
     play('undo');
-    say(steps === 1 ? 'Rewind: the last move is taken back' : `Rewind: ${steps} moves taken back`, 'good', 2500);
+    const n = unplayed.length;
+    say(`${steps === 1 ? 'Rewind: the last step is taken back' : `Rewind: ${steps} steps taken back`}${n ? `, ${n} card${n === 1 ? '' : 's'} back in the shop` : ''}`, 'good', 2500);
   }
 
-  /** Hint: light up the best word that can be locked right now, until the board changes. */
-  function showHint(paid = 0) {
-    const st = w.game.state;
-    const best = findWords(st, w.dict).find((c) => c.lockable);
-    if (!best) {
-      refund(paid, 'hint'); // nothing to light: the gold comes back and the card returns to the shop
-      return say('Hint: no word can be locked right now', '', 3000);
-    }
-    spendCard('hint');
-    w.hint = { cells: best.cells, word: best.word, score: best.score };
-    clearTimeout(w.hintTimer);
-    w.hintTimer = setTimeout(clearHint, 8000);
-    renderBoard();
-    renderStrip();
-    play('tap');
-  }
-
-  function clearHint() {
-    clearTimeout(w.hintTimer);
-    w.hintTimer = null;
-    if (!w.hint) return;
-    w.hint = null;
-    if (w.game) {
-      renderBoard();
-      renderStrip();
-    }
+  /** The word a Hint in play lights up: the highest-scoring word that could be locked on this board, or null (no Hint, or nothing to lock). */
+  let hintMemo = { st: null, best: null };
+  function hintWord(st) {
+    if (!st || !st.perk || !st.perk.hint || w.over || goalReached()) return null;
+    if (hintMemo.st !== st) hintMemo = { st, best: findWords(st, w.dict).find((c) => c.lockable) || null }; // one search per board state
+    return hintMemo.best;
   }
 
   // ---------------------------------------------------------------------------
