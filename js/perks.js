@@ -1,7 +1,7 @@
 // Perk cards (an experimental levels mode): the card catalogue, the shop that sells them for gold at any
 // time, and the one-use actions the cards play on a board. Pure functions over the word state and the
 // run's perk record; the UI chooses targets, shows the pickers and plays the few cards that act on the
-// game rather than the board (Fresh Deal, Rewind, Hint).
+// game rather than the board (Fresh Deal, Rewind, Gold Rush).
 //
 // Gold is the turns to spare when a level's goal is reached (Gold Rush doubles it). Each card can be
 // bought once per run and costs 3 to 12 gold (about 6 on average; a few cost less on 6x6, where the
@@ -29,6 +29,8 @@ export const CARDS = [
   { id: 'long-flick', name: 'Long Flick', cost: 5, family: 'board', target: 'flick', turn: 1, text: 'Flick a row or column and choose how far it slides, two steps or more. One turn.' },
   { id: 'letter-trade', name: 'Letter Trade', cost: 7, cost6: 6, family: 'board', target: 'pair', turn: 1, text: 'Swap the letters of any two tiles, locked or not. Locks stay where they are. One turn.' },
   { id: 'fresh-line', name: 'Fresh Line', cost: 4, family: 'board', target: 'line', turn: 1, text: 'Redraw every unlocked tile in one row or column from the bag. One turn.' },
+  { id: 'lock-tile', name: 'Lock', cost: 5, family: 'board', target: 'tile', turn: 0, text: 'Lock one tile where it stands. It counts for the tile bonus like any locked tile. No turn.' },
+  { id: 'diagonal-swap', name: 'Diagonal Swap', cost: 5, family: 'board', target: 'none', turn: 0, text: 'For the rest of this level, a tile can also swap with a diagonal neighbour: drag it corner to corner.' },
   // letters
   { id: 'big-nudge', name: 'Big Nudge', cost: 6, family: 'letters', target: 'tile', turn: 1, text: 'Nudge one tile up to three letters either way. One turn.' },
   { id: 'pick-letter', name: 'Pick a Letter', cost: 7, cost6: 5, family: 'letters', target: 'tile', turn: 1, text: 'Set an unlocked tile to any letter left in the bag. The old letter goes back. One turn.' },
@@ -51,12 +53,12 @@ export const CARDS = [
   // tempo
   { id: 'extra-turn', name: 'Extra Turn', cost: 8, family: 'tempo', target: 'none', turn: 0, text: 'One more turn this level. It counts for gold and the full-board bonus like any other.' },
   { id: 'borrowed-time', name: 'Borrowed Time', cost: 12, family: 'tempo', target: 'none', turn: 0, text: 'Two more turns this level. They count for gold and the full-board bonus like any other.' },
-  { id: 'rewind', name: 'Rewind', cost: 6, family: 'tempo', target: 'none', turn: 0, text: 'Take back as many moves or locks as you like, right back to the start of the level, even past a Draw (the next draw is then rerolled). Cards already played stay played.' },
+  { id: 'rewind', name: 'Rewind', cost: 6, family: 'tempo', target: 'none', turn: 0, text: 'Take back as many turns as you would like.' },
   // information
   { id: 'peek', name: 'Peek', cost: 3, family: 'info', target: 'none', turn: 0, text: 'For the rest of this level, see which letter the bag will give before you Draw.' },
-  { id: 'hint', name: 'Hint', cost: 4, family: 'info', target: 'none', turn: 0, text: 'Lights up the highest-scoring word you could lock right now, for a few seconds.' },
+  { id: 'hint', name: 'Hint', cost: 4, family: 'info', target: 'none', turn: 0, text: 'For the rest of this level, the highest-scoring word you could lock is lit up on the board.' },
   // economy
-  { id: 'gold-rush', name: 'Gold Rush', cost: 3, family: 'economy', target: 'none', turn: 0, text: 'This level’s spare turns pay double gold.' },
+  { id: 'gold-rush', name: 'Gold Rush', cost: 5, family: 'economy', target: 'none', turn: 0, text: 'This level’s spare turns pay double gold.' },
 ];
 
 export const CARD_BY_ID = Object.fromEntries(CARDS.map((c) => [c.id, c]));
@@ -84,7 +86,7 @@ export function perkLabel(card) {
 
 /** The empty per-board perk record (state.perk). */
 export function emptyPerk() {
-  return { squares: {}, squareCard: {}, stickers: {}, double: false, stretch: false, crossroads: false, diagonal: false, openField: false, shortStack: false, longHaul: false, headStart: false, extraTurns: 0, choiceDraw: false, peek: false, log: [] };
+  return { squares: {}, squareCard: {}, stickers: {}, double: false, stretch: false, crossroads: false, diagonal: false, openField: false, shortStack: false, longHaul: false, headStart: false, extraTurns: 0, choiceDraw: false, peek: false, hint: false, diagonalSwap: false, log: [] };
 }
 
 /** A new run's perk record: no gold, every card still on sale (the deck is what has not been bought); prices follow the board size. */
@@ -140,7 +142,8 @@ export function shopTake(perks, id) {
 const PLUS = (n) => `${n} turn${n === 1 ? '' : 's'}`;
 
 /**
- * Why a card in hand cannot be played now, or '' when it can. ctx: { historyLength } for Rewind.
+ * Why a card cannot be played now, or '' when it can. ctx: { historyLength } for Fresh Deal and Rewind (whose
+ * reason the shop uses to dim the card, without a note).
  * "Play has stopped" is checked by the caller, which knows the game.
  */
 export function playBlock(id, state, ctx = {}) {
@@ -152,8 +155,11 @@ export function playBlock(id, state, ctx = {}) {
   const turnsLeft = turnLimit(state) - state.turns;
   if (c.turn > turnsLeft) return `Needs ${PLUS(c.turn)} left`;
   switch (id) {
-    case 'fresh-deal':
-      return state.turns === 0 && state.words.length === 0 && !(ctx.historyLength > 0) ? '' : 'Only before the first move';
+    case 'fresh-deal': {
+      // a card that only changed what is in play (a flag, squares, turns) is no move: it carries over to the new board
+      const moves = ctx.moves !== undefined ? ctx.moves : ctx.historyLength;
+      return state.turns === 0 && state.words.length === 0 && !state.locked.length && !(moves > 0) ? '' : 'Only before the first move';
+    }
     case 'long-swap': {
       const ok = free.some((a) => free.some((b) => b !== a && (g.rowOf(a) === g.rowOf(b) || g.colOf(a) === g.colOf(b))));
       return ok ? '' : 'Needs two unlocked tiles in a line';
@@ -168,6 +174,10 @@ export function playBlock(id, state, ctx = {}) {
       return state.board.length >= 2 ? '' : 'Needs two tiles';
     case 'fresh-line':
       return bagTotal(state.bag) > 0 && free.length ? '' : 'The bag is empty';
+    case 'lock-tile':
+      return free.length ? '' : 'No unlocked tile';
+    case 'diagonal-swap':
+      return p.diagonalSwap ? 'Already in play' : '';
     case 'big-nudge':
       return state.board.some((ch) => ch !== WILD) ? '' : 'Every tile is wild';
     case 'pick-letter':
@@ -208,6 +218,7 @@ export function playBlock(id, state, ctx = {}) {
     case 'peek':
       return p.peek ? 'Already in play' : bagTotal(state.bag) > 0 ? '' : 'The bag is empty';
     case 'hint':
+      return p.hint ? 'Already in play' : '';
     case 'gold-rush':
       return '';
     default:
@@ -277,7 +288,7 @@ export function peekDraws(state, n = 1) {
 // ---------------------------------------------------------------------------
 // Board actions
 
-const ACTION_COST = { pswap: 1, rotate: 1, setletter: 1, draw3: 1, unlock: 0, exchange: 1, freshline: 1, slideN: 1, trade: 1, wildcard: 1, squares: 0, sticker: 0, flag: 0, turns: 0 };
+const ACTION_COST = { pswap: 1, rotate: 1, setletter: 1, draw3: 1, unlock: 0, locktile: 0, exchange: 1, freshline: 1, slideN: 1, trade: 1, wildcard: 1, squares: 0, sticker: 0, flag: 0, turns: 0 };
 
 /**
  * Apply a perk action; returns the new state (input untouched). Throws on an illegal target.
@@ -286,6 +297,7 @@ const ACTION_COST = { pswap: 1, rotate: 1, setletter: 1, draw3: 1, unlock: 0, ex
  *   { type: 'setletter', cell, letter, fromBag }   Big Nudge (fromBag false) or Pick a Letter (fromBag true), one turn
  *   { type: 'draw3', cell, pick }        Choice Draw: the next three letters are drawn, pick (0..2) stays, one turn
  *   { type: 'unlock', cell }             no turn
+ *   { type: 'locktile', cell }           an unlocked tile is locked where it stands, no turn
  *   { type: 'exchange', cells }          up to three unlocked tiles redrawn, one turn
  *   { type: 'freshline', axis, index }   every unlocked tile in the line redrawn, one turn
  *   { type: 'slideN', axis, index, dir, steps }   the line slides steps (2 or more) steps, one turn
@@ -293,7 +305,7 @@ const ACTION_COST = { pswap: 1, rotate: 1, setletter: 1, draw3: 1, unlock: 0, ex
  *   { type: 'wildcard', cell }           one turn
  *   { type: 'squares', cells: [{ cell, mult }], card }   card: the card laying them, credited when they pay
  *   { type: 'sticker', cell }            +5 for every word through the cell
- *   { type: 'flag', key, value }         double | stretch | crossroads | diagonal | openField | shortStack | longHaul | headStart | choiceDraw | peek
+ *   { type: 'flag', key, value }         double | stretch | crossroads | diagonal | openField | shortStack | longHaul | headStart | choiceDraw | peek | hint | diagonalSwap
  *   { type: 'turns', n }                 extra turns
  */
 export function applyPerkAction(state, action) {
@@ -398,6 +410,11 @@ export function applyPerkAction(state, action) {
       next.locked = next.locked.filter((c) => c !== action.cell);
       break;
     }
+    case 'locktile': {
+      needFree(action.cell);
+      next.locked.push(action.cell);
+      break;
+    }
     case 'exchange': {
       const cells = Array.from(new Set(action.cells || []));
       if (!cells.length || cells.length > 3) throw new Error('Pick one to three tiles');
@@ -458,7 +475,7 @@ export function applyPerkAction(state, action) {
       break;
     }
     case 'flag': {
-      if (!['double', 'stretch', 'crossroads', 'diagonal', 'openField', 'shortStack', 'longHaul', 'headStart', 'choiceDraw', 'peek'].includes(action.key)) throw new Error('Unknown perk flag');
+      if (!['double', 'stretch', 'crossroads', 'diagonal', 'openField', 'shortStack', 'longHaul', 'headStart', 'choiceDraw', 'peek', 'hint', 'diagonalSwap'].includes(action.key)) throw new Error('Unknown perk flag');
       next.perk[action.key] = action.value;
       break;
     }

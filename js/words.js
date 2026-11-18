@@ -160,7 +160,10 @@ export function validateWordAction(state, action) {
     }
     case 'swap': {
       if (![action.r, action.c, action.r2, action.c2].every(inRange)) throw new Error('Swap cell out of range');
-      if (Math.abs(action.r - action.r2) + Math.abs(action.c - action.c2) !== 1) throw new Error('Swap cells must be orthogonal neighbours');
+      const dr = Math.abs(action.r - action.r2);
+      const dc = Math.abs(action.c - action.c2);
+      const diagonals = !!(state.perk && state.perk.diagonalSwap); // the Diagonal Swap card: corner-to-corner swaps too
+      if (!(dr + dc === 1 || (diagonals && dr === 1 && dc === 1))) throw new Error(diagonals ? 'Swap cells must be neighbours' : 'Swap cells must be orthogonal neighbours');
       if (isLocked(state, idx(action.r, action.c)) || isLocked(state, idx(action.r2, action.c2))) throw new Error('Locked tiles cannot move');
       return true;
     }
