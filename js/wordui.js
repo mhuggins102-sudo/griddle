@@ -1509,7 +1509,8 @@ export function initWordMode(ctx) {
     const random = action.type === 'draw3' || action.type === 'exchange' || action.type === 'freshline';
     // (the card tag keeps practice mode's Undo from taking the card's move back; Rewind takes the move and the
     // purchase back together when the card was just bought for it)
-    g.history.push(Object.assign(w.perk ? cardSnapshot(before, id, w.perk.paid) : snapshotForUndo(before), random ? { undoneDraw: true } : {}, id ? { card: id } : {}));
+    const record = next.turns === before.turns; // a no-turn card (a square, a sticker, a lock) changed only what is in play, no move for Fresh Deal
+    g.history.push(Object.assign(w.perk ? cardSnapshot(before, id, w.perk.paid, record) : snapshotForUndo(before), random ? { undoneDraw: true } : {}, id ? { card: id } : {}));
     g.state = next;
     w.perk = null;
     if (id && !opts.keepCard) spendCard(id);
