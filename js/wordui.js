@@ -291,6 +291,8 @@ export function initWordMode(ctx) {
       if (w.game.perks === undefined) w.game.perks = null;
       if (w.game.perks && !w.game.state.perk) w.game.state.perk = emptyPerk();
       if (w.game.daily === undefined) w.game.daily = null;
+      if (w.game.undoFloor > 0 && w.game.history[w.game.undoFloor - 1] && !w.game.history[w.game.undoFloor - 1].card) w.game.history[w.game.undoFloor - 1].card = 'played'; // a save from the undo-floor days: the card played there is a tag now
+      delete w.game.undoFloor;
       if (practiceOption() && w.game.mode !== 'daily') w.game.practice = true; // once played in practice mode, the board stays practice
     } else {
       const daily = opts.mode === 'daily' ? dailySpec(isDailyKey(opts.day) ? opts.day : dailyKey()) : null; // a day's grid (today's unless told otherwise): the day decides its size, letters and draws
