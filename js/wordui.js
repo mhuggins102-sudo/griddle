@@ -29,6 +29,7 @@ const $ = (sel) => document.querySelector(sel);
 
 /** Gesture tuning (CSS pixels, milliseconds, tile widths). */
 const LONG_PRESS_MS = 420; // hold this long without moving to open the tile menu
+const LINE_FOCUS_LINGER_MS = 1500; // a line held with two fingers stays lit this long after they lift
 const TAP_SLOP = 8; // movement below this is a tap
 const SWAP_TRAVEL = 0.4; // tiles: minimum travel towards a neighbour to drop onto it
 const SWAP_CROSS = 0.7; // tiles: maximum sideways wobble for a drop
@@ -73,6 +74,7 @@ export function initWordMode(ctx) {
     perk: null, // a card being targeted on the board: { id, picked: [cells] }
     hint: null, // the word lit up by a Hint card: { cells, word, score }
     hintTimer: null,
+    lineFocus: null, // { cells, pointers: Set, timer }: two fingers on the ends of a line, the rest of the board dimmed
   };
   const boardEl = $('#wboard');
   const wrapEl = boardEl.parentElement;
@@ -355,6 +357,7 @@ export function initWordMode(ctx) {
     closeMenu();
     w.perk = null;
     clearHint();
+    clearLineFocus();
     closePerkPick();
     closeCardDialog();
     closeSheet($('#w-shop'));
@@ -483,6 +486,7 @@ export function initWordMode(ctx) {
     }
     boardEl.classList.toggle('frozen', goalReached() && !w.over);
     boardEl.classList.toggle('targeting', !!w.perk);
+    applyLineFocus();
   }
 
   function renderBag() {
@@ -810,6 +814,25 @@ export function initWordMode(ctx) {
 
   function onPointerDown(e) {
     if (w.gesture && performance.now() - w.gesture.t0 > 4000) cancelGesture(); // a release the board never heard
+    if (w.lineFocus && w.lineFocus.pointers.size) return; // two fingers hold a line: nothing else starts meanwhile
+    if (w.lineFocus) clearLineFocus(); // a lingering line gives way to the next gesture
+    if (!e.isPrimary && e.button === 0 && w.gesture && w.gesture.mode !== 'perk' && w.gesture.mode !== 'menu') {
+      // a second finger on a tile in line with the first finger's tile: the two hold that line in focus
+      const tile = e.target.closest('.tile');
+      const cells = tile ? spanBetween(w.gesture.cell, Number(tile.dataset.cell)) : null;
+      const firstId = w.gesture.id;
+      cancelGesture(); // a second finger is never a tap, a drag or a long press
+      if (cells) {
+        startLineFocus(cells, [firstId, e.pointerId]);
+        try {
+          boardEl.setPointerCapture(e.pointerId);
+        } catch {
+          // capture is best-effort
+        }
+        e.preventDefault();
+      }
+      return;
+    }
     if (!e.isPrimary || e.button !== 0 || w.gesture) return;
     const tile = e.target.closest('.tile');
     if (tile && w.perk) return perkPointerDown(e, tile);
@@ -930,6 +953,57 @@ export function initWordMode(ctx) {
     return tilesPerSecond(g, travel) >= Math.max(FLICK_MIN_SPEED, FLICK_SPEED_AT_ZERO - FLICK_SPEED_PER_TILE * travel);
   }
 
+  /** The cells from a to b when they share a row, column or diagonal (at least two apart from nothing); otherwise null. */
+  function spanBetween(a, b) {
+    if (a === b) return null;
+    const { rowOf, colOf, idx } = grid();
+    const dr = rowOf(b) - rowOf(a);
+    const dc = colOf(b) - colOf(a);
+    if (!(dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc))) return null;
+    const len = Math.max(Math.abs(dr), Math.abs(dc)) + 1;
+    const sr = Math.sign(dr);
+    const sc = Math.sign(dc);
+    const cells = [];
+    for (let k = 0; k < len; k++) cells.push(idx(rowOf(a) + sr * k, colOf(a) + sc * k));
+    return cells;
+  }
+
+  /** Two fingers on the ends of a line: it lights up and the rest of the board dims until both lift, and a moment after. */
+  function startLineFocus(cells, pointerIds) {
+    if (w.lineFocus) clearTimeout(w.lineFocus.timer);
+    w.lineFocus = { cells, pointers: new Set(pointerIds), timer: null };
+    applyLineFocus();
+    play('tap');
+  }
+
+  function applyLineFocus() {
+    const f = w.lineFocus;
+    boardEl.classList.toggle('line-focus', !!f);
+    for (const t of boardEl.querySelectorAll('.tile[data-cell]')) t.classList.toggle('line-on', !!f && f.cells.includes(Number(t.dataset.cell)));
+  }
+
+  function lineFocusRelease(pointerId) {
+    const f = w.lineFocus;
+    if (!f) return;
+    f.pointers.delete(pointerId);
+    try {
+      boardEl.releasePointerCapture(pointerId);
+    } catch {
+      // nothing captured
+    }
+    if (f.pointers.size) return;
+    clearTimeout(f.timer);
+    f.timer = setTimeout(clearLineFocus, LINE_FOCUS_LINGER_MS);
+  }
+
+  function clearLineFocus() {
+    const f = w.lineFocus;
+    if (!f) return;
+    clearTimeout(f.timer);
+    w.lineFocus = null;
+    applyLineFocus();
+  }
+
   /** Abandon a gesture in flight (the board changed under it, or the screen is leaving). */
   function cancelGesture() {
     const g = w.gesture;
@@ -966,6 +1040,7 @@ export function initWordMode(ctx) {
   }
 
   function onPointerUp(e) {
+    if (w.lineFocus && w.lineFocus.pointers.has(e.pointerId)) return lineFocusRelease(e.pointerId);
     const g = endGesture(e);
     if (!g || g.mode === 'menu') return;
     if (g.mode === 'perk') return perkPointerUp(g, e);
@@ -1012,6 +1087,7 @@ export function initWordMode(ctx) {
   }
 
   function onPointerCancel(e) {
+    if (w.lineFocus && w.lineFocus.pointers.has(e.pointerId)) return lineFocusRelease(e.pointerId);
     const g = endGesture(e);
     if (!g || g.mode === 'menu' || g.mode === 'perk') return;
     snapBack(g);
@@ -1317,7 +1393,7 @@ export function initWordMode(ctx) {
       case 'peek':
         return flag('peek', true, `Peek: the next draw brings ${peekDraws(st, 1)[0] || '?'}`);
       case 'rewind':
-        return perkRewind();
+        return perkRewind(paid);
       case 'hint':
         return showHint(paid);
       case 'gold-rush':
@@ -1866,9 +1942,11 @@ export function initWordMode(ctx) {
 
   /** A small dialog of choices for the card in play: { title, sub, options: [{ label, small, disabled, wide }], onPick(index) }. */
   let perkPickReturn = null; // where focus goes back to when the picker closes
+  let perkPickCancel = null; // what a cancelled picker owes (a refund, for a card bought for it)
   function openPerkPick(spec) {
     const dlg = $('#w-perkpick');
     perkPickReturn = document.activeElement && document.activeElement !== document.body ? document.activeElement : $('#w-hand');
+    perkPickCancel = spec.onCancel || null;
     $('#w-perkpick-title').textContent = spec.title;
     const sub = $('#w-perkpick-sub');
     sub.textContent = spec.sub || '';
@@ -1882,6 +1960,7 @@ export function initWordMode(ctx) {
       b.innerHTML = o.small !== undefined ? `${o.label}<small>${o.small}</small>` : o.label;
       b.disabled = !!o.disabled;
       b.addEventListener('click', () => {
+        perkPickCancel = null;
         closePerkPick();
         spec.onPick(k);
       });
@@ -1962,27 +2041,48 @@ export function initWordMode(ctx) {
     say('Fresh Deal: a new board for the same goal', 'good', 3000);
   }
 
-  /** Rewind: the one take-back a level run allows, bought as a card. */
-  function perkRewind() {
+  /** Rewind, bought as a card: the player picks how many moves to take back, up to the start of the level. */
+  function perkRewind(paid = 0) {
     const g = w.game;
-    if (!g.history.length) return say('Nothing to take back', 'bad');
-    cancelGesture();
-    const prev = g.history.pop();
-    g.undoFloor = Math.min(g.undoFloor || 0, g.history.length); // the floor never sits above a shrunken history
-    if (prev.undoneDraw) {
-      // the draw is taken back and the bag's next letter is rolled afresh, so it is not simply dealt again
-      delete prev.undoneDraw;
-      prev.rngState = randomSeed();
+    const n = g.history.length;
+    if (!n) {
+      refund(paid, 'rewind');
+      return say('Nothing to take back', 'bad');
     }
+    cancelGesture();
+    const options = Array.from({ length: n }, (_, k) => ({ label: String(k + 1), small: k + 1 === n ? 'start' : k === 0 ? 'move' : 'moves' }));
+    openPerkPick({
+      title: 'Rewind',
+      sub: `How many moves back? ${n} is the start of the level`,
+      options,
+      onPick: (k) => rewindSteps(k + 1),
+      onCancel: () => refund(paid, 'rewind'),
+    });
+  }
+
+  /** Take back that many moves: the snapshots come off the history, newest first; a draw among them rerolls the bag's next letter. */
+  function rewindSteps(steps) {
+    const g = w.game;
+    let prev = null;
+    let rerolled = false;
+    for (let i = 0; i < steps && g.history.length; i++) {
+      prev = g.history.pop();
+      if (prev.undoneDraw) rerolled = true;
+    }
+    if (!prev) return;
+    g.undoFloor = Math.min(g.undoFloor || 0, g.history.length); // the floor never sits above a shrunken history
+    delete prev.undoneDraw;
     delete prev.card;
+    if (rerolled) prev.rngState = randomSeed(); // a draw was taken back: the next letter is rolled afresh, not simply dealt again
     g.state = prev;
     spendCard('rewind');
     w.first = null;
     w.pending = null;
     closeMenu();
+    clearHint();
     renderAll();
     play('undo');
-    say('Rewind: the last move is taken back', 'good', 2500);
+    say(steps === 1 ? 'Rewind: the last move is taken back' : `Rewind: ${steps} moves taken back`, 'good', 2500);
   }
 
   /** Hint: light up the best word that can be locked right now, until the board changes. */
@@ -2435,10 +2535,10 @@ export function initWordMode(ctx) {
   $('#screen-word').addEventListener('contextmenu', (e) => e.preventDefault());
   // a release that lands outside the board (the menu backdrop, the edge of the screen) still ends the gesture
   window.addEventListener('pointerup', (e) => {
-    if (w.gesture && e.pointerId === w.gesture.id) onPointerUp(e);
+    if ((w.gesture && e.pointerId === w.gesture.id) || (w.lineFocus && w.lineFocus.pointers.has(e.pointerId))) onPointerUp(e);
   });
   window.addEventListener('pointercancel', (e) => {
-    if (w.gesture && e.pointerId === w.gesture.id) onPointerCancel(e);
+    if ((w.gesture && e.pointerId === w.gesture.id) || (w.lineFocus && w.lineFocus.pointers.has(e.pointerId))) onPointerCancel(e);
   });
   boardEl.addEventListener('click', (e) => {
     // keyboard activation only: pointer taps are handled in pointerup
@@ -2518,14 +2618,17 @@ export function initWordMode(ctx) {
   $('#w-carddialog').addEventListener('click', (e) => {
     if (e.target === $('#w-carddialog')) closeCardDialog();
   });
-  $('#w-perkpick-cancel').addEventListener('click', () => {
+  function cancelPerkPick() {
+    const owed = perkPickCancel;
+    perkPickCancel = null;
     closePerkPick();
+    if (owed) owed();
     renderStrip();
-  });
+  }
+  $('#w-perkpick-cancel').addEventListener('click', cancelPerkPick);
   $('#w-perkpick').addEventListener('click', (e) => {
     if (e.target !== $('#w-perkpick')) return;
-    closePerkPick();
-    renderStrip();
+    cancelPerkPick();
   });
   /** The card's place depends on the layout settling: place it now, next frame, and once more a moment later. */
   function refit() {

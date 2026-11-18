@@ -51,7 +51,7 @@ export const CARDS = [
   // tempo
   { id: 'extra-turn', name: 'Extra Turn', cost: 8, family: 'tempo', target: 'none', turn: 0, text: 'One more turn this level. It counts for gold and the full-board bonus like any other.' },
   { id: 'borrowed-time', name: 'Borrowed Time', cost: 12, family: 'tempo', target: 'none', turn: 0, text: 'Two more turns this level. They count for gold and the full-board bonus like any other.' },
-  { id: 'rewind', name: 'Rewind', cost: 4, family: 'tempo', target: 'none', turn: 0, text: 'Take back your last move or lock, even a Draw. After a Draw is taken back, the next draw is rerolled.' },
+  { id: 'rewind', name: 'Rewind', cost: 6, family: 'tempo', target: 'none', turn: 0, text: 'Take back as many moves or locks as you like, right back to the start of the level, even past a Draw (the next draw is then rerolled). Cards already played stay played.' },
   // information
   { id: 'peek', name: 'Peek', cost: 3, family: 'info', target: 'none', turn: 0, text: 'For the rest of this level, see which letter the bag will give before you Draw.' },
   { id: 'hint', name: 'Hint', cost: 4, family: 'info', target: 'none', turn: 0, text: 'Lights up the highest-scoring word you could lock right now, for a few seconds.' },
