@@ -382,6 +382,8 @@ export function initWordMode(ctx) {
     else if (practiceLive()) say(`Practice board · Undo on${wordsOption() ? ' · words shown' : ''} · not counted in stats`, '', 3500);
     else if (w.game.practice && w.game.mode !== 'daily') say('Practice board · not counted in stats', '', 3500); // marked practice earlier, the setting since switched off
     ensureBotData(w.game);
+    const pk0 = w.game.state.perk;
+    if (pk0 && pk0.choiceDraw && pk0.choiceCell != null && canInteract()) openDraw3(pk0.choiceCell); // a Choice Draw left mid-choice: its three letters again, for the same tile
     if (isLevels() && !w.game.retry) prefetch(w.game.level + 1, w.game.size); // the next board is chosen while this one is played
     // a board saved in its last moment (full, or a level run out of turns) is scored straight away
     const st = w.game.state;
@@ -1194,7 +1196,11 @@ export function initWordMode(ctx) {
     if (act === 'nudge-down') doAction({ type: 'nudge', r, c, delta: -1 });
     else if (act === 'nudge-up') doAction({ type: 'nudge', r, c, delta: 1 });
     else if (act === 'draw') {
-      if (w.game.state.perk && w.game.state.perk.choiceDraw) openDraw3(cell); // Choice Draw is armed: three letters, keep one
+      const pk = w.game.state.perk;
+      if (pk && pk.choiceDraw && pk.choiceCell != null && pk.choiceCell !== cell) {
+        say('Choice Draw: pick one of the three letters for the tile you chose', 'bad', 2800); // the choice is committed to that tile
+        openDraw3(pk.choiceCell);
+      } else if (pk && pk.choiceDraw) openDraw3(cell); // Choice Draw is armed: three letters, keep one
       else doAction({ type: 'draw', r, c });
     }
     else if (act === 'wild') doAction({ type: 'wild', r, c });
@@ -1810,6 +1816,7 @@ export function initWordMode(ctx) {
     const run = perks();
     const c = CARD_BY_ID[id];
     if (!run || !c) return;
+    if (w.preview) return ctx.showToast('Lock in the choice on the board first');
     const block = shopBuyBlock(run, id) || cardBlock(id);
     if (block) return ctx.showToast(block);
     shopTake(run, id);
@@ -2088,7 +2095,7 @@ export function initWordMode(ctx) {
 
   function cancelPreview() {
     const p = w.preview;
-    if (!p) return;
+    if (!p || p.noCancel) return; // some choices must be made (Choice Draw's three letters)
     w.preview = null;
     renderBoard();
     renderStrip();
@@ -2140,14 +2147,20 @@ export function initWordMode(ctx) {
     const lock = $('#w-preview-lock');
     lock.textContent = p.lockLabel || 'Lock in';
     lock.disabled = !!(p.canLock && !p.canLock(k));
+    $('#w-preview-cancel').hidden = !!p.noCancel;
     panel.setAttribute('aria-label', `${p.title}: ${p.labels ? p.labels[k - p.min] : p.options[k].label}`);
   }
 
   /** Choice Draw is armed and Draw was chosen on a tile: the next three letters, keep one. */
+  /** Choice Draw's three letters for a tile. Once shown, one of them must be taken for that tile: no cancel, and the tile is remembered on the saved game. */
   function openDraw3(cell) {
     const st = w.game.state;
     const options = peekDraws(st, 3);
     if (!options.length) return say('The bag is empty', 'bad');
+    if (st.perk.choiceCell !== cell) {
+      st.perk.choiceCell = cell;
+      persist();
+    }
     const old = st.board[cell];
     openPreview({
       id: 'choice-draw',
@@ -2155,10 +2168,10 @@ export function initWordMode(ctx) {
       kind: 'chips',
       index: 0,
       options: options.map((l) => ({ label: l, small: String(letterValue(l)) })),
-      note: () => `Keep one; the ${old === WILD ? 'wild' : old} goes back into the bag`,
+      note: () => `Keep one for this tile; the ${old === WILD ? 'wild' : old} goes back into the bag`,
       preview: (k) => ({ state: applyPerkAction(w.game.state, { type: 'draw3', cell, pick: k }), cells: [cell] }),
       onLock: (k) => doPerkAction({ type: 'draw3', cell, pick: k }, { keepCard: true }),
-      onCancel: null, // the card is still in play: the hold menu offers the draw again
+      noCancel: true,
     });
   }
 
