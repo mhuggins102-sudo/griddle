@@ -74,6 +74,7 @@ export function initWordMode(ctx) {
     perk: null, // a card being targeted on the board: { id, picked: [cells] }
     hint: null, // the word lit up by a Hint card: { cells, word, score }
     hintTimer: null,
+    preview: null, // a card's choice being shown on the board before it is locked in (openPreview)
     lineFocus: null, // { cells, pointers: Set, timer }: two fingers on the ends of a line, the rest of the board dimmed
   };
   const boardEl = $('#wboard');
@@ -358,7 +359,7 @@ export function initWordMode(ctx) {
     w.perk = null;
     clearHint();
     clearLineFocus();
-    closePerkPick();
+    closePreview();
     closeCardDialog();
     closeSheet($('#w-shop'));
     ctx.showScreen('screen-word');
@@ -457,11 +458,12 @@ export function initWordMode(ctx) {
   }
 
   function renderBoard() {
-    const st = w.game.state;
+    const pv = previewView(); // a card's choice on show: the board draws that state, its cells ringed
+    const st = pv && pv.state ? pv.state : w.game.state;
     const { rowOf, colOf } = grid();
     const pendingCells = w.pending ? new Set(w.pending.cells) : null;
     const inert = !canInteract();
-    const valid = w.perk ? perkValidCells() : null;
+    const valid = w.perk && !w.preview ? perkValidCells() : null;
     const pk = st.perk || null;
     removeGhosts(boardEl);
     for (let i = 0; i < st.board.length; i++) {
@@ -481,11 +483,13 @@ export function initWordMode(ctx) {
       t.classList.toggle('perk-ok', !!valid && valid.has(i));
       t.classList.toggle('perk-picked', !!w.perk && w.perk.picked.includes(i));
       t.classList.toggle('hinted', !!w.hint && w.hint.cells.includes(i));
+      t.classList.toggle('preview-on', !!pv && !!pv.cells && pv.cells.includes(i));
       const extra = sq ? `, letter ×${sq}` : stick ? `, +${stick} when locked` : '';
       t.setAttribute('aria-label', `Row ${rowOf(i) + 1} column ${colOf(i) + 1}: ${st.board[i] === WILD ? 'wild' : st.board[i]}${locked ? ', locked' : ''}${extra}`);
     }
     boardEl.classList.toggle('frozen', goalReached() && !w.over);
-    boardEl.classList.toggle('targeting', !!w.perk);
+    boardEl.classList.toggle('targeting', !!w.perk && !w.preview);
+    boardEl.classList.toggle('previewing', !!w.preview);
     applyLineFocus();
   }
 
@@ -614,10 +618,12 @@ export function initWordMode(ctx) {
     const legend = $('#w-legend');
     const msg = $('#w-msg');
     const act = $('#w-strip-action');
+    const pv = $('#w-preview');
     const show = (el) => {
       legend.hidden = el !== legend;
       msg.hidden = el !== msg;
       act.hidden = el !== act;
+      pv.hidden = el !== pv;
     };
     const message = (text, cls = '') => {
       msg.textContent = text;
@@ -643,6 +649,10 @@ export function initWordMode(ctx) {
     const g = w.game;
     const st = g.state;
     if (goalReached()) return message(`Level ${g.level} passed! Press Next level to carry on.`, 'good');
+    if (w.preview) {
+      renderPreviewPanel(pv);
+      return show(pv);
+    }
     if (w.perk) {
       const t = perkPrompt();
       return action(t.text, t.primary, t.secondary);
@@ -687,7 +697,7 @@ export function initWordMode(ctx) {
   }
 
   function canInteract() {
-    return !!w.game && !w.over && !w.animating && !goalReached() && w.game.state.turns < turnLimit(w.game.state);
+    return !!w.game && !w.over && !w.animating && !w.preview && !goalReached() && w.game.state.turns < turnLimit(w.game.state);
   }
 
   // ---------------------------------------------------------------------------
@@ -1630,7 +1640,7 @@ export function initWordMode(ctx) {
     if (!w.perk) return;
     const { paid, id } = w.perk;
     w.perk = null;
-    closePerkPick();
+    w.preview = null;
     if (w.game) {
       renderBoard();
       renderStrip();
@@ -1646,7 +1656,7 @@ export function initWordMode(ctx) {
     if (!w.perk) return;
     const { paid, id } = w.perk;
     w.perk = null;
-    closePerkPick();
+    w.preview = null;
     clearTargeting();
     refund(paid, id);
   }
@@ -1868,8 +1878,22 @@ export function initWordMode(ctx) {
         return;
       }
       case 'rotate': {
-        const options = [{ label: '¼ turn', wide: true }, { label: '½ turn', wide: true }, { label: '¾ turn', wide: true }];
-        openPerkPick({ title: 'Rotate', sub: 'Clockwise, the whole block', options, onPick: (k) => doPerkAction({ type: 'rotate', cell, turns: k + 1 }) });
+        const n = grid().size;
+        const block = [cell, cell + 1, cell + n, cell + n + 1];
+        openPreview({
+          id: 'rotate',
+          title: 'Rotate',
+          kind: 'steps',
+          min: 1,
+          max: 3,
+          index: 1,
+          wrap: true,
+          labels: ['¼ turn', '½ turn', '¾ turn'],
+          note: () => 'Clockwise · step through, then lock in',
+          preview: (k) => ({ state: applyPerkAction(st, { type: 'rotate', cell, turns: k }), cells: block }),
+          onLock: (k) => doPerkAction({ type: 'rotate', cell, turns: k }),
+          onCancel: cancelPerk,
+        });
         return;
       }
       case 'unlock':
@@ -1887,12 +1911,33 @@ export function initWordMode(ctx) {
       case 'big-nudge': {
         const ch = st.board[cell];
         const options = bigNudgeOptions(ch);
-        openPerkPick({ title: `Big Nudge: ${ch} becomes…`, sub: 'Up to three letters either way', options: options.map((l) => ({ label: l, small: String(letterValue(l)) })), onPick: (k) => doPerkAction({ type: 'setletter', cell, letter: options[k] }) });
+        openPreview({
+          id: 'big-nudge',
+          title: `Big Nudge: ${ch} becomes…`,
+          kind: 'chips',
+          index: 0,
+          options: options.map((l) => ({ label: l, small: String(letterValue(l)) })),
+          note: () => 'Up to three letters either way',
+          preview: (k) => ({ state: applyPerkAction(st, { type: 'setletter', cell, letter: options[k] }), cells: [cell] }),
+          onLock: (k) => doPerkAction({ type: 'setletter', cell, letter: options[k] }),
+          onCancel: cancelPerk,
+        });
         return;
       }
       case 'pick-letter': {
         const old = st.board[cell];
-        openPerkPick({ title: 'Pick a Letter', sub: `From the bag; the ${old === WILD ? 'wild' : old} goes back in`, options: LETTERS.map((l) => ({ label: l, small: String(st.bag[l]), disabled: !(st.bag[l] > 0) })), onPick: (k) => doPerkAction({ type: 'setletter', cell, letter: LETTERS[k], fromBag: true }) });
+        const options = LETTERS.map((l) => ({ label: l, small: String(st.bag[l]), disabled: !(st.bag[l] > 0) }));
+        openPreview({
+          id: 'pick-letter',
+          title: 'Pick a Letter',
+          kind: 'chips',
+          index: Math.max(0, options.findIndex((o) => !o.disabled)),
+          options,
+          note: () => `From the bag; the ${old === WILD ? 'wild' : old} goes back in`,
+          preview: (k) => ({ state: applyPerkAction(st, { type: 'setletter', cell, letter: LETTERS[k], fromBag: true }), cells: [cell] }),
+          onLock: (k) => doPerkAction({ type: 'setletter', cell, letter: LETTERS[k], fromBag: true }),
+          onCancel: cancelPerk,
+        });
         return;
       }
       case 'exchange': {
@@ -1908,9 +1953,19 @@ export function initWordMode(ctx) {
         const r = rowOf(cell);
         const c = colOf(cell);
         const options = [];
-        if (lineCellsFree(st, 'row', r).length) options.push({ label: `Row ${r + 1}`, wide: true, axis: 'row', index: r });
-        if (lineCellsFree(st, 'col', c).length) options.push({ label: `Column ${c + 1}`, wide: true, axis: 'col', index: c });
-        openPerkPick({ title: 'Fresh Line', sub: 'Every unlocked tile in the line gets a new letter', options, onPick: (k) => doPerkAction({ type: 'freshline', axis: options[k].axis, index: options[k].index }) });
+        if (lineCellsFree(st, 'row', r).length) options.push({ label: `Row ${r + 1}`, axis: 'row', index: r });
+        if (lineCellsFree(st, 'col', c).length) options.push({ label: `Column ${c + 1}`, axis: 'col', index: c });
+        openPreview({
+          id: 'fresh-line',
+          title: 'Fresh Line',
+          kind: 'chips',
+          index: 0,
+          options,
+          note: () => 'Every unlocked tile in the line gets a new letter',
+          preview: (k) => ({ cells: lineCellsFree(st, options[k].axis, options[k].index) }),
+          onLock: (k) => doPerkAction({ type: 'freshline', axis: options[k].axis, index: options[k].index }),
+          onCancel: cancelPerk,
+        });
         return;
       }
       default:
@@ -1935,64 +1990,158 @@ export function initWordMode(ctx) {
     }
     const most = free - 1; // one more and the line is back where it started
     if (most === 2) return doPerkAction({ type: 'slideN', axis, index, dir, steps: 2 });
-    const options = [];
-    for (let n = 2; n <= most; n++) options.push({ label: `${n} steps`, wide: true });
-    openPerkPick({ title: 'Long Flick', sub: `How far does the ${axis === 'row' ? 'row' : 'column'} slide?`, options, onPick: (k) => doPerkAction({ type: 'slideN', axis, index, dir, steps: k + 2 }) });
-  }
-
-  /** A small dialog of choices for the card in play: { title, sub, options: [{ label, small, disabled, wide }], onPick(index) }. */
-  let perkPickReturn = null; // where focus goes back to when the picker closes
-  let perkPickCancel = null; // what a cancelled picker owes (a refund, for a card bought for it)
-  function openPerkPick(spec) {
-    const dlg = $('#w-perkpick');
-    perkPickReturn = document.activeElement && document.activeElement !== document.body ? document.activeElement : $('#w-hand');
-    perkPickCancel = spec.onCancel || null;
-    $('#w-perkpick-title').textContent = spec.title;
-    const sub = $('#w-perkpick-sub');
-    sub.textContent = spec.sub || '';
-    sub.hidden = !spec.sub;
-    const box = $('#w-perkpick-options');
-    box.innerHTML = '';
-    spec.options.forEach((o, k) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = `btn perkpick-opt${o.wide ? ' wide' : ''}`;
-      b.innerHTML = o.small !== undefined ? `${o.label}<small>${o.small}</small>` : o.label;
-      b.disabled = !!o.disabled;
-      b.addEventListener('click', () => {
-        perkPickCancel = null;
-        closePerkPick();
-        spec.onPick(k);
-      });
-      box.appendChild(b);
+    const st = w.game.state;
+    const labels = [];
+    for (let n = 2; n <= most; n++) labels.push(`${n} steps`);
+    openPreview({
+      id: 'long-flick',
+      title: 'Long Flick',
+      kind: 'steps',
+      min: 2,
+      max: most,
+      index: 2,
+      labels,
+      note: () => `How far the ${axis === 'row' ? 'row' : 'column'} slides · step through, then lock in`,
+      preview: (k) => ({ state: applyPerkAction(st, { type: 'slideN', axis, index, dir, steps: k }), cells: grid().lineCells(axis, index) }),
+      onLock: (k) => doPerkAction({ type: 'slideN', axis, index, dir, steps: k }),
+      onCancel: cancelPerk,
     });
-    dlg.hidden = false;
-    const first = box.querySelector('button:not(:disabled)') || $('#w-perkpick-cancel');
-    first.focus();
   }
 
-  function closePerkPick() {
-    const dlg = $('#w-perkpick');
-    if (dlg.hidden) return;
-    dlg.hidden = true;
-    if (perkPickReturn && perkPickReturn.isConnected && !perkPickReturn.hidden) perkPickReturn.focus();
-    perkPickReturn = null;
+  // ---- a card's choice, made on the board: the strip shows the option, the board previews it, Lock in commits ----
+
+  /**
+   * spec: { id, title, kind: 'steps' | 'chips', min, max, labels (steps), options [{ label, small, disabled }] (chips),
+   * index, wrap, reverse (◀ goes up), prevLabel, nextLabel, note(k), preview(k) -> { state, cells } | null,
+   * extra { label, fn, disabled(k) }, canLock(k), lockLabel, onLock(k), onCancel() }.
+   */
+  function openPreview(spec) {
+    w.preview = { ...spec, k: spec.index };
+    renderBoard();
+    renderStrip();
   }
 
-  // the picker is modal: Tab cycles inside it
-  $('#w-perkpick').addEventListener('keydown', (e) => {
-    if (e.key !== 'Tab') return;
-    const items = Array.from($('#w-perkpick').querySelectorAll('button:not(:disabled)'));
-    if (!items.length) return;
-    const i = items.indexOf(document.activeElement);
-    if (e.shiftKey && (i <= 0)) {
-      e.preventDefault();
-      items[items.length - 1].focus();
-    } else if (!e.shiftKey && (i === -1 || i === items.length - 1)) {
-      e.preventDefault();
-      items[0].focus();
+  function closePreview() {
+    if (!w.preview) return;
+    w.preview = null;
+    if (w.game) {
+      renderBoard();
+      renderStrip();
     }
-  });
+  }
+
+  /** What the board shows for the current choice, or null when the choice cannot be shown. */
+  function previewView() {
+    const p = w.preview;
+    if (!p) return null;
+    try {
+      return p.preview(p.k) || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function previewBounds(p) {
+    return p.kind === 'chips' ? [0, p.options.length - 1] : [p.min, p.max];
+  }
+
+  function setPreviewIndex(k) {
+    const p = w.preview;
+    if (!p) return;
+    const [lo, hi] = previewBounds(p);
+    if (k < lo || k > hi || (p.kind === 'chips' && p.options[k].disabled)) return;
+    if (k !== p.k) play('tap');
+    p.k = k;
+    renderBoard();
+    renderStrip();
+  }
+
+  /** ◀ / ▶: the neighbouring choice (disabled chips skipped), wrapping round when the card says so. */
+  function previewStep(dir) {
+    const p = w.preview;
+    if (!p) return;
+    const [lo, hi] = previewBounds(p);
+    const d = p.reverse ? -dir : dir;
+    let k = p.k;
+    for (let i = 0; i <= hi - lo; i++) {
+      k += d;
+      if (k > hi) {
+        if (!p.wrap) return;
+        k = lo;
+      } else if (k < lo) {
+        if (!p.wrap) return;
+        k = hi;
+      }
+      if (p.kind !== 'chips' || !p.options[k].disabled) return setPreviewIndex(k);
+    }
+  }
+
+  function lockPreview() {
+    const p = w.preview;
+    if (!p || (p.canLock && !p.canLock(p.k))) return;
+    const k = p.k;
+    w.preview = null;
+    renderBoard(); // the real board again, so the card's own animation starts from it
+    renderStrip();
+    p.onLock(k);
+  }
+
+  function cancelPreview() {
+    const p = w.preview;
+    if (!p) return;
+    w.preview = null;
+    renderBoard();
+    renderStrip();
+    if (p.onCancel) p.onCancel();
+  }
+
+  /** The strip's choice panel for the preview in progress. */
+  function renderPreviewPanel(panel) {
+    const p = w.preview;
+    const k = p.k;
+    const [lo, hi] = previewBounds(p);
+    $('#w-preview-title').textContent = p.title;
+    $('#w-preview-note').textContent = p.note ? p.note(k) : '';
+    const mid = $('#w-preview-chips');
+    mid.innerHTML = '';
+    if (p.kind === 'chips') {
+      p.options.forEach((o, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = `pv-chip${i === k ? ' on' : ''}`;
+        b.disabled = !!o.disabled;
+        b.innerHTML = o.small !== undefined ? `${o.label}<small>${o.small}</small>` : o.label;
+        b.setAttribute('aria-pressed', i === k ? 'true' : 'false');
+        b.addEventListener('click', () => setPreviewIndex(i));
+        mid.appendChild(b);
+      });
+      const on = mid.querySelector('.pv-chip.on');
+      if (on) requestAnimationFrame(() => on.scrollIntoView({ block: 'nearest', inline: 'center' }));
+    } else {
+      const lab = document.createElement('span');
+      lab.className = 'pv-label';
+      lab.textContent = p.labels ? p.labels[k - p.min] : String(k);
+      mid.appendChild(lab);
+    }
+    const prev = $('#w-preview-prev');
+    const next = $('#w-preview-next');
+    const atLow = k <= lo;
+    const atHigh = k >= hi;
+    prev.disabled = !p.wrap && (p.reverse ? atHigh : atLow);
+    next.disabled = !p.wrap && (p.reverse ? atLow : atHigh);
+    prev.setAttribute('aria-label', p.prevLabel || 'Previous');
+    next.setAttribute('aria-label', p.nextLabel || 'Next');
+    const extra = $('#w-preview-extra');
+    extra.hidden = !p.extra;
+    if (p.extra) {
+      extra.textContent = p.extra.label;
+      extra.disabled = !!(p.extra.disabled && p.extra.disabled(k));
+    }
+    const lock = $('#w-preview-lock');
+    lock.textContent = p.lockLabel || 'Lock in';
+    lock.disabled = !!(p.canLock && !p.canLock(k));
+    panel.setAttribute('aria-label', `${p.title}: ${p.labels ? p.labels[k - p.min] : p.options[k].label}`);
+  }
 
   /** Choice Draw is armed and Draw was chosen on a tile: the next three letters, keep one. */
   function openDraw3(cell) {
@@ -2000,7 +2149,17 @@ export function initWordMode(ctx) {
     const options = peekDraws(st, 3);
     if (!options.length) return say('The bag is empty', 'bad');
     const old = st.board[cell];
-    openPerkPick({ title: 'Choice Draw', sub: `Keep one; the ${old === WILD ? 'wild' : old} goes back into the bag`, options: options.map((l) => ({ label: l, small: String(letterValue(l)) })), onPick: (k) => doPerkAction({ type: 'draw3', cell, pick: k }, { keepCard: true }) });
+    openPreview({
+      id: 'choice-draw',
+      title: 'Choice Draw',
+      kind: 'chips',
+      index: 0,
+      options: options.map((l) => ({ label: l, small: String(letterValue(l)) })),
+      note: () => `Keep one; the ${old === WILD ? 'wild' : old} goes back into the bag`,
+      preview: (k) => ({ state: applyPerkAction(w.game.state, { type: 'draw3', cell, pick: k }), cells: [cell] }),
+      onLock: (k) => doPerkAction({ type: 'draw3', cell, pick: k }, { keepCard: true }),
+      onCancel: null, // the card is still in play: the hold menu offers the draw again
+    });
   }
 
   /** Fresh Deal: a new board chosen for the same goal, like the one it replaces. */
@@ -2050,12 +2209,26 @@ export function initWordMode(ctx) {
       return say('Nothing to take back', 'bad');
     }
     cancelGesture();
-    const options = Array.from({ length: n }, (_, k) => ({ label: String(k + 1), small: k + 1 === n ? 'start' : k === 0 ? 'move' : 'moves' }));
-    openPerkPick({
+    const at = (k) => (k ? g.history[g.history.length - k] : g.state); // the board k moves back
+    openPreview({
+      id: 'rewind',
       title: 'Rewind',
-      sub: `How many moves back? ${n} is the start of the level`,
-      options,
-      onPick: (k) => rewindSteps(k + 1),
+      kind: 'steps',
+      min: 0,
+      max: n,
+      index: 1,
+      reverse: true, // ◀ goes further back, ▶ comes forward again
+      prevLabel: 'One move earlier',
+      nextLabel: 'One move later',
+      labels: Array.from({ length: n + 1 }, (_, k) => (k === 0 ? 'As it is now' : k === n ? 'Start of the level' : `${k} move${k === 1 ? '' : 's'} back`)),
+      note: (k) => {
+        const s = at(k);
+        return `Turn ${Math.min(s.turns + 1, turnLimit(s))} of ${turnLimit(s)} · ${s.score} points`;
+      },
+      preview: (k) => ({ state: at(k) }),
+      extra: { label: 'Start over', fn: () => setPreviewIndex(n), disabled: (k) => k === n },
+      canLock: (k) => k > 0,
+      onLock: (k) => rewindSteps(k),
       onCancel: () => refund(paid, 'rewind'),
     });
   }
@@ -2564,10 +2737,8 @@ export function initWordMode(ctx) {
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || $('#screen-word').hidden) return;
     if (!$('#w-carddialog').hidden) closeCardDialog();
-    else if (!$('#w-perkpick').hidden) {
-      closePerkPick();
-      renderStrip();
-    } else if (w.perk) cancelPerk();
+    else if (w.preview) cancelPreview();
+    else if (w.perk) cancelPerk();
     else if (!$('#w-tilemenu').hidden) closeMenu();
     else if (w.first !== null || w.pending) {
       w.first = null;
@@ -2618,18 +2789,13 @@ export function initWordMode(ctx) {
   $('#w-carddialog').addEventListener('click', (e) => {
     if (e.target === $('#w-carddialog')) closeCardDialog();
   });
-  function cancelPerkPick() {
-    const owed = perkPickCancel;
-    perkPickCancel = null;
-    closePerkPick();
-    if (owed) owed();
-    renderStrip();
-  }
-  $('#w-perkpick-cancel').addEventListener('click', cancelPerkPick);
-  $('#w-perkpick').addEventListener('click', (e) => {
-    if (e.target !== $('#w-perkpick')) return;
-    cancelPerkPick();
+  $('#w-preview-prev').addEventListener('click', () => previewStep(-1));
+  $('#w-preview-next').addEventListener('click', () => previewStep(1));
+  $('#w-preview-extra').addEventListener('click', () => {
+    if (w.preview && w.preview.extra) w.preview.extra.fn();
   });
+  $('#w-preview-lock').addEventListener('click', lockPreview);
+  $('#w-preview-cancel').addEventListener('click', cancelPreview);
   /** The card's place depends on the layout settling: place it now, next frame, and once more a moment later. */
   function refit() {
     closeTilePop();
@@ -2687,7 +2853,7 @@ export function initWordMode(ctx) {
     cancelGesture();
     closeMenu();
     cancelPerk();
-    closePerkPick();
+    closePreview();
     closeCardDialog();
     closeSheet($('#w-shop'));
     closeTilePop();

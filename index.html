@@ -200,6 +200,19 @@
           <button id="w-strip-primary" class="btn btn-primary btn-small">Lock</button>
           <button id="w-strip-secondary" class="btn btn-small">Cancel</button>
         </div>
+        <div id="w-preview" class="preview" hidden>
+          <div class="preview-head"><b id="w-preview-title"></b><span id="w-preview-note"></span></div>
+          <div class="preview-row">
+            <button id="w-preview-prev" type="button" class="btn btn-icon" aria-label="Previous">◀</button>
+            <div id="w-preview-chips" class="preview-mid"></div>
+            <button id="w-preview-next" type="button" class="btn btn-icon" aria-label="Next">▶</button>
+          </div>
+          <div class="preview-actions">
+            <button id="w-preview-extra" type="button" class="btn btn-small" hidden>Start over</button>
+            <button id="w-preview-cancel" type="button" class="btn btn-small">Cancel</button>
+            <button id="w-preview-lock" type="button" class="btn btn-primary btn-small">Lock in</button>
+          </div>
+        </div>
       </div>
 
       <div id="w-bag" class="panel bag letters" aria-label="Letters left in the bag" hidden></div>
@@ -235,14 +248,6 @@
     </div>
 
     <!-- Perk picker: a letter, a line or a word for the card being played -->
-    <div id="w-perkpick" class="perkpick" role="dialog" aria-modal="true" aria-labelledby="w-perkpick-title" hidden>
-      <div class="perkpick-card">
-        <h3 id="w-perkpick-title">Pick a letter</h3>
-        <p id="w-perkpick-sub" class="hint"></p>
-        <div id="w-perkpick-options" class="perkpick-options"></div>
-        <button id="w-perkpick-cancel" class="btn btn-wide">Cancel</button>
-      </div>
-    </div>
 
     <!-- Card dialog: a shop card opened on a wide screen, with its full text and its Buy -->
     <div id="w-carddialog" class="perkpick" role="dialog" aria-modal="true" aria-labelledby="w-carddialog-title" hidden>
@@ -504,7 +509,7 @@
             <summary><span class="chapter-num">9</span><span class="chapter-title">Perk cards</span></summary>
             <div class="chapter-body">
               <p>Switch <strong>Perk cards</strong> on in the settings and your next run of levels earns <strong>gold</strong>: every turn you have to spare when a level's goal is reached is one gold coin. The gold button in the header opens the <strong>shop</strong> at any time: every card not yet bought this run is on sale, in one list by price or (on a phone) under type headings, and a card you buy is played at once (if you cancel a card that needs a target, its gold comes back).</p>
-              <p>Every card can be bought <strong>once per run</strong> and is <strong>one use</strong>; play as many as you like in a level. Cards the board cannot take right now are dimmed, most with the reason. The goal is fixed by the level, and the board is chosen to fit it as always. Points from cards are added up in one perks tile on the result card; tap it to see each card's share. A few cards cost less on 6×6, where they are worth less. Runs with perk cards keep their own best level in Stats and post to their own leaderboard boards, apart from the plain runs.</p>
+              <p>Every card can be bought <strong>once per run</strong> and is <strong>one use</strong>; play as many as you like in a level. Cards the board cannot take right now are dimmed, most with the reason. A card that asks a question (how far to rotate or slide, which letter, how many moves back) shows each answer on the board first: step through the choices, then press Lock in. The goal is fixed by the level, and the board is chosen to fit it as always. Points from cards are added up in one perks tile on the result card; tap it to see each card's share. A few cards cost less on 6×6, where they are worth less. Runs with perk cards keep their own best level in Stats and post to their own leaderboard boards, apart from the plain runs.</p>
               <ul id="help-perk-cards" class="perk-list"></ul>
             </div>
           </details>
