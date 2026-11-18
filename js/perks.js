@@ -389,6 +389,7 @@ export function applyPerkAction(state, action) {
       if (old !== WILD) next.bag[old]++;
       next.lastDraw = { cell: action.cell, drawn: options[action.pick], tossed: old, options };
       next.perk.choiceDraw = false;
+      next.perk.choiceCell = null; // the tile the three letters were shown for: chosen now
       break;
     }
     case 'unlock': {
