@@ -2,7 +2,7 @@
 // Challenge calibration: the challenge bot plays each challenge many times (the board fixed, the draws random)
 // and the score distribution sets the trophy targets. Prints a table; --write stores the targets in
 // js/challenge-targets.js and the distributions (every score) in data/challenge-calibration.json.
-//   node tools/calibrate-challenges.js [--games 200] [--id lucky-dip] [--write] [--threads 4]
+//   node tools/calibrate-challenges.js [--games 200] [--id lucky-dip,stamp] [--write] [--threads 4]
 //   node tools/calibrate-challenges.js --retarget [--bronze 0.5] [--silver 0.9] [--gold 1.05] [--write]
 // Targets: bronze at the bot's median, silver at its 90th percentile, gold 5% above its best run, rounded up
 // to a multiple of 5 (the bot is greedy and plays everyday words only, so a planned run can beat it; a
@@ -47,7 +47,8 @@ if (!isMainThread) {
   const P_SILVER = Number(opt('silver', 0.9));
   const M_GOLD = Number(opt('gold', 1.05));
   const threads = Math.max(1, Math.min(Number(opt('threads', cpus().length)), 16));
-  const list = CHALLENGES.filter((c) => !only || c.id === only);
+  const wanted = only ? only.split(',') : null; // --id a,b,c
+  const list = CHALLENGES.filter((c) => !wanted || wanted.includes(c.id));
   const shares = Array.from({ length: Math.min(threads, list.length) }, () => []);
   list.forEach((c, i) => shares[i % shares.length].push(c.id));
   const results = new Map();

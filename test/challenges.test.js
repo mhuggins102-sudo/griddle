@@ -20,7 +20,7 @@ test('rules: a turn count of its own, free moves, a move allow-list', () => {
   const free = base(['CATXX', 'DOGXX', 'XXXXX', 'XXXXX', 'XXXXX'], { rules: { turns: 8, freeMoves: true } });
   assert.equal(actionCost({ type: 'swap' }, free), 0);
   assert.equal(actionCost({ type: 'slide' }, free), 0);
-  assert.equal(actionCost({ type: 'nudge' }, free), 0);
+  assert.equal(actionCost({ type: 'nudge' }, free), 1, 'a nudge still costs: free nudges would spell anything');
   assert.equal(actionCost({ type: 'draw' }, free), 1, 'a draw still spends a turn');
   assert.equal(actionCost({ type: 'wild' }, free), 2);
   assert.equal(actionCost({ type: 'swap' }, st), 1);
@@ -135,9 +135,17 @@ test('deals: vowels, bags, Qs, wilds, boulders and the locked word', () => {
   const stamp = challengeState(CHALLENGE_BY_ID.stamp, 1);
   assert.equal(stamp.bag.S, 30);
   assert.equal(bagTotal(stamp.bag), 30);
-  assert.equal(applyWordAction(stamp, { type: 'draw', r: 0, c: 0 }).board[0], 'S');
+  const stamped = applyWordAction(stamp, { type: 'draw', r: 0, c: 0 });
+  assert.equal(stamped.board[0], 'S');
+  assert.equal(bagTotal(stamped.bag), 29, 'the tossed letter does not join a bag of S');
+  assert.ok(Object.entries(stamped.bag).every(([ch, n]) => n === 0 || ch === 'S'));
+  let fl = flood;
+  for (let k = 0; k < 6; k++) fl = applyWordAction(fl, { type: 'draw', r: 0, c: k % 5 });
+  assert.ok(Object.entries(fl.bag).every(([ch, n]) => n === 0 || VOWELS.includes(ch)), 'Vowel Flood keeps consonants out of the bag');
+  assert.equal(applyWordAction(challengeState(CHALLENGE_BY_ID.blitz, 1), { type: 'draw', r: 0, c: 0 }).bag[challengeState(CHALLENGE_BY_ID.blitz, 1).board[0]], challengeState(CHALLENGE_BY_ID.blitz, 1).bag[challengeState(CHALLENGE_BY_ID.blitz, 1).board[0]] + 1, 'without a bag rule the tossed letter goes back');
   const jokers = challengeState(CHALLENGE_BY_ID['three-jokers'], 1);
-  assert.deepEqual([6, 12, 18].map((c) => jokers.board[c]), [WILD, WILD, WILD]);
+  assert.deepEqual([6, 13, 16].map((c) => jokers.board[c]), [WILD, WILD, WILD]);
+  assert.ok(findWords(jokers, dict).some((w) => w.cells.includes(6)), 'a word can read through a wild');
   assert.equal(jokers.wilds, 0, 'the player may still make one wild');
   const boulders = challengeState(CHALLENGE_BY_ID.boulders, 1);
   assert.deepEqual(boulders.locked, [1, 8, 12, 16, 23]);
@@ -162,6 +170,17 @@ test('deals: vowels, bags, Qs, wilds, boulders and the locked word', () => {
   assert.equal(turnLimit(challengeState(CHALLENGE_BY_ID['eight-words'], 1)), 8);
   const dealt = dealChallenge(CHALLENGE_BY_ID.slant);
   assert.equal(dealt.locked, null);
+});
+
+test('a wild read by tapping resolves to a word that can be locked, not merely the most common fit', () => {
+  const st = base(['HEL*X', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX'], { rules: { words: { doubleLetter: true } } });
+  const cand = findWordAt(st, dict, 0, 3);
+  assert.equal(cand.word, 'HELL', 'HELP is more common but ruled out');
+  assert.equal(cand.lockable, true);
+  const plain = base(['HEL*X', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']);
+  assert.equal(findWordAt(plain, dict, 0, 3).word, 'HELP', 'without rules the most common fit');
+  const afterHelp = lockAt(plain, 0, 3);
+  assert.equal(findWordAt(afterHelp, dict, 0, 3).lockable, false, 'the same tiles cannot be locked again as the same word');
 });
 
 test('trophies: thresholds, the next target, the better of two, the count', () => {

@@ -35,7 +35,7 @@ const LIST = [
   { id: 'pick-of-three', name: 'Pick of Three', tag: 'Every draw offers three letters; keep one', text: 'Choice Draw is on for every Draw: three letters are shown and one stays. A draw still costs its turn.', perk: { choiceDraw: true }, rules: { choiceDraws: true } },
   { id: 'hot-spots', name: 'Hot Spots', tag: '+5 for every word through a marked tile', text: 'Four tiles carry a Gold Sticker from the start: every word through one of them scores +5, every time.', perk: { stickers: { 6: 5, 8: 5, 16: 5, 18: 5 } } },
   { id: 'premium-squares', name: 'Premium Squares', tag: '×3 corners and ×2 squares, each paying once', text: 'Letter squares are laid before play: ×3 in the corners, ×2 in the middle of each side and at the centre. Each pays once, when a word locks its tile.', perk: { squares: { 0: 3, 4: 3, 20: 3, 24: 3, 2: 2, 10: 2, 14: 2, 22: 2, 12: 2 } } },
-  { id: 'three-jokers', name: 'Three Jokers', tag: 'Three wild tiles from the start; they score 0', text: 'Three tiles are wild before the first move. A wild fits any word and scores nothing, so the points must come from the letters around it.', deal: { wilds: [6, 12, 18] } },
+  { id: 'three-jokers', name: 'Three Jokers', tag: 'Three wild tiles from the start; they score 0', text: 'Three tiles are wild before the first move. A wild fits any word and scores nothing, so the points must come from the letters around it.', deal: { wilds: [6, 13, 16] } }, // not three on one line: a pattern with three wilds reads as no word
   { id: 'blitz', name: 'Blitz', tag: '12 turns instead of 20', text: 'Twelve turns. The tile ladder is out of reach, so every lock has to be worth it.', rules: { turns: 12 } },
   { id: 'marathon', name: 'Marathon', tag: '32 turns instead of 20', text: 'Thirty-two turns, and targets that sit near a full board.', rules: { turns: 32 } },
   // the letters and the bag
@@ -63,7 +63,7 @@ const LIST = [
   { id: 'lucky-dip', name: 'Lucky Dip', tag: 'The only moves are Draw and Lock', text: 'No swaps, flicks or nudges: press and hold to draw, tap the ends to lock.', rules: { moves: ['draw'] } },
   { id: 'conveyor', name: 'Conveyor', tag: 'The only moves are flicks, then Lock', text: 'Rows and columns slide; nothing else moves, and nothing is drawn.', rules: { moves: ['slide'] } },
   { id: 'rotor', name: 'Rotor', tag: 'The only move is turning a 2×2 block', text: 'Tap the top-left tile of a block of four unlocked tiles, choose a quarter, half or three-quarter turn, and lock it in. One turn each.', rules: { moves: [], rotor: true } },
-  { id: 'eight-words', name: 'Eight Words', tag: 'Swaps, flicks and nudges cost no turn; 8 turns', text: 'Move the letters as much as you like for nothing. Only a Lock, a Draw or a wild spends one of the eight turns.', rules: { turns: 8, freeMoves: true } },
+  { id: 'eight-words', name: 'Eight Words', tag: 'Swaps and flicks cost no turn; 8 turns', text: 'Slide and swap the letters as much as you like for nothing. A Lock, a Draw or a nudge spends one of the eight turns (a wild spends two).', rules: { turns: 8, freeMoves: true } },
   { id: 'boulders', name: 'Boulders', tag: 'Five tiles are locked from the start', text: 'Five tiles belong to no word and never move; words may still run through them. They count as locked tiles for the ladder.', deal: { boulders: [1, 8, 12, 16, 23] } },
   { id: 'build-around', name: 'Build Around', tag: 'WALTZ is locked across the middle, its points banked', text: 'The middle row starts as the locked word WALTZ, worth 32. Everything else is built through or around it.', deal: { lockedWord: { row: 2, word: 'WALTZ' } } },
 ];
@@ -161,6 +161,8 @@ export function challengeState(ch, drawSeed = 0) {
   if (words) state.words = words.map((w) => ({ ...w, cells: w.cells.slice() }));
   state.score = score;
   if (ch.rules) state.rules = JSON.parse(JSON.stringify(ch.rules));
+  const d = ch.deal || {};
+  if (d.bagOnly || d.bagSet) state.rules = { ...(state.rules || {}), bagOnly: (d.bagOnly || Object.keys(d.bagSet)).slice() }; // a letter the rule keeps out of the bag never goes back in when tossed
   if (ch.perk) {
     const p = ch.perk;
     state.perk = { ...emptyPerk(), ...p, squares: { ...(p.squares || {}) }, squareCard: {}, stickers: { ...(p.stickers || {}) }, log: [] };
