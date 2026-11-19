@@ -608,7 +608,9 @@ export function initWordMode(ctx) {
     const next = nextTarget(ch, score);
     const has = !!ch.targets;
     $('#w-goalbar-level').textContent = earned ? `${TROPHY_NAMES[earned]} ✓` : 'Challenge';
-    $('#w-goalbar-text').textContent = !has ? String(score) : next ? `${score} / ${next.value} ${next.name}` : `${score} · gold`;
+    const text = $('#w-goalbar-text');
+    text.textContent = !has ? String(score) : next ? `${score} / ${next.value} ` : `${score} `;
+    if (has) text.insertAdjacentHTML('beforeend', `<i class="medal ${next ? next.name : 'gold'} won" aria-hidden="true"></i>`); // the trophy in play, or gold once it is won
     const floor = !has ? 0 : earned ? ch.targets[['bronze', 'silver', 'gold'].indexOf(earned)] : 0; // the bar fills from the last trophy to the next
     const p = !has ? 0 : next ? (score - floor) / Math.max(1, next.value - floor) : 1;
     $('#w-goalbar-fill').style.setProperty('--p', String(Math.max(0, Math.min(1, p))));
@@ -2676,10 +2678,13 @@ export function initWordMode(ctx) {
       if (g.mode === 'daily') title = 'Daily Grid';
     }
     if (g.practice) line = `${levelsRun ? (passed ? `Goal ${g.goal} reached` : `Reached level ${g.level}`) + ' · ' : ''}Practice board · not counted in stats`;
+    let badge = null; // a challenge's standing beside the title: the trophy earned, or how far short of the next
     if (ch) {
       const next = nextTarget(ch, total);
-      title = chEarned ? `${TROPHY_NAMES[chEarned]} trophy!` : 'Challenge over';
-      line = [ch.name, chEarned ? `${TROPHY_NAMES[chEarned]} trophy` : 'no trophy', next ? `${TROPHY_NAMES[next.name]} at ${next.value}` : ch.targets ? 'the top trophy' : 'targets to come', chNewBest ? 'new best' : `best ${chRec ? chRec.best : total}`].join(' · ');
+      title = 'Challenge over';
+      line = '';
+      if (chEarned) badge = { trophy: chEarned, won: true, text: `${TROPHY_NAMES[chEarned]} trophy` };
+      else if (next) badge = { trophy: next.name, won: false, text: `${next.value - total} from ${next.name}` };
     }
     play(ch ? (chEarned ? 'fanfare' : 'lock') : levelsRun ? (passed ? 'fanfare' : 'fail') : isBoardFull(st) ? 'fanfare' : 'lock');
     w.shareText = (ch ? `${ch.name} challenge${chEarned ? ` · ${TROPHY_NAMES[chEarned]}` : ''} · ` : levelsRun ? `Level ${g.level} ${passed ? 'passed' : 'failed'} · ` : g.retry ? `Level ${g.retry.level} retry · ` : g.mode === 'daily' ? `Daily Grid ${g.daily} · ` : '') + wordShareLine(total, st.words, g.size === 6 ? 'GridLock 6×6' : 'GridLock');
@@ -2701,6 +2706,7 @@ export function initWordMode(ctx) {
       lb: g.mode === 'daily' && !g.replay ? g.daily : null, // the trophy: that day's leaderboard
       replay: ch ? true : !(showNext || (g.retry && total >= g.goal)), // a lost board can be retried; a beaten retry cannot; a challenge's button goes to the list
       replayText: ch ? 'Challenges' : null,
+      badge,
     });
   }
 
@@ -2752,7 +2758,14 @@ export function initWordMode(ctx) {
     $('#w-result-title').textContent = data.title;
     const best = $('#w-result-best');
     best.innerHTML = '';
-    String(data.line).split(' · ').forEach((part, i) => { // one part per line, each starting with a capital
+    if (data.badge) {
+      // a challenge: the medal and a few words, nothing else
+      const span = document.createElement('span');
+      span.className = 'rs-line rs-badge';
+      span.innerHTML = `<i class="medal ${data.badge.trophy}${data.badge.won ? ' won' : ''}" aria-hidden="true"></i>`;
+      span.appendChild(document.createTextNode(data.badge.text));
+      best.appendChild(span);
+    } else String(data.line).split(' · ').forEach((part, i) => { // one part per line, each starting with a capital
       if (i) best.appendChild(Object.assign(document.createElement('span'), { className: 'sep', textContent: ' · ' }));
       best.appendChild(Object.assign(document.createElement('span'), { className: 'rs-line', textContent: part.charAt(0).toUpperCase() + part.slice(1) }));
     });
