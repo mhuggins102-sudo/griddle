@@ -12,7 +12,7 @@ import { dailyKey, shiftDay, dailyRecords, dailyTarget } from './daily.js';
 import { CHALLENGES, CHALLENGE_BY_ID, challengeRecords, trophyCount, TROPHIES, TROPHY_NAMES } from './challenges.js';
 import { openSheet, closeSheet } from './sheet.js';
 import { setSoundEnabled, setSoundStyle, audioState } from './sound.js';
-import { TURNS_BY_SIZE } from './words.js';
+import { turnLimit } from './words.js';
 import { CARDS, CARD_BY_ID, FAMILIES, cardText, cardCost } from './perks.js';
 import {
   loadStore, saveStore, newGame, currentRound, lockBid, playAction, giveUp, runningTotal, isGameOver, advanceRound,
@@ -74,7 +74,7 @@ async function boot() {
   });
   $('#opt-practice').addEventListener('change', (e) => {
     ui.store.settings.practice = e.target.checked;
-    if (e.target.checked && ui.store.wordGame && !ui.store.wordGame.practice && ui.store.wordGame.mode !== 'daily') {
+    if (e.target.checked && ui.store.wordGame && !ui.store.wordGame.practice && ui.store.wordGame.mode !== 'daily' && ui.store.wordGame.mode !== 'challenge') {
       ui.store.wordGame.practice = true; // the board in progress becomes practice, for good
       showHome(); // its button says so
     }
@@ -103,9 +103,13 @@ async function boot() {
     showToast(`Could not load the puzzle bank (${e.message}).`, 6000);
     return;
   }
-  // Drop a saved game whose puzzles no longer exist in this bank.
+  // Drop a saved game whose puzzles no longer exist in this bank, or a saved challenge no longer in the catalogue.
   if (ui.store.currentGame && !ui.store.currentGame.rounds.every((r) => findPuzzle(ui.bank, r.puzzleId))) {
     ui.store.currentGame = null;
+    saveStore(ui.store);
+  }
+  if (ui.store.wordGame && ui.store.wordGame.mode === 'challenge' && !CHALLENGE_BY_ID[ui.store.wordGame.challenge]) {
+    ui.store.wordGame = null;
     saveStore(ui.store);
   }
   ui.tutorial = initTutorial();
@@ -145,7 +149,7 @@ function showHome() {
   $('#btn-daily').classList.toggle('btn-primary', live === 'daily');
   $('#btn-challenges').classList.toggle('btn-primary', live === 'challenge');
   const tc = trophyCount(s.word);
-  $('#challenges-sub').textContent = live === 'challenge' ? `${describeSaved(g)} · Continue` : tc.total ? `${tc.total} of ${tc.of} trophies won` : `${tc.of} fixed boards with a twist · trophies to win`;
+  $('#challenges-sub').textContent = live === 'challenge' ? `${describeSaved(g)} · Continue` : tc.total ? `${tc.total} of ${tc.of} trophies won` : `${tc.of} challenges · trophies to win`;
   $('#word-sub').textContent = live === 'levels' ? `${describeSaved(g)} · Continue` : s.settings.perks ? 'Levels with a goal to beat · perk cards' : 'Levels with a goal to beat';
   $('#free-sub').textContent = live === 'free' ? `${describeSaved(g)} · Continue` : 'One board, no goal';
   // the daily grid: today's until it is played (or given up), then yesterday's if that one was missed, then
@@ -202,7 +206,7 @@ function savedChallengeName(g) {
 /** A saved game in a line: size, where it stands, the score, the gold, practice. */
 function describeSaved(g) {
   const size = g.size || Math.round(Math.sqrt(g.state.board.length));
-  const lim = (TURNS_BY_SIZE[size] || 20) + ((g.state.perk && g.state.perk.extraTurns) || 0);
+  const lim = turnLimit(g.state); // the engine's count: the size's, a challenge's own, plus any turns a card added
   const turn = Math.min((g.state.turns || 0) + 1, lim);
   const perks = g.perks && !g.perks.retry ? ` · ◆ ${g.perks.gold}` : '';
   const where = g.mode === 'levels' ? `Level ${g.level || 1} · ` : g.mode === 'challenge' ? `${savedChallengeName(g)} · ` : g.replay ? 'Replay · ' : '';

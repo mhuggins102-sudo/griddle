@@ -18,7 +18,7 @@ import {
   rotateRing, bigNudgeOptions, peekDraws, applyPerkAction, powerPairCells, perkSummary, perkLabel, shopOrder, shopBuyBlock, shopTake,
 } from './perks.js';
 import {
-  DICT_VERSION, dealLetters, createWordState, applyWordAction, findWords, findWordAt, lockWord, parseDictionary, bagTotal, letterValue,
+  DICT_VERSION, dealLetters, createWordState, applyWordAction, validateWordAction, findWords, findWordAt, lockWord, parseDictionary, bagTotal, letterValue,
   describeWordCells, wordShareLine, slideMoves, coverageBonusFor, finalScore, shortfallPenalty, nudgeLetter, lineCellsFree,
   turnLimit, gridOfState, WILD, LETTERS, COVERAGE_TARGET, WILD_COST, SIZES, fullCoverTurnBonus, isBoardFull,
   COVERAGE_LADDER, MAX_WILDS, moveRefusal,
@@ -310,16 +310,16 @@ export function initWordMode(ctx) {
       if (practiceOption() && !NO_PRACTICE.has(w.game.mode)) w.game.practice = true; // once played in practice mode, the board stays practice
     } else {
       const daily = opts.mode === 'daily' ? dailySpec(isDailyKey(opts.day) ? opts.day : dailyKey()) : null; // a day's grid (today's unless told otherwise): the day decides its size, letters and draws
-      const ch = opts.mode === 'challenge' ? CHALLENGE_BY_ID[opts.challenge] || null : null; // a challenge: its fixed board, its rules and its effects; the draws are random
+      const ch = opts.mode === 'challenge' ? CHALLENGE_BY_ID[opts.challenge] || null : null; // a challenge: a fresh board dealt under its rule, its effects; the draws are random
       if (opts.mode === 'challenge' && !ch) return;
       const size = daily ? daily.size : ch ? ch.size : SIZES.includes(opts.size) ? opts.size : 5;
       const level = opts.level || 1;
       // a level's board is chosen to fit its goal; the choice is usually made ahead of time
       const prepared = (opts.mode || 'free') === 'levels' && !opts.retry && opts.seed === undefined ? await takePrepared(level, size) : null;
-      const seed = daily ? daily.seed : ch ? ch.seed : prepared ? prepared.seed : (opts.seed ?? randomSeed());
+      const seed = daily ? daily.seed : prepared ? prepared.seed : (opts.seed ?? randomSeed());
       const drawSeed = daily ? daily.drawSeed : (opts.drawSeed ?? randomSeed());
       let state;
-      if (ch) state = challengeState(ch, drawSeed);
+      if (ch) state = challengeState(ch, seed, drawSeed);
       else {
         const { board, bag } = dealLetters(seed, size);
         state = createWordState(board, bag, drawSeed);
@@ -408,12 +408,12 @@ export function initWordMode(ctx) {
     if (isLevels() && !w.game.retry) prefetch(w.game.level + 1, w.game.size); // the next board is chosen while this one is played
     // a board saved in its last moment (full, or a level run out of turns) is scored straight away
     const st = w.game.state;
-    if (!goalReached() && (isBoardFull(st) || st.turns >= turnLimit(st) || (w.game.retry && finalScore(st) >= w.game.goal))) finish(true); // any mode: a board saved with its last turn spent is scored on resume
+    if (!goalReached() && (isBoardFull(st) || st.turns >= turnLimit(st) || (w.game.retry && finalScore(st) >= w.game.goal) || deadEnd(st))) finish(true); // any mode: a board saved with its last turn spent (or run dry under a challenge's rules) is scored on resume
     // the very first game on this device opens the tutorial once; the ? button brings it back any time
     if (!resume && !ctx.store.settings.tutorialSeen) {
       ctx.store.settings.tutorialSeen = true;
       ctx.saveStore(ctx.store);
-      ctx.openTutorial(w.game.size, { mode: w.game.mode, goal: w.game.goal, perks: !!w.game.perks });
+      ctx.openTutorial(w.game.size, { mode: w.game.mode, goal: w.game.goal, perks: !!w.game.perks, turns: turnLimit(w.game.state), freeMoves: !!(rules() && rules().freeMoves) });
     }
   }
 
@@ -1468,8 +1468,36 @@ export function initWordMode(ctx) {
   }
 
   /** What happens once a turn is spent: the level bar takes over, the board fills, or the turns run out. */
+  /**
+   * Under a challenge that rules moves out (Rotor, Conveyor, Lucky Dip) the board can run dry with turns to spare:
+   * nothing to lock, no block to turn, no line to slide, nothing to draw. Such a board is scored where it stands.
+   */
+  function deadEnd(st) {
+    const r = st.rules;
+    if (!r || !(r.moves || r.rotor)) return false;
+    if (findWords(st, w.dict).some((c) => c.lockable)) return false;
+    if (r.rotor && rotateBlocks(st).length) return false;
+    for (const m of gridOfState(st).moves) {
+      if (moveRefusal(st, m.type)) continue;
+      try {
+        validateWordAction(st, m);
+        return false;
+      } catch {
+        // that one is closed
+      }
+    }
+    if (!moveRefusal(st, 'draw') && bagTotal(st.bag) > 0) return false;
+    if (!moveRefusal(st, 'wild') && st.locked.some((c) => st.board[c] !== WILD) && (st.wilds || 0) < MAX_WILDS && st.turns + WILD_COST <= turnLimit(st)) return false;
+    return true;
+  }
+
   function afterTurn(next, delay) {
     if (goalReached()) return; // the level bar shows Next level
+    if (next.turns < turnLimit(next) && !isBoardFull(next) && deadEnd(next)) {
+      say('No move left: the board is scored as it stands', 'good', 4000);
+      finishSoon(1600 + delay);
+      return;
+    }
     if (isBoardFull(next)) {
       const bonus = fullCoverTurnBonus(next);
       const spare = Math.max(0, turnLimit(next) - next.turns);
@@ -3091,7 +3119,7 @@ export function initWordMode(ctx) {
   $('#w-help').addEventListener('click', () => {
     closeMenu();
     const g = w.game;
-    ctx.openTutorial(g ? g.size : 5, g ? { mode: g.mode, goal: g.goal, perks: !!(g.perks && !g.perks.retry) } : {}); // a retry keeps its shop but earns no gold
+    ctx.openTutorial(g ? g.size : 5, g ? { mode: g.mode, goal: g.goal, perks: !!(g.perks && !g.perks.retry), turns: turnLimit(g.state), freeMoves: !!(g.state.rules && g.state.rules.freeMoves) } : {}); // a retry keeps its shop but earns no gold
   });
   window.addEventListener('resize', positionMenu);
 

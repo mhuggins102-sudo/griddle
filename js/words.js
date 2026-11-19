@@ -85,11 +85,17 @@ export function finalScore(state) {
   return Math.max(0, projectedScore(state));
 }
 
-/** Turns an action will consume: one, two for a wild, none for a slide, swap or nudge under a challenge's free-moves rule. */
+/** Turns an action will consume: one, two for a wild, none for a slide or swap under a challenge's free-moves rule (a nudge still costs one: free nudges would make the letters dealt irrelevant). */
 export function actionCost(action, state = null) {
   if (action.type === 'wild') return WILD_COST;
-  if (state && state.rules && state.rules.freeMoves && (action.type === 'slide' || action.type === 'swap' || action.type === 'nudge')) return 0;
+  if (state && state.rules && state.rules.freeMoves && (action.type === 'slide' || action.type === 'swap')) return 0;
   return 1;
+}
+
+/** Whether a letter leaving the board goes back into the bag: always, unless a challenge limits the bag to certain letters (state.rules.bagOnly) and this is not one of them. */
+export function bagKeeps(state, ch) {
+  const only = state.rules && state.rules.bagOnly;
+  return !only || only.includes(ch);
 }
 
 const MOVE_NAMES = { slide: 'Flicks', swap: 'Swaps', nudge: 'Nudges', draw: 'Draws', wild: 'Wilds' };
@@ -254,7 +260,7 @@ export function applyWordAction(state, action) {
       const tossed = next.board[cell];
       next.bag[drawn]--;
       next.board[cell] = drawn;
-      if (tossed !== WILD) next.bag[tossed]++;
+      if (tossed !== WILD && bagKeeps(state, tossed)) next.bag[tossed]++;
       next.lastDraw = { cell, drawn, tossed };
       break;
     }
@@ -384,7 +390,10 @@ export function findWordAt(state, dict, first, last) {
   const pattern = cells.map((c) => state.board[c]).join('');
   const matches = matchesForPattern(pattern, dict);
   if (!matches.length) return { error: `${pattern.replace(/\*/g, '?')} is not in the word list.` };
-  return makeCandidate(state, matches[0], cells, dict);
+  // a wild reads as the most common word that fits and can be locked (a rarer fit may count where the common one is
+  // already locked, or is ruled out by a challenge); when none can, the most common word carries the reason
+  const word = matches.find((m) => !lockConflict(state, m, cells, dict)) || matches[0];
+  return makeCandidate(state, word, cells, dict);
 }
 
 /** Every line a word can lie on for a board size, in reading order: rows, columns, diagonals of 3 or more cells. */

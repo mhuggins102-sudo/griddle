@@ -142,8 +142,8 @@ function bestStep2(state, g, dict, rng) {
 }
 
 /**
- * Play one challenge from its starting state (a draw seed already in it). rngSeed drives the bot's own
- * sampling. Returns { score, banked, words, locked, turnsUsed, log }.
+ * Play one challenge from its starting state (its board and draw seed already in it). rngSeed drives the bot's
+ * own sampling. Returns { score, banked, words, locked, turnsUsed, log }.
  */
 export function botPlayChallenge(start, dict, rngSeed = 1, opts = {}) {
   const rng = mulberry32(rngSeed);

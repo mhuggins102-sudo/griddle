@@ -10,7 +10,7 @@
 // Board effects live in state.perk so the engine scores them and undo snapshots carry them.
 
 import { rngNext } from './rng.js';
-import { LETTERS, WILD, bagTotal, isLocked, lineCellsFree, slideMoves, turnLimit, gridOfState, sizeOf } from './words.js';
+import { LETTERS, WILD, bagTotal, bagKeeps, isLocked, lineCellsFree, slideMoves, turnLimit, gridOfState, sizeOf } from './words.js';
 
 export const FAMILIES = { board: 'Board', letters: 'Letters', power: 'Power tiles', scoring: 'Scoring', tempo: 'Tempo', info: 'Information', economy: 'Economy' };
 
@@ -344,7 +344,7 @@ export function applyPerkAction(state, action) {
     for (const { cell, letter } of drawn) {
       const old = next.board[cell];
       next.board[cell] = letter;
-      if (old !== WILD) next.bag[old]++;
+      if (old !== WILD && bagKeeps(state, old)) next.bag[old]++;
     }
     return drawn;
   };
@@ -374,7 +374,7 @@ export function applyPerkAction(state, action) {
         needFree(action.cell);
         if (!(next.bag[action.letter] > 0)) throw new Error(`No ${action.letter} left in the bag`);
         next.bag[action.letter]--;
-        if (old !== WILD) next.bag[old]++;
+        if (old !== WILD && bagKeeps(state, old)) next.bag[old]++;
       } else if (old === WILD) throw new Error('A wild tile cannot be nudged');
       else if (!bigNudgeOptions(old).includes(action.letter)) throw new Error('Up to three letters away');
       next.board[action.cell] = action.letter;
@@ -398,7 +398,7 @@ export function applyPerkAction(state, action) {
       });
       const old = state.board[action.cell];
       next.board[action.cell] = options[action.pick];
-      if (old !== WILD) next.bag[old]++;
+      if (old !== WILD && bagKeeps(state, old)) next.bag[old]++;
       next.lastDraw = { cell: action.cell, drawn: options[action.pick], tossed: old, options };
       next.perk.choiceDraw = false;
       next.perk.choiceCell = null; // the tile the three letters were shown for: chosen now

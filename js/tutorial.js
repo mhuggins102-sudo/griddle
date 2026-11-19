@@ -178,7 +178,7 @@ export function initTutorial() {
 
   function buildPages(n, opts) {
     const ex = EXAMPLES[n];
-    const turns = TURNS_BY_SIZE[n];
+    const turns = opts.turns || TURNS_BY_SIZE[n]; // a challenge may have a count of its own
     const cells = n * n;
     const lockEx = ex.lock;
     const lockBoard = rowsToBoard(lockEx.rows);
@@ -201,13 +201,13 @@ export function initTutorial() {
       : opts.mode === 'daily'
         ? '<p>This is the <strong>Daily Grid</strong>: one board, the same for everyone today, and one try at it. Score as much as you can before the turns run out.</p>'
         : opts.mode === 'challenge'
-          ? '<p>This is a <strong>Challenge</strong>: a fixed board with a twist, written over the board, played for a bronze, silver or gold trophy. Score as much as you can before the turns run out.</p>'
+          ? '<p>This is a <strong>Challenge</strong>: a board with a twist, written over the board, played for a bronze, silver or gold trophy. Score as much as you can before the turns run out.</p>'
         : '<p>This is a <strong>Single Round</strong>: no goal, just score as much as you can before the turns run out.</p>';
     return [
       {
         title: 'Turns and the goal',
         rows: ex.slide.rows,
-        html: `<p>Every move costs <strong>one turn</strong> (Wild costs two), and you get <strong>${turns} turns</strong> on this ${n}×${n} board. Words lock in to bank their points.</p>${goalLine}<p>Next: each of the five moves, with a board where it pays off.</p>`,
+        html: `<p>${opts.freeMoves ? 'Here swaps and flicks cost <strong>no turn</strong>; a lock, a draw or a nudge costs one (Wild costs two)' : 'Every move costs <strong>one turn</strong> (Wild costs two)'}, and you get <strong>${turns} turns</strong> on this ${n}×${n} board. Words lock in to bank their points.</p>${goalLine}<p>Next: each of the five moves, with a board where it pays off.</p>`,
       },
       { title: 'Slide', demo: 'slide', rows: ex.slide.rows, ex: ex.slide, html: `<p><strong>Flick</strong> a row or column: a quick swipe of any of its tiles. The whole line moves one step and the tile pushed off the end wraps round to the start. A slow drag swaps instead.</p><p>${ex.slide.note}</p>` },
       { title: 'Swap', demo: 'swap', rows: ex.swap.rows, ex: ex.swap, html: `<p><strong>Drag</strong> a tile onto one of its four neighbours and let go to swap them. Locked tiles cannot move.</p><p>${ex.swap.note}</p>` },
