@@ -1,6 +1,8 @@
 # Handoff notes (session of 15 Nov 2026, updated 18 Nov)
 
-19 Nov: Challenges (home button, page of 38 twists on a fresh 5x5 board each time, three trophies each; engine rules in
+19 Nov: the home screen's size switch, Multi Round and Single Round now live in a Free Play sheet (`#freeplay`, opened by
+`#btn-freeplay`; the radios keep their ids, so `boardSize()` is unchanged); Daily Grid, Free Play and Challenges sit in one
+button group. Challenges (home button, page of 38 twists on a fresh 5x5 board each time, three trophies each; engine rules in
 `state.rules`, catalogue in `js/challenges.js`, targets from `tools/calibrate-challenges.js`, bot in `js/challengebot.js`;
 probe `.scratch/challenges.cjs`). 6x6 challenges are the next step the user asked for.
 
