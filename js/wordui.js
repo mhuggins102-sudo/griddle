@@ -10,6 +10,7 @@
 
 import { randomSeed } from './rng.js';
 import { dailyKey, dailySpec, shiftDay, isDailyKey } from './daily.js';
+import { CHALLENGE_BY_ID, challengeState, trophyFor, nextTarget, betterTrophy, TROPHY_NAMES } from './challenges.js';
 import { openSheet, closeSheet } from './sheet.js';
 import { buildBoardSkeleton, tileIn, tileStep, animateAction, animateMoves, beginMoves, removeGhosts, clearTileEffects, wait, ANIM_MS } from './board.js';
 import {
@@ -20,7 +21,7 @@ import {
   DICT_VERSION, dealLetters, createWordState, applyWordAction, findWords, findWordAt, lockWord, parseDictionary, bagTotal, letterValue,
   describeWordCells, wordShareLine, slideMoves, coverageBonusFor, finalScore, shortfallPenalty, nudgeLetter, lineCellsFree,
   turnLimit, gridOfState, WILD, LETTERS, COVERAGE_TARGET, WILD_COST, SIZES, fullCoverTurnBonus, isBoardFull,
-  COVERAGE_LADDER, MAX_WILDS,
+  COVERAGE_LADDER, MAX_WILDS, moveRefusal,
 } from './words.js';
 import { botPlay, goalFor, targetBotScore, closestToTarget, CANDIDATE_BOARDS } from './wordbot.js';
 import { play } from './sound.js';
@@ -108,8 +109,14 @@ export function initWordMode(ctx) {
   const tileEl = (cell) => tileIn(boardEl, cell);
   const practiceOption = () => !!(ctx.store.settings && ctx.store.settings.practice);
   const wordsOption = () => !!(ctx.store.settings && ctx.store.settings.showWords); // practice mode's word list
-  /** Practice mode as it applies to the board in play: Undo is offered (and the words listed, if that switch is on). Never on the daily grid. */
-  const practiceLive = () => !!(w.game && w.game.practice && w.game.mode !== 'daily' && practiceOption());
+  const NO_PRACTICE = new Set(['daily', 'challenge']); // the modes practice mode never touches: no undo, no word list
+  /** Practice mode as it applies to the board in play: Undo is offered (and the words listed, if that switch is on). Never on the daily grid or a challenge. */
+  const practiceLive = () => !!(w.game && w.game.practice && !NO_PRACTICE.has(w.game.mode) && practiceOption());
+  const isChallenge = () => !!(w.game && w.game.mode === 'challenge');
+  const challenge = () => (isChallenge() && CHALLENGE_BY_ID[w.game.challenge]) || null; // the challenge in play, from the catalogue
+  const rules = () => (w.game && w.game.state.rules) || null; // a challenge's rules, as the engine reads them
+  /** Whether a Draw offers three letters: the Choice Draw card is armed, or the challenge makes every draw one. */
+  const choiceDrawOn = (st) => !!(st && st.perk && (st.perk.choiceDraw || (st.rules && st.rules.choiceDraws)));
   /** Whether Undo has a move to take back: never past a draw (random) or past a card played (only Rewind takes a card back). */
   function undoable() {
     const g = w.game;
@@ -291,6 +298,7 @@ export function initWordMode(ctx) {
       if (w.game.perks === undefined) w.game.perks = null;
       if (w.game.perks && !w.game.state.perk) w.game.state.perk = emptyPerk();
       if (w.game.daily === undefined) w.game.daily = null;
+      if (w.game.challenge === undefined) w.game.challenge = null;
       if (w.game.undoFloor > 0 && w.game.history[w.game.undoFloor - 1] && !w.game.history[w.game.undoFloor - 1].card) w.game.history[w.game.undoFloor - 1].card = 'played'; // a save from the undo-floor days: the card played there is a tag now
       delete w.game.undoFloor;
       if (w.game.pendingCard) {
@@ -299,17 +307,23 @@ export function initWordMode(ctx) {
         w.game.pendingCard = null;
         refund(paid, id);
       }
-      if (practiceOption() && w.game.mode !== 'daily') w.game.practice = true; // once played in practice mode, the board stays practice
+      if (practiceOption() && !NO_PRACTICE.has(w.game.mode)) w.game.practice = true; // once played in practice mode, the board stays practice
     } else {
       const daily = opts.mode === 'daily' ? dailySpec(isDailyKey(opts.day) ? opts.day : dailyKey()) : null; // a day's grid (today's unless told otherwise): the day decides its size, letters and draws
-      const size = daily ? daily.size : SIZES.includes(opts.size) ? opts.size : 5;
+      const ch = opts.mode === 'challenge' ? CHALLENGE_BY_ID[opts.challenge] || null : null; // a challenge: its fixed board, its rules and its effects; the draws are random
+      if (opts.mode === 'challenge' && !ch) return;
+      const size = daily ? daily.size : ch ? ch.size : SIZES.includes(opts.size) ? opts.size : 5;
       const level = opts.level || 1;
       // a level's board is chosen to fit its goal; the choice is usually made ahead of time
       const prepared = (opts.mode || 'free') === 'levels' && !opts.retry && opts.seed === undefined ? await takePrepared(level, size) : null;
-      const seed = daily ? daily.seed : prepared ? prepared.seed : (opts.seed ?? randomSeed());
+      const seed = daily ? daily.seed : ch ? ch.seed : prepared ? prepared.seed : (opts.seed ?? randomSeed());
       const drawSeed = daily ? daily.drawSeed : (opts.drawSeed ?? randomSeed());
-      const { board, bag } = dealLetters(seed, size);
-      const state = createWordState(board, bag, drawSeed);
+      let state;
+      if (ch) state = challengeState(ch, drawSeed);
+      else {
+        const { board, bag } = dealLetters(seed, size);
+        state = createWordState(board, bag, drawSeed);
+      }
       // perk cards: a new run starts one when the setting is on; the next level carries the run on; a
       // retry of a lost board gets the gold and the shop it had going in, but earns nothing
       let run = null;
@@ -339,8 +353,9 @@ export function initWordMode(ctx) {
         botWords: prepared ? prepared.botWords : null,
         history: [], // states to undo back to; emptied by a draw, since a draw cannot be undone
         replay: !!opts.replay,
-        practice: !daily && practiceOption(), // practice mode: Undo offered (and the words, if switched on); nothing saved to stats or the leaderboard
+        practice: !daily && !ch && practiceOption(), // practice mode: Undo offered (and the words, if switched on); nothing saved to stats or the leaderboard
         daily: daily ? daily.key : null, // the day a daily grid belongs to
+        challenge: ch ? ch.id : null, // the challenge this board plays
         retry: null, // a single-round replay of the board that ended a run: its goal stays on show
       };
       if (opts.retry) {
@@ -384,11 +399,12 @@ export function initWordMode(ctx) {
     else if (opts.retry) say(`Replaying the board that ended your run · goal ${opts.retry.goal} · not counted in stats`, '', 3500);
     else if (opts.replay) say('Replaying this board · not counted in your stats', '', 3000);
     else if (w.game.mode === 'daily') say(`${w.game.daily === dailyKey() ? "Today's" : w.game.daily === shiftDay(dailyKey(), -1) ? "Yesterday's" : w.game.daily} Daily Grid · the same board for everyone · one try`, '', 3500);
+    else if (challenge()) say(`${challenge().name} · ${challenge().tag} · no undo`, '', 5000);
     else if (practiceLive()) say(`Practice board · Undo on${wordsOption() ? ' · words shown' : ''} · not counted in stats`, '', 3500);
     else if (w.game.practice && w.game.mode !== 'daily') say('Practice board · not counted in stats', '', 3500); // marked practice earlier, the setting since switched off
     ensureBotData(w.game);
     const pk0 = w.game.state.perk;
-    if (pk0 && pk0.choiceDraw && pk0.choiceCell != null && canInteract()) openDraw3(pk0.choiceCell); // a Choice Draw left mid-choice: its three letters again, for the same tile
+    if (pk0 && choiceDrawOn(w.game.state) && pk0.choiceCell != null && canInteract()) openDraw3(pk0.choiceCell); // a Choice Draw left mid-choice: its three letters again, for the same tile
     if (isLevels() && !w.game.retry) prefetch(w.game.level + 1, w.game.size); // the next board is chosen while this one is played
     // a board saved in its last moment (full, or a level run out of turns) is scored straight away
     const st = w.game.state;
@@ -406,6 +422,7 @@ export function initWordMode(ctx) {
 
   function renderAll() {
     renderHud();
+    renderRule();
     renderBoard();
     renderBag();
     renderWords();
@@ -572,11 +589,49 @@ export function initWordMode(ctx) {
     renderGoalBar();
   }
 
+  /** The twist written over the board for the whole of a challenge. */
+  function renderRule() {
+    const ch = challenge();
+    const line = $('#w-rule');
+    line.hidden = !ch;
+    if (!ch) return;
+    $('#w-rule-name').textContent = `${ch.name}:`;
+    $('#w-rule-text').textContent = ch.tag;
+  }
+
+  /** The bar in a challenge: the score against the next trophy's target; a trophy reached lights it (play goes on). */
+  function renderChallengeBar(bar) {
+    const g = w.game;
+    const ch = challenge();
+    const score = finalScore(g.state);
+    const earned = trophyFor(ch, score);
+    const next = nextTarget(ch, score);
+    const has = !!ch.targets;
+    $('#w-goalbar-level').textContent = earned ? `${TROPHY_NAMES[earned]} ✓` : 'Challenge';
+    $('#w-goalbar-text').textContent = !has ? String(score) : next ? `${score} / ${next.value} ${next.name}` : `${score} · gold`;
+    const floor = !has ? 0 : earned ? ch.targets[['bronze', 'silver', 'gold'].indexOf(earned)] : 0; // the bar fills from the last trophy to the next
+    const p = !has ? 0 : next ? (score - floor) / Math.max(1, next.value - floor) : 1;
+    $('#w-goalbar-fill').style.setProperty('--p', String(Math.max(0, Math.min(1, p))));
+    bar.classList.toggle('reached', has && !next);
+    $('#w-advance').hidden = true;
+    if (earned && earned !== g.trophySeen && !w.over) {
+      // a trophy's target is passed mid-board: a flourish, and the board plays on for the next
+      g.trophySeen = earned;
+      persist();
+      bar.classList.add('celebrate');
+      setTimeout(() => bar.classList.remove('celebrate'), 800);
+      play('win');
+      say(`${TROPHY_NAMES[earned]} trophy reached${next ? ` · ${TROPHY_NAMES[next.name]} at ${next.value}` : ''}`, 'good', 3000);
+    }
+    bar.setAttribute('aria-label', `${ch.name}: score ${score}${earned ? `, ${earned} trophy reached` : ''}${next ? `, ${next.name} at ${next.value}` : ''}`);
+  }
+
   function renderGoalBar() {
     const g = w.game;
     const bar = $('#w-goalbar');
-    bar.hidden = !(g.mode === 'levels' || g.retry);
+    bar.hidden = !(g.mode === 'levels' || g.retry || challenge());
     if (bar.hidden) return;
+    if (challenge()) return renderChallengeBar(bar);
     const score = finalScore(g.state);
     $('#w-goalbar-level').textContent = g.retry ? `Level ${g.level} · retry` : `Level ${g.level}`;
     if (g.goal === null) {
@@ -1180,16 +1235,30 @@ export function initWordMode(ctx) {
     renderStrip();
     const menu = $('#w-tilemenu');
     const isWild = ch === WILD;
-    menu.querySelector('[data-act="nudge-down"]').hidden = isWild;
-    menu.querySelector('[data-act="nudge-up"]').hidden = isWild;
+    const r = rules();
+    const rotor = !!(r && r.rotor);
+    // a challenge may rule moves out: those items go; the Rotor challenge has an item of its own
+    const noNudge = isWild || !!moveRefusal(st, 'nudge');
+    menu.querySelector('[data-act="nudge-down"]').hidden = noNudge;
+    menu.querySelector('[data-act="nudge-up"]').hidden = noNudge;
     if (!isWild) {
       $('#tm-prev').textContent = nudgeLetter(ch, -1);
       $('#tm-next').textContent = nudgeLetter(ch, 1);
     }
-    menu.querySelector('[data-act="draw"]').disabled = bagTotal(st.bag) === 0;
+    const draw = menu.querySelector('[data-act="draw"]');
+    draw.hidden = !!moveRefusal(st, 'draw');
+    draw.disabled = bagTotal(st.bag) === 0;
     const pk = st.perk;
-    $('#tm-draw-sub').textContent = pk && pk.choiceDraw ? 'Pick of 3' : pk && pk.peek ? `Draw · ${peekDraws(st, 1)[0] || '?'}` : 'Draw';
-    menu.querySelector('[data-act="wild"]').hidden = !(locked && !isWild && st.turns + WILD_COST <= limit() && (st.wilds || 0) < MAX_WILDS);
+    $('#tm-draw-sub').textContent = choiceDrawOn(st) ? 'Pick of 3' : pk && pk.peek ? `Draw · ${peekDraws(st, 1)[0] || '?'}` : 'Draw';
+    menu.querySelector('[data-act="wild"]').hidden = !(locked && !isWild && st.turns + WILD_COST <= limit() && (st.wilds || 0) < MAX_WILDS && !moveRefusal(st, 'wild'));
+    const rotate = menu.querySelector('[data-act="rotate"]');
+    rotate.hidden = !rotor;
+    rotate.disabled = rotor && !rotateBlocks(st).includes(cell);
+    if (rotor && rotate.disabled) say('Rotor: hold the top-left tile of a 2×2 block of unlocked tiles', '', 2600);
+    if (Array.from(menu.querySelectorAll('.tm-btn')).every((b) => b.hidden)) {
+      w.menuCell = null;
+      return say(challenge() ? `${challenge().name}: ${challenge().tag}` : 'Nothing to do with this tile', '', 2600);
+    }
     menu.hidden = false;
     $('#w-menu-backdrop').hidden = false;
     tileEl(cell).classList.add('selected');
@@ -1242,14 +1311,59 @@ export function initWordMode(ctx) {
     if (act === 'nudge-down') doAction({ type: 'nudge', r, c, delta: -1 });
     else if (act === 'nudge-up') doAction({ type: 'nudge', r, c, delta: 1 });
     else if (act === 'draw') {
-      const pk = w.game.state.perk;
-      if (pk && pk.choiceDraw && pk.choiceCell != null && pk.choiceCell !== cell) {
+      const st = w.game.state;
+      const pk = st.perk;
+      if (choiceDrawOn(st) && pk.choiceCell != null && pk.choiceCell !== cell) {
         say('Choice Draw: pick one of the three letters for the tile you chose', 'bad', 2800); // the choice is committed to that tile
         openDraw3(pk.choiceCell);
-      } else if (pk && pk.choiceDraw) openDraw3(cell); // Choice Draw is armed: three letters, keep one
+      } else if (choiceDrawOn(st)) openDraw3(cell); // Choice Draw is armed (or every draw is one): three letters, keep one
       else doAction({ type: 'draw', r, c });
     }
     else if (act === 'wild') doAction({ type: 'wild', r, c });
+    else if (act === 'rotate') rotorTurn(cell);
+  }
+
+  /** The Rotor challenge's move: the 2×2 block whose top-left tile this is turns a quarter, half or three-quarter turn, previewed first. One turn. */
+  function rotorTurn(cell) {
+    const st = w.game.state;
+    if (!rotateBlocks(st).includes(cell)) return say('Hold the top-left tile of a 2×2 block of unlocked tiles', 'bad');
+    const n = grid().size;
+    const block = [cell, cell + 1, cell + n, cell + n + 1];
+    openPreview({
+      id: 'rotor',
+      title: 'Rotate',
+      kind: 'steps',
+      min: 1,
+      max: 3,
+      index: 1,
+      wrap: true,
+      labels: ['¼ turn', '½ turn', '¾ turn'],
+      note: () => 'Clockwise · one turn',
+      preview: (k) => ({ state: applyPerkAction(st, { type: 'rotate', cell, turns: k }), cells: block }),
+      onLock: (k) => doRotorTurn({ type: 'rotate', cell, turns: k }),
+      onCancel: () => {},
+    });
+  }
+
+  async function doRotorTurn(action) {
+    const g = w.game;
+    const before = g.state;
+    let next;
+    try {
+      next = applyPerkAction(before, action);
+    } catch (e) {
+      return say(e.message, 'bad');
+    }
+    g.history.push(snapshotForUndo(before));
+    g.state = next;
+    persist();
+    w.first = null;
+    w.pending = null;
+    w.animating = true;
+    await animatePerk(action, before, next);
+    w.animating = false;
+    renderAll();
+    afterTurn(next, 0);
   }
 
   // ---------------------------------------------------------------------------
@@ -2413,7 +2527,7 @@ export function initWordMode(ctx) {
     w.over = true;
     const perkGame = !!(g.perks && !g.perks.retry); // a run with perk cards: its own best level and its own leaderboard boards
     const handSnap = perkGame ? { gold: g.perks.levelStart.gold, deck: (g.perks.levelStart.deck || g.perks.deck).slice() } : g.retry && g.retry.perks ? g.retry.perks : null;
-    w.lastBoard = { seed: g.seed, drawSeed: g.drawSeed, size: g.size, retry: g.mode === 'levels' ? { level: g.level, goal: g.goal, botScore: g.botScore, perks: handSnap } : g.retry ? { ...g.retry, botScore: g.botScore } : null };
+    w.lastBoard = { seed: g.seed, drawSeed: g.drawSeed, size: g.size, challenge: g.challenge || null, retry: g.mode === 'levels' ? { level: g.level, goal: g.goal, botScore: g.botScore, perks: handSnap } : g.retry ? { ...g.retry, botScore: g.botScore } : null };
     w.pending = null;
     w.first = null;
     closeMenu();
@@ -2429,13 +2543,28 @@ export function initWordMode(ctx) {
     const boardKey = `${g.seed}:${g.drawSeed}`;
     const previousOnBoard = store.word.boards[boardKey];
     const beatBoard = previousOnBoard !== undefined && total > previousOnBoard;
-    if (!g.practice && !perkGame && (previousOnBoard === undefined || total > previousOnBoard)) store.word.boards[boardKey] = total;
+    const ch = challenge(); // a challenge keeps its own record (best score, best trophy) and sets no personal best
+    const chEarned = ch ? trophyFor(ch, total) : null;
+    let chRec = null;
+    let chNewBest = false;
+    if (!g.practice && !perkGame && !ch && (previousOnBoard === undefined || total > previousOnBoard)) store.word.boards[boardKey] = total;
     const passed = g.mode === 'levels' && total >= g.goal;
     let isBest = false;
     if (!g.replay && !g.practice) {
-      isBest = !perkGame && (store.word[bestKey] == null || total > store.word[bestKey]);
+      isBest = !perkGame && !ch && (store.word[bestKey] == null || total > store.word[bestKey]);
       if (isBest) store.word[bestKey] = total;
       store.word.gamesPlayed++;
+      if (ch) {
+        store.word.challenges ||= {};
+        const rec = store.word.challenges[ch.id] || { best: null, trophy: null, plays: 0 };
+        rec.plays = (rec.plays || 0) + 1;
+        rec.at = new Date().toISOString();
+        chNewBest = rec.best == null || total > rec.best;
+        if (chNewBest) rec.best = total;
+        rec.trophy = betterTrophy(chEarned, rec.trophy || null);
+        store.word.challenges[ch.id] = rec;
+        chRec = rec;
+      }
       if (g.mode === 'daily' && g.daily) {
         // the day's one try: kept per day (the last few days), and as the single field older code read
         const rec = { size: g.size, score: total, at: new Date().toISOString() };
@@ -2463,6 +2592,10 @@ export function initWordMode(ctx) {
       };
       if (g.runId) entry.runId = g.runId;
       if (g.daily) entry.daily = g.daily;
+      if (ch) {
+        entry.challenge = ch.id;
+        if (chEarned) entry.trophy = chEarned;
+      }
       if (perkGame) {
         entry.perks = true;
         // the cards played on this board, with the points each earned (the scoring cards; the rest show none)
@@ -2478,7 +2611,7 @@ export function initWordMode(ctx) {
     // the leaderboard hears about every finished board; replays, retries and practice never count, a perk run
     // goes to the perk boards, a daily grid to its day's board as well, and the name question waits for a
     // board whose result is on screen
-    if (ctx.leaderboard) {
+    if (ctx.leaderboard && !ch) {
       ctx.leaderboard.afterBoard({
         size: g.size,
         score: total,
@@ -2515,8 +2648,13 @@ export function initWordMode(ctx) {
       if (g.mode === 'daily') title = 'Daily Grid';
     }
     if (g.practice) line = `${levelsRun ? (passed ? `Goal ${g.goal} reached` : `Reached level ${g.level}`) + ' · ' : ''}Practice board · not counted in stats`;
-    play(levelsRun ? (passed ? 'fanfare' : 'fail') : isBoardFull(st) ? 'fanfare' : 'lock');
-    w.shareText = (levelsRun ? `Level ${g.level} ${passed ? 'passed' : 'failed'} · ` : g.retry ? `Level ${g.retry.level} retry · ` : g.mode === 'daily' ? `Daily Grid ${g.daily} · ` : '') + wordShareLine(total, st.words, g.size === 6 ? 'GridLock 6×6' : 'GridLock');
+    if (ch) {
+      const next = nextTarget(ch, total);
+      title = chEarned ? `${TROPHY_NAMES[chEarned]} trophy!` : 'Challenge over';
+      line = [ch.name, chEarned ? `${TROPHY_NAMES[chEarned]} trophy` : 'no trophy', next ? `${TROPHY_NAMES[next.name]} at ${next.value}` : ch.targets ? 'the top trophy' : 'targets to come', chNewBest ? 'new best' : `best ${chRec ? chRec.best : total}`].join(' · ');
+    }
+    play(ch ? (chEarned ? 'fanfare' : 'lock') : levelsRun ? (passed ? 'fanfare' : 'fail') : isBoardFull(st) ? 'fanfare' : 'lock');
+    w.shareText = (ch ? `${ch.name} challenge${chEarned ? ` · ${TROPHY_NAMES[chEarned]}` : ''} · ` : levelsRun ? `Level ${g.level} ${passed ? 'passed' : 'failed'} · ` : g.retry ? `Level ${g.retry.level} retry · ` : g.mode === 'daily' ? `Daily Grid ${g.daily} · ` : '') + wordShareLine(total, st.words, g.size === 6 ? 'GridLock 6×6' : 'GridLock');
     const showNext = levelsRun && passed && !g.replay;
     w.nextLevel = passed ? g.level + 1 : 1;
     renderHud();
@@ -2531,9 +2669,10 @@ export function initWordMode(ctx) {
       board: st,
       next: showNext,
       again: !showNext && g.mode !== 'daily', // the daily grid is one try
-      againText: levelsRun || g.retry ? 'New run' : 'New board',
+      againText: levelsRun || g.retry ? 'New run' : ch ? 'Play again' : 'New board',
       lb: g.mode === 'daily' && !g.replay ? g.daily : null, // the trophy: that day's leaderboard
-      replay: !(showNext || (g.retry && total >= g.goal)), // a lost board can be retried; a beaten retry cannot
+      replay: ch ? true : !(showNext || (g.retry && total >= g.goal)), // a lost board can be retried; a beaten retry cannot; a challenge's button goes to the list
+      replayText: ch ? 'Challenges' : null,
     });
   }
 
@@ -2548,7 +2687,7 @@ export function initWordMode(ctx) {
       { label: plural(st.words.length, 'word'), value: st.score - perkPts, pop: 'words' },
       { label: plural(st.locked.length, 'tile'), value: bonus, cls: bonus ? 'pos' : '', pop: 'tiles' },
     ];
-    if (st.perk && (perkPts || (st.perk.log || []).length)) rows.splice(1, 0, { label: 'perks', value: perkPts, cls: 'pos perk', pop: 'perks' });
+    if (st.perk && (perkPts || (st.perk.log || []).length)) rows.splice(1, 0, { label: isChallenge() ? 'twist' : 'perks', value: perkPts, cls: 'pos perk', pop: 'perks' }); // a challenge's twist pays like a card
     if (turnBonus) rows.push({ label: `${plural(Math.max(0, turnLimit(st) - st.turns), 'turn')} left`, value: turnBonus, cls: 'pos' });
     if (penalty) rows.push({ label: `${plural(COVERAGE_TARGET - st.locked.length, 'tile')} short`, value: -penalty, signed: true, cls: 'neg' });
     return rows;
@@ -2613,7 +2752,7 @@ export function initWordMode(ctx) {
     $('#w-again').textContent = data.againText || 'New board';
     $('#w-replay').hidden = !data.replay;
     $('#w-result-lb').hidden = !data.lb;
-    $('#w-replay').textContent = data.lb ? 'Replay' : 'Replay board'; // four buttons share the row when the trophy is there
+    $('#w-replay').textContent = data.replayText || (data.lb ? 'Replay' : 'Replay board'); // four buttons share the row when the trophy is there
     w.resultDay = data.lb || null;
     $('#screen-word').classList.add('sheet-up');
     openSheet(sheet);
@@ -2914,11 +3053,20 @@ export function initWordMode(ctx) {
   $('#w-again').addEventListener('click', () => {
     const g = w.game;
     const size = g ? g.size : 5;
-    if (g && (g.mode === 'levels' || g.retry)) start(false, { mode: 'levels', level: 1, size });
+    if (g && g.mode === 'challenge') start(false, { mode: 'challenge', challenge: g.challenge });
+    else if (g && (g.mode === 'levels' || g.retry)) start(false, { mode: 'levels', level: 1, size });
     else start(false, { mode: 'free', size });
   });
   $('#w-replay').addEventListener('click', () => {
     const b = w.lastBoard;
+    if (b && b.challenge) {
+      // after a challenge the button leads back to the list
+      cancelGesture();
+      closeTilePop();
+      closeSheet($('#w-result'));
+      if (w.over) w.game = null;
+      return ctx.showChallenges();
+    }
     if (b) start(false, { mode: 'free', seed: b.seed, drawSeed: b.drawSeed, size: b.size, replay: true, retry: b.retry });
   });
   $('#w-home').addEventListener('click', () => {
