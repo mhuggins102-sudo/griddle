@@ -1,7 +1,7 @@
 # Handoff notes (session of 15 Nov 2026, updated 18 Nov)
 
-18 Nov: Rewind steps back a turn at a time, restoring the board, the gold and the shop as they were when that
-turn began (cards bought since are refunded and back in the shop); every card play now leaves a tagged history snapshot and the old `undoFloor` is gone. Hint lights the
+18 Nov: Rewind steps back through cards played as well as moves and unplays them (gold refunded, card back in
+the shop); every card play now leaves a tagged history snapshot and the old `undoFloor` is gone. Hint lights the
 best lockable word for the rest of the level. New cards Lock (lock one tile, 5) and Diagonal Swap (corner-to-corner
 swaps for the level, 5); Gold Rush costs 5. 31 cards, 86 tests; the perks and shop probes cover the new cards.
 

@@ -2290,28 +2290,15 @@ export function initWordMode(ctx) {
     say('Fresh Deal: a new board for the same goal', 'good', 3000);
   }
 
-  /** The card a history snapshot was left by, if it was bought for that play: tagged on it, or (a save from before the tag) the card tag itself. */
-  const boughtOn = (h) => h.bought || (h.card && h.card !== 'played' && CARD_BY_ID[h.card] ? h.card : null);
-  const paidOn = (h) => (h.paid !== undefined ? h.paid : costOf(CARD_BY_ID[boughtOn(h)]));
-
-  /**
-   * Rewind, bought as a card: the player steps back a turn at a time and locks in. A turn is the run of
-   * snapshots sharing a turn count (the cards bought during it, then its move), and going back to a turn
-   * lands before the first of them: the board, the gold and the shop exactly as they were when it began.
-   */
+  /** Rewind, bought as a card: the player steps back through the level's turns, cards played included, and locks in. */
   function perkRewind(paid = 0) {
     const g = w.game;
-    const h = g.history;
-    if (!h.length) return refund(paid, 'rewind'); // the shop dims the card when there is nothing to take back
+    const n = g.history.length;
+    if (!n) return refund(paid, 'rewind'); // the shop dims the card when there is nothing to take back
     cancelGesture();
     armCard('rewind', paid); // while the panel is open the card is in play: Home, a pass or a reload put it back, refunded, like any targeted card
-    const starts = []; // where each turn back begins in the history, newest turn first
-    for (let i = h.length - 1; i >= 0; i--) if (i === 0 || h[i - 1].turns !== h[i].turns) starts.push(i);
-    const n = starts.length;
-    const at = (k) => (k ? h[starts[k - 1]] : g.state); // the board k turns back
-    const unplayed = (k) => (k ? h.slice(starts[k - 1]).filter(boughtOn) : []); // the cards those turns would unplay
-    const goldAfter = (k) => g.perks.gold + unplayed(k).reduce((a, x) => a + paidOn(x), 0); // the Rewind's own price is already paid
-    const turnOf = (s) => Math.min(s.turns + 1, turnLimit(s));
+    const at = (k) => (k ? g.history[g.history.length - k] : g.state); // the board k steps back
+    const cardsIn = (k) => g.history.slice(g.history.length - k).filter((h) => h.bought).length; // cards those steps would unplay
     openPreview({
       id: 'rewind',
       title: 'Rewind',
@@ -2320,37 +2307,35 @@ export function initWordMode(ctx) {
       max: n,
       index: 1,
       reverse: true, // ◀ goes further back, ▶ comes forward again
-      prevLabel: 'One turn earlier',
-      nextLabel: 'One turn later',
-      labels: Array.from({ length: n + 1 }, (_, k) => (k === 0 ? 'As it is now' : k === n ? 'Start of the level' : at(k).turns === g.state.turns ? 'Start of this turn' : `Back to turn ${turnOf(at(k))}`)),
+      prevLabel: 'One step earlier',
+      nextLabel: 'One step later',
+      labels: Array.from({ length: n + 1 }, (_, k) => (k === 0 ? 'As it is now' : k === n ? 'Start of the level' : `${k} step${k === 1 ? '' : 's'} back`)),
       note: (k) => {
         const s = at(k);
-        const cards = unplayed(k).length;
-        return `Turn ${turnOf(s)} of ${turnLimit(s)} · ${s.score} points · ◆ ${goldAfter(k)}${cards ? ` · ${cards} card${cards === 1 ? '' : 's'} back in the shop` : ''}`;
+        const cards = cardsIn(k);
+        return `Turn ${Math.min(s.turns + 1, turnLimit(s))} of ${turnLimit(s)} · ${s.score} points${cards ? ` · ${cards} card${cards === 1 ? '' : 's'} back in the shop` : ''}`;
       },
       preview: (k) => ({ state: at(k) }),
       extra: { label: 'Start over', fn: () => setPreviewIndex(n), disabled: (k) => k === n },
       canLock: (k) => k > 0,
-      onLock: (k) => rewindSteps(h.length - starts[k - 1], k === n ? 'the start of the level' : at(k).turns === g.state.turns ? 'the start of this turn' : `turn ${turnOf(at(k))}`),
+      onLock: (k) => rewindSteps(k),
       onCancel: cancelPerk,
     });
   }
 
   /**
-   * Take back that many snapshots, newest first: the oldest becomes the state again; a draw among them rerolls
-   * the bag's next letter, and every card bought in them is unplayed (its gold comes back and it returns to the
-   * shop). where names the turn gone back to, for the strip.
+   * Take back that many steps: the snapshots come off the history, newest first; a draw among them rerolls the
+   * bag's next letter, and a card bought in them is unplayed (its gold comes back and it returns to the shop).
    */
-  function rewindSteps(count, where = '') {
+  function rewindSteps(steps) {
     const g = w.game;
     let prev = null;
     let rerolled = false;
     const unplayed = [];
-    for (let i = 0; i < count && g.history.length; i++) {
+    for (let i = 0; i < steps && g.history.length; i++) {
       prev = g.history.pop();
       if (prev.undoneDraw) rerolled = true;
-      const id = boughtOn(prev);
-      if (id) unplayed.push({ id, paid: paidOn(prev) });
+      if (prev.bought) unplayed.push({ id: prev.bought, paid: prev.paid });
     }
     if (!prev) return;
     for (const tag of ['undoneDraw', 'card', 'bought', 'paid', 'record']) delete prev[tag]; // the snapshot becomes the state again
@@ -2359,9 +2344,9 @@ export function initWordMode(ctx) {
     g.state = prev;
     disarmCard();
     spendCard('rewind');
-    for (const c of unplayed) {
-      if (c.id === 'gold-rush') g.perks.goldRush = false; // the one card whose effect lives outside the board state
-      refund(c.paid, c.id);
+    for (const h of unplayed) {
+      if (h.id === 'gold-rush') g.perks.goldRush = false; // the one card whose effect lives outside the board state
+      refund(h.paid !== undefined ? h.paid : costOf(CARD_BY_ID[h.id]), h.id);
     }
     w.first = null;
     w.pending = null;
@@ -2369,7 +2354,7 @@ export function initWordMode(ctx) {
     renderAll();
     play('undo');
     const n = unplayed.length;
-    say(`Rewind: back to ${where || 'the last turn'}${n ? `, ${n} card${n === 1 ? '' : 's'} back in the shop` : ''}`, 'good', 2500);
+    say(`${steps === 1 ? 'Rewind: the last step is taken back' : `Rewind: ${steps} steps taken back`}${n ? `, ${n} card${n === 1 ? '' : 's'} back in the shop` : ''}`, 'good', 2500);
   }
 
   /** The word a Hint in play lights up: the highest-scoring word that could be locked on this board, or null (no Hint, or nothing to lock). */
