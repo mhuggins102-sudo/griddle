@@ -692,7 +692,7 @@ svg { display: block; }
 
 /* Challenges: the list of fixed boards with a twist, each with its three trophies */
 .challenges-screen { gap: 10px; }
-.ch-top { display: flex; align-items: center; gap: 8px; padding: 4px 2px 0; }
+.ch-top { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 8px; padding: 10px 2px 8px; margin: -10px 0 0; background: var(--bg); box-shadow: 0 8px 8px -8px rgba(0, 0, 0, 0.18); }
 .ch-top h2 { margin: 0 auto 0 0; font-size: 22px; }
 .ch-count { color: var(--muted); font-weight: 700; font-variant-numeric: tabular-nums; margin-right: 4px; }
 .ch-intro { margin: 0 2px; color: var(--muted); font-size: 13.5px; line-height: 1.35; }
@@ -710,6 +710,8 @@ svg { display: block; }
 .medal.won.silver { background: #b9bcc4; border-color: #8e929c; }
 .medal.won.gold { background: #e5b530; border-color: #bf9315; }
 .ch-row .medal.won { box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12); }
+.goalbar-text .medal, .rs-badge .medal { width: 15px; height: 15px; vertical-align: -1px; }
+.rs-badge .medal { margin-right: 5px; }
 
 /* The 5x5 board sits on a tray; gestures happen here */
 .word-board-wrap { display: block; }
