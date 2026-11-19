@@ -293,6 +293,12 @@ export function initWordMode(ctx) {
       if (w.game.daily === undefined) w.game.daily = null;
       if (w.game.undoFloor > 0 && w.game.history[w.game.undoFloor - 1] && !w.game.history[w.game.undoFloor - 1].card) w.game.history[w.game.undoFloor - 1].card = 'played'; // a save from the undo-floor days: the card played there is a tag now
       delete w.game.undoFloor;
+      if (w.game.pendingCard) {
+        // a card bought and still being aimed (or Rewind's panel still open) when the page was left: its gold comes back and it returns to the shop
+        const { id, paid } = w.game.pendingCard;
+        w.game.pendingCard = null;
+        refund(paid, id);
+      }
       if (practiceOption() && w.game.mode !== 'daily') w.game.practice = true; // once played in practice mode, the board stays practice
     } else {
       const daily = opts.mode === 'daily' ? dailySpec(isDailyKey(opts.day) ? opts.day : dailyKey()) : null; // a day's grid (today's unless told otherwise): the day decides its size, letters and draws
@@ -1468,10 +1474,26 @@ export function initWordMode(ctx) {
         break;
     }
     // a card that needs a target: the board lights up the tiles it can take (cancelling refunds a shop price)
-    w.perk = { id, picked: [], paid };
+    armCard(id, paid);
     renderBoard();
     renderStrip();
     play('tap');
+  }
+
+  /** A bought card waits for its target (or, for Rewind, its step): aimed on the board, and remembered on the save so a reload refunds it. */
+  function armCard(id, paid) {
+    w.perk = { id, picked: [], paid };
+    w.game.pendingCard = { id, paid };
+    persist();
+  }
+
+  /** The card being aimed resolved or was put back: nothing pending on the save. */
+  function disarmCard() {
+    w.perk = null;
+    if (w.game && w.game.pendingCard) {
+      w.game.pendingCard = null;
+      persist();
+    }
   }
 
   /** Resolve a card's board action on the spot: the state moves on, the card is spent, the board redraws. */
@@ -1512,7 +1534,7 @@ export function initWordMode(ctx) {
     const record = next.turns === before.turns; // a no-turn card (a square, a sticker, a lock) changed only what is in play, no move for Fresh Deal
     g.history.push(Object.assign(w.perk ? cardSnapshot(before, id, w.perk.paid, record) : snapshotForUndo(before), random ? { undoneDraw: true } : {}, id ? { card: id } : {}));
     g.state = next;
-    w.perk = null;
+    disarmCard();
     if (id && !opts.keepCard) spendCard(id);
     persist();
     w.first = null;
@@ -1698,7 +1720,7 @@ export function initWordMode(ctx) {
   function cancelPerk() {
     if (!w.perk) return;
     const { paid, id } = w.perk;
-    w.perk = null;
+    disarmCard();
     w.preview = null;
     if (w.game) {
       renderBoard();
@@ -1714,7 +1736,7 @@ export function initWordMode(ctx) {
   function dropTargeting() {
     if (!w.perk) return;
     const { paid, id } = w.perk;
-    w.perk = null;
+    disarmCard();
     w.preview = null;
     clearTargeting();
     refund(paid, id);
@@ -2274,6 +2296,7 @@ export function initWordMode(ctx) {
     const n = g.history.length;
     if (!n) return refund(paid, 'rewind'); // the shop dims the card when there is nothing to take back
     cancelGesture();
+    armCard('rewind', paid); // while the panel is open the card is in play: Home, a pass or a reload put it back, refunded, like any targeted card
     const at = (k) => (k ? g.history[g.history.length - k] : g.state); // the board k steps back
     const cardsIn = (k) => g.history.slice(g.history.length - k).filter((h) => h.bought).length; // cards those steps would unplay
     openPreview({
@@ -2296,7 +2319,7 @@ export function initWordMode(ctx) {
       extra: { label: 'Start over', fn: () => setPreviewIndex(n), disabled: (k) => k === n },
       canLock: (k) => k > 0,
       onLock: (k) => rewindSteps(k),
-      onCancel: () => refund(paid, 'rewind'),
+      onCancel: cancelPerk,
     });
   }
 
@@ -2317,7 +2340,9 @@ export function initWordMode(ctx) {
     if (!prev) return;
     for (const tag of ['undoneDraw', 'card', 'bought', 'paid', 'record']) delete prev[tag]; // the snapshot becomes the state again
     if (rerolled) prev.rngState = randomSeed(); // a draw was taken back: the next letter is rolled afresh, not simply dealt again
+    if (prev.perk && prev.perk.choiceCell != null) prev.perk.choiceCell = null; // a Choice Draw taken back mid-choice: its letters are rerolled, so the tile is open again
     g.state = prev;
+    disarmCard();
     spendCard('rewind');
     for (const h of unplayed) {
       if (h.id === 'gold-rush') g.perks.goldRush = false; // the one card whose effect lives outside the board state
