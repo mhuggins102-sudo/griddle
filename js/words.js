@@ -2,7 +2,9 @@
 // Pure functions, no DOM. The dictionary is a Map from upper-case word (3 to 6 letters) to its rank by
 // everyday frequency (0 = most common), so a wild tile resolves to the word a player most likely means.
 // Boards are 5x5 (20 turns, words of 3 to 5 letters) or 6x6 (25 turns, words of 3 to 6 letters);
-// a state carries its size and every function reads the geometry from it.
+// a state carries its size and every function reads the geometry from it. A challenge's rules ride on
+// state.rules (see js/challenges.js): a turn count, which moves are allowed and what they cost, and which
+// words count; the engine, the bot and the screen all read them from there.
 
 import { mulberry32, rngNext, shuffle } from './rng.js';
 import { gridOf, gridOfState, sizeOfBoard, MIN_WORD } from './grid.js';
@@ -45,9 +47,10 @@ export function sizeOf(state) {
   return state.size || sizeOfBoard(state.board);
 }
 
-/** Turns available on this board: 20 or 25, plus any turns a perk card added (which count like any other). */
+/** Turns available on this board: 20 or 25 (or what a challenge's rules say), plus any turns a perk card added (which count like any other). */
 export function turnLimit(state) {
-  return (TURNS_BY_SIZE[sizeOf(state)] || WORD_TURNS) + ((state.perk && state.perk.extraTurns) || 0);
+  const base = state.rules && state.rules.turns ? state.rules.turns : TURNS_BY_SIZE[sizeOf(state)] || WORD_TURNS;
+  return base + ((state.perk && state.perk.extraTurns) || 0);
 }
 
 export function coverageBonus(lockedCount, size = 5) {
@@ -82,9 +85,20 @@ export function finalScore(state) {
   return Math.max(0, projectedScore(state));
 }
 
-/** Turns an action will consume. */
-export function actionCost(action) {
-  return action.type === 'wild' ? WILD_COST : 1;
+/** Turns an action will consume: one, two for a wild, none for a slide, swap or nudge under a challenge's free-moves rule. */
+export function actionCost(action, state = null) {
+  if (action.type === 'wild') return WILD_COST;
+  if (state && state.rules && state.rules.freeMoves && (action.type === 'slide' || action.type === 'swap' || action.type === 'nudge')) return 0;
+  return 1;
+}
+
+const MOVE_NAMES = { slide: 'Flicks', swap: 'Swaps', nudge: 'Nudges', draw: 'Draws', wild: 'Wilds' };
+
+/** Why a challenge's rules refuse this kind of move, or '' when it is allowed (every move is, without rules). */
+export function moveRefusal(state, type) {
+  const allowed = state.rules && state.rules.moves;
+  if (!allowed || allowed.includes(type)) return '';
+  return `${MOVE_NAMES[type] || 'Moves like that'} are off in this challenge`;
 }
 
 /** Scrabble letter values. Wild tiles score 0. */
@@ -148,7 +162,9 @@ export function validateWordAction(state, action) {
   const g = gridOfState(state);
   const { inRange, idx } = g;
   const limit = turnLimit(state);
-  const cost = actionCost(action);
+  const refused = moveRefusal(state, action.type);
+  if (refused) throw new Error(refused);
+  const cost = actionCost(action, state);
   if (state.turns + cost > limit) throw new Error(cost > 1 ? `That needs ${cost} turns` : 'No turns left');
   switch (action.type) {
     case 'slide': {
@@ -195,7 +211,7 @@ export function nudgeLetter(ch, delta) {
 export function applyWordAction(state, action) {
   validateWordAction(state, action);
   const { idx } = gridOfState(state);
-  const next = { ...state, size: sizeOf(state), board: state.board.slice(), bag: { ...state.bag }, locked: state.locked.slice(), words: state.words.slice(), turns: state.turns + actionCost(action) };
+  const next = { ...state, size: sizeOf(state), board: state.board.slice(), bag: { ...state.bag }, locked: state.locked.slice(), words: state.words.slice(), turns: state.turns + actionCost(action, state) };
   delete next.lastDraw;
   switch (action.type) {
     case 'slide': {
@@ -304,6 +320,41 @@ export function lockConflict(state, word, cells, dict = null) {
     if (w.cells.every((c) => cells.includes(c)) && sameWordInflected(word, w.word, dict)) return `${word} is just ${w.word} with an ending`;
   }
   if (cells.every((c) => state.locked.includes(c))) return 'a new word needs at least one unlocked tile';
+  return wordRuleReason(state, word, cells);
+}
+
+/**
+ * Why a challenge's word rules (state.rules.words) refuse a word on these cells (in the word's reading order),
+ * or '' when it counts: minLen / exactLen, backward (read right to left or bottom to top), lines ('row',
+ * 'col', 'diag' or 'edge': the whole word along one side of the board), through (a cell every word must
+ * use), chain (after the first word, every word crosses a locked word), fresh (no locked tile at all) and
+ * doubleLetter. Nothing without rules.
+ */
+export function wordRuleReason(state, word, cells) {
+  const r = state.rules && state.rules.words;
+  if (!r) return '';
+  const g = gridOfState(state);
+  const n = cells.length;
+  const first = cells[0];
+  const last = cells[n - 1];
+  if (r.minLen && n < r.minLen) return `only words of ${r.minLen} letters or more count here`;
+  if (r.exactLen && n !== r.exactLen) return `only ${r.exactLen}-letter words count here`;
+  if (r.backward && first < last) return 'only backwards words count here: right to left, or bottom to top';
+  const dr = g.rowOf(last) - g.rowOf(first);
+  const dc = g.colOf(last) - g.colOf(first);
+  const kind = dr === 0 ? 'row' : dc === 0 ? 'col' : 'diag';
+  if (r.lines === 'diag' && kind !== 'diag') return 'only diagonal words count here';
+  if (r.lines === 'row' && kind !== 'row') return 'only words along a row count here';
+  if (r.lines === 'col' && kind !== 'col') return 'only words down a column count here';
+  if (r.lines === 'edge') {
+    const edge = g.size - 1;
+    const along = (f) => cells.every((c) => f(c));
+    if (!(along((c) => g.rowOf(c) === 0) || along((c) => g.rowOf(c) === edge) || along((c) => g.colOf(c) === 0) || along((c) => g.colOf(c) === edge))) return 'only words along the edge of the board count here';
+  }
+  if (r.through !== undefined && r.through !== null && !cells.includes(r.through)) return 'only words through the centre tile count here';
+  if (r.chain && state.words.length && !cells.some((c) => state.locked.includes(c))) return 'every word after the first must cross a locked word here';
+  if (r.fresh && cells.some((c) => state.locked.includes(c))) return 'a word may use no locked tile here';
+  if (r.doubleLetter && !/([A-Z])\1/.test(word)) return 'only words with a double letter count here';
   return '';
 }
 

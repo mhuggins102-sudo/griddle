@@ -9,6 +9,7 @@ import { initWordMode } from './wordui.js';
 import { initTutorial } from './tutorial.js';
 import { initLeaderboard, bestReachedBySize, seedReached } from './leaderboard.js';
 import { dailyKey, shiftDay, dailyRecords, dailyTarget } from './daily.js';
+import { CHALLENGES, CHALLENGE_BY_ID, challengeRecords, trophyCount, TROPHIES, TROPHY_NAMES } from './challenges.js';
 import { openSheet, closeSheet } from './sheet.js';
 import { setSoundEnabled, setSoundStyle, audioState } from './sound.js';
 import { TURNS_BY_SIZE } from './words.js';
@@ -93,6 +94,7 @@ async function boot() {
   const perkList = () => { $('#help-perk-cards').innerHTML = CARDS.map((c) => `<li><b>${escapeHtml(c.name)}</b> <span class="perk-cost">◆ ${cardCost(c, boardSize())}</span> · <small>${escapeHtml(FAMILIES[c.family])}</small><br>${escapeHtml(cardText(c, boardSize()))}</li>`).join(''); };
   perkList();
   for (const r of document.querySelectorAll('input[name="opt-size"]')) r.addEventListener('change', perkList);
+  $('#help-challenges').innerHTML = CHALLENGES.map((c) => `<li><b>${escapeHtml(c.name)}</b> · ${escapeHtml(c.tag)}${c.targets ? ` <span class="perk-cost">${c.targets.join(' / ')}</span>` : ''}<br>${escapeHtml(c.text)}</li>`).join('');
   try {
     const res = await fetch('data/puzzles.json', { cache: 'no-cache' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -109,7 +111,7 @@ async function boot() {
   ui.tutorial = initTutorial();
   seedReached(ui.store.word); // the per-size top levels catch up with the history; the next save keeps it
   ui.leaderboard = initLeaderboard({ store: ui.store, saveStore, showToast, boardSize, perksOn: () => !!ui.store.settings.perks });
-  ui.word = initWordMode({ store: ui.store, saveStore, showScreen, showHome, showToast, openHelp, openTutorial: (size, opts) => ui.tutorial.open(size, opts), leaderboard: ui.leaderboard });
+  ui.word = initWordMode({ store: ui.store, saveStore, showScreen, showHome, showChallenges, showToast, openHelp, openTutorial: (size, opts) => ui.tutorial.open(size, opts), leaderboard: ui.leaderboard });
   showHome();
 }
 
@@ -141,6 +143,9 @@ function showHome() {
   $('#btn-word').classList.toggle('btn-primary', live === 'levels');
   $('#btn-free').classList.toggle('btn-primary', live === 'free');
   $('#btn-daily').classList.toggle('btn-primary', live === 'daily');
+  $('#btn-challenges').classList.toggle('btn-primary', live === 'challenge');
+  const tc = trophyCount(s.word);
+  $('#challenges-sub').textContent = live === 'challenge' ? `${describeSaved(g)} · Continue` : tc.total ? `${tc.total} of ${tc.of} trophies won` : `${tc.of} fixed boards with a twist · trophies to win`;
   $('#word-sub').textContent = live === 'levels' ? `${describeSaved(g)} · Continue` : s.settings.perks ? 'Levels with a goal to beat · perk cards' : 'Levels with a goal to beat';
   $('#free-sub').textContent = live === 'free' ? `${describeSaved(g)} · Continue` : 'One board, no goal';
   // the daily grid: today's until it is played (or given up), then yesterday's if that one was missed, then
@@ -160,7 +165,39 @@ function showHome() {
   if (!g && ui.word) ui.word.prefetch(1, boardSize()); // a new run's first board is chosen while the player is here
 }
 
-const MODE_NAMES = { levels: 'Multi Round', free: 'Single Round', daily: 'Daily Grid' };
+const MODE_NAMES = { levels: 'Multi Round', free: 'Single Round', daily: 'Daily Grid', challenge: 'Challenge' };
+
+/** The Challenges page: every challenge with its twist, its targets, the device's best and the trophies won; the one in progress is marked. */
+function renderChallenges() {
+  const recs = challengeRecords(ui.store.word);
+  const g = ui.store.wordGame;
+  const tc = trophyCount(ui.store.word);
+  $('#ch-count').textContent = `${tc.total} / ${tc.of}`;
+  $('#ch-count').title = `${tc.gold} gold, ${tc.silver} silver, ${tc.bronze} bronze`;
+  const list = $('#ch-list');
+  list.innerHTML = CHALLENGES.map((c) => {
+    const r = recs[c.id];
+    const live = !!(g && g.state && g.mode === 'challenge' && g.challenge === c.id);
+    const held = r && r.trophy ? TROPHIES.indexOf(r.trophy) : -1;
+    const medals = TROPHIES.map((t, i) => `<i class="medal ${t}${i <= held ? ' won' : ''}" title="${TROPHY_NAMES[t]}${c.targets ? ` at ${c.targets[i]}` : ''}"></i>`).join('');
+    const targets = c.targets ? `Bronze ${c.targets[0]} · Silver ${c.targets[1]} · Gold ${c.targets[2]}` : 'Targets to come';
+    const standing = live ? 'In progress · Continue' : r && r.best != null ? `Best ${r.best}` : 'Not played yet';
+    const won = r && r.trophy ? `${TROPHY_NAMES[r.trophy]} trophy` : '';
+    return `<button type="button" class="ch-row${live ? ' live' : ''}" data-id="${c.id}" role="listitem" aria-label="${escapeHtml(c.name)}: ${escapeHtml(c.tag)}. ${standing}${won ? `, ${won}` : ''}"><span class="ch-main"><span class="ch-name">${escapeHtml(c.name)}</span><span class="ch-tag">${escapeHtml(c.tag)}</span><span class="ch-meta">${standing} · ${targets}</span></span><span class="ch-medals" aria-hidden="true">${medals}</span></button>`;
+  }).join('');
+  for (const b of list.querySelectorAll('.ch-row')) b.addEventListener('click', () => chooseMode('challenge', b.dataset.id));
+}
+
+function showChallenges() {
+  renderChallenges();
+  showScreen('screen-challenges');
+}
+
+/** A saved challenge's name (the catalogue's, or the id for one no longer listed). */
+function savedChallengeName(g) {
+  const c = g && g.challenge ? CHALLENGE_BY_ID[g.challenge] : null;
+  return c ? c.name : g && g.challenge ? String(g.challenge) : 'Challenge';
+}
 
 /** A saved game in a line: size, where it stands, the score, the gold, practice. */
 function describeSaved(g) {
@@ -168,14 +205,15 @@ function describeSaved(g) {
   const lim = (TURNS_BY_SIZE[size] || 20) + ((g.state.perk && g.state.perk.extraTurns) || 0);
   const turn = Math.min((g.state.turns || 0) + 1, lim);
   const perks = g.perks && !g.perks.retry ? ` · ◆ ${g.perks.gold}` : '';
-  const where = g.mode === 'levels' ? `Level ${g.level || 1} · ` : g.replay ? 'Replay · ' : '';
+  const where = g.mode === 'levels' ? `Level ${g.level || 1} · ` : g.mode === 'challenge' ? `${savedChallengeName(g)} · ` : g.replay ? 'Replay · ' : '';
   return `${size === 6 ? '6×6 · ' : ''}${where}turn ${turn} of ${lim} · ${g.state.score || 0} points${perks}${g.practice && g.mode !== 'daily' ? ' · practice' : ''}`;
 }
 
 /** Start a fresh game of a mode; the saved game, if any, is gone by now. The daily is today's grid, or yesterday's once today's is done. */
-function startMode(mode) {
+function startMode(mode, id = null) {
   ui.store.wordGame = null;
   if (mode === 'levels') ui.word.start(false, { mode: 'levels', level: 1, size: boardSize() });
+  else if (mode === 'challenge') ui.word.start(false, { mode: 'challenge', challenge: id });
   else if (mode === 'daily') ui.word.start(false, { mode: 'daily', day: dailyTarget(ui.store.word) || dailyKey() });
   else ui.word.start(false, { mode: 'free', size: boardSize() });
 }
@@ -192,20 +230,21 @@ function giveUpSaved() {
   saveStore(ui.store);
 }
 
-let resumeChoice = null; // the mode the player pressed while a game was saved
+let resumeChoice = null; // the mode (and challenge) the player pressed while a game was saved
 
 /**
  * A mode button was pressed. With nothing saved the game starts; today's daily grid in progress simply
  * carries on (it is one try, never restarted); otherwise a sheet offers to continue the saved game or to
  * start the chosen one instead.
  */
-function chooseMode(mode) {
+function chooseMode(mode, id = null) {
   const g = ui.store.wordGame;
-  if (!g || !g.state) return startMode(mode);
+  if (!g || !g.state) return startMode(mode, id);
   if (mode === 'daily' && g.mode === 'daily' && (g.daily === dailyKey() || g.daily === shiftDay(dailyKey(), -1))) return ui.word.start(true); // a daily in progress is only ever continued
-  const saved = MODE_NAMES[g.mode] || 'Game';
+  if (mode === 'challenge' && g.mode === 'challenge' && g.challenge === id) return ui.word.start(true); // the challenge in progress carries on
+  const saved = g.mode === 'challenge' ? `${savedChallengeName(g)} challenge` : MODE_NAMES[g.mode] || 'Game';
   const dailySaved = g.mode === 'daily' && g.daily;
-  resumeChoice = mode;
+  resumeChoice = { mode, id };
   $('#resume-title').textContent = `${saved} in progress`;
   // the day named as the home screen and the leaderboard name it; giving a daily up spends that day's one try, whatever the day
   const dayName = !dailySaved ? '' : g.daily === dailyKey() ? "Today's" : g.daily === shiftDay(dailyKey(), -1) ? "Yesterday's" : `${g.daily}'s`;
@@ -213,7 +252,8 @@ function chooseMode(mode) {
   $('#resume-detail').textContent = (dailySaved ? `${dayName} grid · ` : '') + describeSaved(g) + (dailySaved ? `. Giving it up counts as ${tryOf} try.` : '');
   $('#btn-resume-continue').textContent = `Continue ${saved}`;
   const target = dailyTarget(ui.store.word);
-  $('#btn-resume-new').textContent = mode === g.mode ? (mode === 'levels' ? 'Start a new run' : mode === 'daily' ? `Start ${target === dailyKey() ? "today's" : "yesterday's"} grid` : 'Start a new board') : `Start ${MODE_NAMES[mode]} instead`;
+  const chosen = mode === 'challenge' ? `the ${CHALLENGE_BY_ID[id] ? CHALLENGE_BY_ID[id].name : ''} challenge` : MODE_NAMES[mode];
+  $('#btn-resume-new').textContent = mode === g.mode && mode !== 'challenge' ? (mode === 'levels' ? 'Start a new run' : mode === 'daily' ? `Start ${target === dailyKey() ? "today's" : "yesterday's"} grid` : 'Start a new board') : `Start ${chosen} instead`;
   openSheet($('#resume'));
 }
 
@@ -741,7 +781,7 @@ function tilesHtml(sum, withCards) {
 /** The recent boards, folded away until asked for, so the sheet opens at the same size whatever the filter. */
 function recentHtml(entries) {
   const rows = entries.slice(0, 40)
-    .map((g) => `<li><span>${g.size === 6 ? '6×6 · ' : ''}${g.perks ? '◆ ' : ''}${g.mode === 'levels' ? `L${g.level} ${g.passed ? '✓' : '✗'} ` : g.mode === 'daily' ? 'Daily ' : ''}${g.score}${g.goal ? ` / ${g.goal}` : ''} · ${g.words.length ? g.words.map((x) => escapeHtml(x.word)).join(', ') : 'no words'}</span><span>${new Date(g.at).toLocaleDateString()}</span></li>`)
+    .map((g) => `<li><span>${g.size === 6 ? '6×6 · ' : ''}${g.perks ? '◆ ' : ''}${g.mode === 'levels' ? `L${g.level} ${g.passed ? '✓' : '✗'} ` : g.mode === 'daily' ? 'Daily ' : g.mode === 'challenge' ? `${CHALLENGE_BY_ID[g.challenge] ? CHALLENGE_BY_ID[g.challenge].name : 'Challenge'}${g.trophy ? ` ${TROPHY_NAMES[g.trophy]}` : ''} ` : ''}${g.score}${g.goal ? ` / ${g.goal}` : ''} · ${g.words.length ? g.words.map((x) => escapeHtml(x.word)).join(', ') : 'no words'}</span><span>${new Date(g.at).toLocaleDateString()}</span></li>`)
     .join('');
   return `<details class="stats-recent"${stats.recentOpen ? ' open' : ''}><summary><span>Recent games</span><small>${entries.length ? `${Math.min(entries.length, 40)} of ${entries.length}` : 'none'}</small></summary>${rows ? `<ul class="stat-list">${rows}</ul>` : '<p class="stats-empty">No boards match.</p>'}</details>`;
 }
@@ -758,7 +798,7 @@ function renderStats() {
   // the filters: board size, then whether perk cards were on (shown once any perk run exists)
   let html = `<div class="stats-filters">${seg('stats-size', stats.size, [['all', 'All sizes'], [5, '5×5'], [6, '6×6']], 'Board size')}${anyPerks ? seg('stats-perks', stats.perks, [['all', 'All games'], ['off', 'No cards'], ['on', 'Perk cards']], 'Perk cards') : ''}</div>`;
   const entries = statsEntries();
-  const sum = statsSummary(entries, stats);
+  const sum = statsSummary(entries.filter((g) => g.mode !== 'challenge'), stats); // challenges keep their own records; they stay in the recent list
   const withCards = stats.perks !== 'off' && entries.some((g) => g.perks);
   html += tilesHtml(sum, withCards);
   html += recentHtml(entries);
@@ -881,11 +921,14 @@ function wireEvents() {
     ui.word.start(true);
   });
   $('#btn-resume-new').addEventListener('click', () => {
-    const mode = resumeChoice;
+    const choice = resumeChoice;
     closeResume();
     giveUpSaved();
-    if (mode) startMode(mode);
+    if (choice) startMode(choice.mode, choice.id);
   });
+  $('#btn-challenges').addEventListener('click', showChallenges);
+  $('#ch-home').addEventListener('click', showHome);
+  $('#ch-help').addEventListener('click', openHelp);
   $('#btn-resume-close').addEventListener('click', closeResume);
   $('#resume').addEventListener('click', (e) => {
     if (e.target === $('#resume')) closeResume();

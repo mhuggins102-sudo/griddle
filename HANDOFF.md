@@ -1,5 +1,9 @@
 # Handoff notes (session of 15 Nov 2026, updated 18 Nov)
 
+19 Nov: Challenges (home button, page of 38 fixed 5x5 boards with a twist, three trophies each; engine rules in
+`state.rules`, catalogue in `js/challenges.js`, targets from `tools/calibrate-challenges.js`, bot in `js/challengebot.js`;
+probe `.scratch/challenges.cjs`). 6x6 challenges are the next step the user asked for.
+
 18 Nov: Rewind steps back through cards played as well as moves and unplays them (gold refunded, card back in
 the shop); every card play now leaves a tagged history snapshot and the old `undoFloor` is gone. Hint lights the
 best lockable word for the rest of the level. New cards Lock (lock one tile, 5) and Diagonal Swap (corner-to-corner
