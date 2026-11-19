@@ -26,14 +26,7 @@
         <p class="tagline" id="tagline"><span>Slide, swap, and nudge letters.</span> <span>Lock words to score.</span></p>
         <div class="home-buttons">
           <button id="btn-daily" class="btn btn-big"><span class="btn-main">Daily Grid</span><span class="btn-sub" id="daily-sub">Same for everyone • One try</span></button>
-        </div>
-        <div class="home-buttons">
-          <div class="seg" role="radiogroup" aria-label="Board size">
-            <label><input type="radio" name="opt-size" id="opt-size-5" value="5" checked><span>5×5<small>20 turns</small></span></label>
-            <label><input type="radio" name="opt-size" id="opt-size-6" value="6"><span>6×6<small>25 turns</small></span></label>
-          </div>
-          <button id="btn-word" class="btn btn-big"><span class="btn-main">Multi Round</span><span class="btn-sub" id="word-sub">Levels with a goal to beat</span></button>
-          <button id="btn-free" class="btn btn-big"><span class="btn-main">Single Round</span><span class="btn-sub" id="free-sub">One board, no goal</span></button>
+          <button id="btn-freeplay" class="btn btn-big"><span class="btn-main">Free Play</span><span class="btn-sub" id="freeplay-sub">Multi Round or Single Round · 5×5 or 6×6</span></button>
           <button id="btn-challenges" class="btn btn-big"><span class="btn-main">Challenges</span><span class="btn-sub" id="challenges-sub">Boards with a twist · trophies to win</span></button>
           <div class="btn-row four">
             <button id="btn-help-home" class="btn">How to play</button>
@@ -430,6 +423,22 @@
       </div>
     </div>
 
+    <!-- Free Play sheet: the board size, then Multi Round or Single Round -->
+    <div id="freeplay" class="sheet" hidden>
+      <div class="sheet-body">
+        <div class="sheet-head"><h2>Free Play</h2><button id="btn-freeplay-close" class="btn btn-icon" aria-label="Close">✕</button></div>
+        <div class="sheet-scroll freeplay-scroll">
+          <div class="seg" role="radiogroup" aria-label="Board size">
+            <label><input type="radio" name="opt-size" id="opt-size-5" value="5" checked><span>5×5<small>20 turns</small></span></label>
+            <label><input type="radio" name="opt-size" id="opt-size-6" value="6"><span>6×6<small>25 turns</small></span></label>
+          </div>
+          <button id="btn-word" class="btn btn-big"><span class="btn-main">Multi Round</span><span class="btn-sub" id="word-sub">Levels with a goal to beat</span></button>
+          <button id="btn-free" class="btn btn-big"><span class="btn-main">Single Round</span><span class="btn-sub" id="free-sub">One board, no goal</span></button>
+        </div>
+        <div class="sheet-foot"><button id="btn-freeplay-cancel" class="btn btn-wide">Cancel</button></div>
+      </div>
+    </div>
+
     <!-- Help sheet: the rules in chapters -->
     <div id="help" class="sheet" hidden>
       <div class="sheet-body">
@@ -439,7 +448,7 @@
           <details class="chapter" open>
             <summary><span class="chapter-num">1</span><span class="chapter-title">The idea</span></summary>
             <div class="chapter-body">
-              <p>You get a grid of letter tiles and a fixed number of turns: a <strong>5×5</strong> board with <strong>20 turns</strong>, or a <strong>6×6</strong> board with <strong>25 turns</strong> (pick on the home screen). Every move costs one turn (Wild costs two).</p>
+              <p>You get a grid of letter tiles and a fixed number of turns: a <strong>5×5</strong> board with <strong>20 turns</strong>, or a <strong>6×6</strong> board with <strong>25 turns</strong> (pick under Free Play on the home screen). Every move costs one turn (Wild costs two).</p>
               <p>Rearrange the grid into words, <strong>lock</strong> the words in to bank their points, and lock as many tiles as you can before the turns run out. The score counts at the end of the board; the header always shows it as it stands.</p>
               <p><strong>Multi Round</strong> is a run of levels, each with a goal score to reach: the moment your score reaches it the level is passed and play on that board stops. <strong>Single Round</strong> is one board with no goal. The <strong>Daily Grid</strong> is one board a day, the same for everyone, 5×5 or 6×6 as the day decides, with one try at it and a leaderboard of its own.</p>
             </div>

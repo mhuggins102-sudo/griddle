@@ -148,6 +148,9 @@ function showHome() {
   $('#btn-free').classList.toggle('btn-primary', live === 'free');
   $('#btn-daily').classList.toggle('btn-primary', live === 'daily');
   $('#btn-challenges').classList.toggle('btn-primary', live === 'challenge');
+  // Free Play gathers the size switch, Multi Round and Single Round in a sheet; the home button carries a game in progress
+  $('#btn-freeplay').classList.toggle('btn-primary', live === 'levels' || live === 'free');
+  $('#freeplay-sub').textContent = live === 'levels' || live === 'free' ? `${MODE_NAMES[live]} · ${describeSaved(g)} · Continue` : 'Multi Round or Single Round · 5×5 or 6×6';
   const tc = trophyCount(s.word);
   $('#challenges-sub').textContent = live === 'challenge' ? `${describeSaved(g)} · Continue` : tc.total ? `${tc.total} of ${tc.of} trophies won` : `${tc.of} challenges · trophies to win`;
   $('#word-sub').textContent = live === 'levels' ? `${describeSaved(g)} · Continue` : s.settings.perks ? 'Levels with a goal to beat · perk cards' : 'Levels with a goal to beat';
@@ -917,8 +920,20 @@ function wireEvents() {
     startNewGame();
   });
   $('#btn-continue').addEventListener('click', continueGame);
-  $('#btn-word').addEventListener('click', () => chooseMode('levels'));
-  $('#btn-free').addEventListener('click', () => chooseMode('free'));
+  $('#btn-freeplay').addEventListener('click', () => openSheet($('#freeplay')));
+  $('#btn-freeplay-close').addEventListener('click', () => closeSheet($('#freeplay')));
+  $('#btn-freeplay-cancel').addEventListener('click', () => closeSheet($('#freeplay')));
+  $('#freeplay').addEventListener('click', (e) => {
+    if (e.target === $('#freeplay')) closeSheet($('#freeplay'));
+  });
+  $('#btn-word').addEventListener('click', () => {
+    closeSheet($('#freeplay'));
+    chooseMode('levels');
+  });
+  $('#btn-free').addEventListener('click', () => {
+    closeSheet($('#freeplay'));
+    chooseMode('free');
+  });
   $('#btn-daily').addEventListener('click', () => chooseMode('daily'));
   $('#btn-resume-continue').addEventListener('click', () => {
     closeResume();
