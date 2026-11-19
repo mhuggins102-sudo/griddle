@@ -149,7 +149,7 @@ function showHome() {
   $('#btn-daily').classList.toggle('btn-primary', live === 'daily');
   $('#btn-challenges').classList.toggle('btn-primary', live === 'challenge');
   const tc = trophyCount(s.word);
-  $('#challenges-sub').textContent = live === 'challenge' ? `${describeSaved(g)} · Continue` : tc.total ? `${tc.total} of ${tc.of} trophies won` : `${tc.of} fixed boards with a twist · trophies to win`;
+  $('#challenges-sub').textContent = live === 'challenge' ? `${describeSaved(g)} · Continue` : tc.total ? `${tc.total} of ${tc.of} trophies won` : `${tc.of} challenges · trophies to win`;
   $('#word-sub').textContent = live === 'levels' ? `${describeSaved(g)} · Continue` : s.settings.perks ? 'Levels with a goal to beat · perk cards' : 'Levels with a goal to beat';
   $('#free-sub').textContent = live === 'free' ? `${describeSaved(g)} · Continue` : 'One board, no goal';
   // the daily grid: today's until it is played (or given up), then yesterday's if that one was missed, then

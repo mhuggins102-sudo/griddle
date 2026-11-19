@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Challenge calibration: the challenge bot plays each challenge many times (the board fixed, the draws random)
+// Challenge calibration: the challenge bot plays each challenge many times (a fresh board and fresh draws each time)
 // and the score distribution sets the trophy targets. Prints a table; --write stores the targets in
 // js/challenge-targets.js and the distributions (every score) in data/challenge-calibration.json.
 //   node tools/calibrate-challenges.js [--games 200] [--id lucky-dip,stamp] [--write] [--threads 4]
@@ -26,8 +26,9 @@ if (!isMainThread) {
     const scores = [];
     const t0 = Date.now();
     for (let k = 0; k < games; k++) {
+      const seed = Math.floor(rng() * 4294967296) >>> 0;
       const drawSeed = Math.floor(rng() * 4294967296) >>> 0;
-      const r = botPlayChallenge(challengeState(ch, drawSeed), dict, drawSeed ^ 0x9e3779b9);
+      const r = botPlayChallenge(challengeState(ch, seed, drawSeed), dict, drawSeed ^ 0x9e3779b9);
       scores.push(r.score);
     }
     parentPort.postMessage({ id, scores, ms: Date.now() - t0 });

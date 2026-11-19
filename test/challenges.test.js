@@ -100,39 +100,42 @@ test('the catalogue: unique ids, every challenge deals a playable board under it
   assert.equal(new Set(CHALLENGES.map((c) => c.id)).size, 38);
   for (const c of CHALLENGES) {
     assert.ok(c.name && c.tag && c.text, c.id);
-    const st = challengeState(c, 99);
+    const st = challengeState(c, 7, 99);
     assert.equal(st.board.length, 25, c.id);
     assert.ok(Object.values(st.bag).every((n) => n >= 0), `${c.id}: bag counts`);
     assert.ok(st.board.every((t) => t === WILD || LETTER_VALUES[t]), `${c.id}: letters`);
     assert.equal(st.turns, 0);
     if (c.targets) assert.ok(c.targets[0] < c.targets[1] && c.targets[1] < c.targets[2], `${c.id}: targets climb`);
-    const same = challengeState(c, 5);
-    assert.deepEqual(same.board, st.board, `${c.id}: the board is fixed`);
+    const same = challengeState(c, 7, 5);
+    assert.deepEqual(same.board, st.board, `${c.id}: the same seed deals the same board`);
     assert.equal(same.rngState, 5, 'the draws follow the draw seed');
+    assert.notDeepEqual(challengeState(c, 8, 5).board, st.board, `${c.id}: another seed deals another board`);
   }
-  const words = (c) => findWords(challengeState(c, 1), dict).filter((w) => w.lockable);
+  const words = (c) => findWords(challengeState(c, 3, 1), dict).filter((w) => w.lockable);
   assert.ok(words(CHALLENGE_BY_ID.mirror).length > 0 && words(CHALLENGE_BY_ID.mirror).every((w) => w.cells[0] > w.cells[w.cells.length - 1]));
   assert.ok(words(CHALLENGE_BY_ID.slant).length > 0);
 });
 
 test('deals: vowels, bags, Qs, wilds, boulders and the locked word', () => {
-  const drought = challengeState(CHALLENGE_BY_ID.drought, 1);
-  assert.ok(drought.board.every((t) => !VOWELS.includes(t)));
+  for (let seed = 1; seed <= 6; seed++) assert.ok(challengeState(CHALLENGE_BY_ID.drought, seed, 1).board.every((t) => !VOWELS.includes(t)), `drought seed ${seed}`);
+  const drought = challengeState(CHALLENGE_BY_ID.drought, 1, 1);
   assert.ok(VOWELS.some((v) => drought.bag[v] > 0), 'the bag still has vowels');
-  const dry = challengeState(CHALLENGE_BY_ID['dry-well'], 1);
+  const dry = challengeState(CHALLENGE_BY_ID['dry-well'], 1, 1);
   assert.ok(VOWELS.every((v) => dry.bag[v] === 0) && bagTotal(dry.bag) > 20);
-  const flood = challengeState(CHALLENGE_BY_ID['vowel-flood'], 1);
+  const flood = challengeState(CHALLENGE_BY_ID['vowel-flood'], 1, 1);
   assert.ok(Object.entries(flood.bag).every(([ch, n]) => n === 0 || VOWELS.includes(ch)) && bagTotal(flood.bag) > 20);
-  const heavy = challengeState(CHALLENGE_BY_ID['heavy-metal'], 1);
+  const heavy = challengeState(CHALLENGE_BY_ID['heavy-metal'], 1, 1);
   assert.ok(Object.entries(heavy.bag).every(([ch, n]) => n === 0 || LETTER_VALUES[ch] >= 4) && bagTotal(heavy.bag) === 26);
-  const penny = challengeState(CHALLENGE_BY_ID['penny-tiles'], 1);
+  const penny = challengeState(CHALLENGE_BY_ID['penny-tiles'], 1, 1);
   assert.ok(penny.board.every((t) => LETTER_VALUES[t] === 1) && Object.entries(penny.bag).every(([ch, n]) => n === 0 || LETTER_VALUES[ch] === 1));
-  assert.equal(bagTotal(challengeState(CHALLENGE_BY_ID['what-you-see'], 1).bag), 0);
-  assert.throws(() => applyWordAction(challengeState(CHALLENGE_BY_ID['what-you-see'], 1), { type: 'draw', r: 0, c: 0 }), /empty/);
-  const q = challengeState(CHALLENGE_BY_ID.quandary, 1);
-  assert.equal(q.board.filter((t) => t === 'Q').length, 3);
-  assert.ok(!q.board.includes('U') && q.bag.U === 0);
-  const stamp = challengeState(CHALLENGE_BY_ID.stamp, 1);
+  assert.equal(bagTotal(challengeState(CHALLENGE_BY_ID['what-you-see'], 1, 1).bag), 0);
+  assert.throws(() => applyWordAction(challengeState(CHALLENGE_BY_ID['what-you-see'], 1, 1), { type: 'draw', r: 0, c: 0 }), /empty/);
+  for (let seed = 1; seed <= 6; seed++) {
+    const q = challengeState(CHALLENGE_BY_ID.quandary, seed, 1);
+    assert.equal(q.board.filter((t) => t === 'Q').length, 3, `quandary seed ${seed}`);
+    assert.ok(!q.board.includes('U') && q.bag.U === 0);
+  }
+  const stamp = challengeState(CHALLENGE_BY_ID.stamp, 1, 1);
   assert.equal(stamp.bag.S, 30);
   assert.equal(bagTotal(stamp.bag), 30);
   const stamped = applyWordAction(stamp, { type: 'draw', r: 0, c: 0 });
@@ -142,33 +145,34 @@ test('deals: vowels, bags, Qs, wilds, boulders and the locked word', () => {
   let fl = flood;
   for (let k = 0; k < 6; k++) fl = applyWordAction(fl, { type: 'draw', r: 0, c: k % 5 });
   assert.ok(Object.entries(fl.bag).every(([ch, n]) => n === 0 || VOWELS.includes(ch)), 'Vowel Flood keeps consonants out of the bag');
-  assert.equal(applyWordAction(challengeState(CHALLENGE_BY_ID.blitz, 1), { type: 'draw', r: 0, c: 0 }).bag[challengeState(CHALLENGE_BY_ID.blitz, 1).board[0]], challengeState(CHALLENGE_BY_ID.blitz, 1).bag[challengeState(CHALLENGE_BY_ID.blitz, 1).board[0]] + 1, 'without a bag rule the tossed letter goes back');
-  const jokers = challengeState(CHALLENGE_BY_ID['three-jokers'], 1);
+  const blitz = challengeState(CHALLENGE_BY_ID.blitz, 1, 1);
+  assert.equal(applyWordAction(blitz, { type: 'draw', r: 0, c: 0 }).bag[blitz.board[0]], blitz.bag[blitz.board[0]] + 1, 'without a bag rule the tossed letter goes back');
+  const jokers = challengeState(CHALLENGE_BY_ID['three-jokers'], 1, 1);
   assert.deepEqual([6, 13, 16].map((c) => jokers.board[c]), [WILD, WILD, WILD]);
   assert.ok(findWords(jokers, dict).some((w) => w.cells.includes(6)), 'a word can read through a wild');
   assert.equal(jokers.wilds, 0, 'the player may still make one wild');
-  const boulders = challengeState(CHALLENGE_BY_ID.boulders, 1);
+  const boulders = challengeState(CHALLENGE_BY_ID.boulders, 1, 1);
   assert.deepEqual(boulders.locked, [1, 8, 12, 16, 23]);
   assert.equal(boulders.words.length, 0);
   assert.throws(() => applyWordAction(boulders, { type: 'swap', r: 0, c: 0, r2: 0, c2: 1 }), /Locked/);
-  const build = challengeState(CHALLENGE_BY_ID['build-around'], 1);
+  const build = challengeState(CHALLENGE_BY_ID['build-around'], 1, 1);
   assert.deepEqual(build.board.slice(10, 15), ['W', 'A', 'L', 'T', 'Z']);
   assert.deepEqual(build.locked, [10, 11, 12, 13, 14]);
   assert.equal(build.score, 32);
   assert.equal(build.words[0].word, 'WALTZ');
   assert.equal(finalScore(build), 32);
   assert.ok(findWords(build, dict).every((w) => w.word !== 'WALTZ' || !w.lockable), 'the banked word cannot be locked again');
-  const hot = challengeState(CHALLENGE_BY_ID['hot-spots'], 1);
+  const hot = challengeState(CHALLENGE_BY_ID['hot-spots'], 1, 1);
   assert.deepEqual(hot.perk.stickers, { 6: 5, 8: 5, 16: 5, 18: 5 });
-  const prem = challengeState(CHALLENGE_BY_ID['premium-squares'], 1);
+  const prem = challengeState(CHALLENGE_BY_ID['premium-squares'], 1, 1);
   assert.equal(prem.perk.squares[0], 3);
   assert.equal(prem.perk.squares[12], 2);
-  assert.equal(challengeState(CHALLENGE_BY_ID.clairvoyant, 1).perk.peek, true);
-  assert.equal(challengeState(CHALLENGE_BY_ID['pick-of-three'], 1).perk.choiceDraw, true);
-  assert.equal(turnLimit(challengeState(CHALLENGE_BY_ID.blitz, 1)), 12);
-  assert.equal(turnLimit(challengeState(CHALLENGE_BY_ID.marathon, 1)), 32);
-  assert.equal(turnLimit(challengeState(CHALLENGE_BY_ID['eight-words'], 1)), 8);
-  const dealt = dealChallenge(CHALLENGE_BY_ID.slant);
+  assert.equal(challengeState(CHALLENGE_BY_ID.clairvoyant, 1, 1).perk.peek, true);
+  assert.equal(challengeState(CHALLENGE_BY_ID['pick-of-three'], 1, 1).perk.choiceDraw, true);
+  assert.equal(turnLimit(challengeState(CHALLENGE_BY_ID.blitz, 1, 1)), 12);
+  assert.equal(turnLimit(challengeState(CHALLENGE_BY_ID.marathon, 1, 1)), 32);
+  assert.equal(turnLimit(challengeState(CHALLENGE_BY_ID['eight-words'], 1, 1)), 8);
+  const dealt = dealChallenge(CHALLENGE_BY_ID.slant, 1);
   assert.equal(dealt.locked, null);
 });
 
@@ -201,7 +205,7 @@ test('trophies: thresholds, the next target, the better of two, the count', () =
 });
 
 test('the challenge bot keeps to each challenge\'s rules', () => {
-  const play = (id, seed = 3) => botPlayChallenge(challengeState(CHALLENGE_BY_ID[id], seed), dict, seed, { noise: 0 });
+  const play = (id, seed = 3) => botPlayChallenge(challengeState(CHALLENGE_BY_ID[id], seed, seed), dict, seed, { noise: 0 });
   const dip = play('lucky-dip');
   assert.ok(dip.log.every((l) => l.startsWith('lock') || l.startsWith('draw')), dip.log.join(' | '));
   assert.ok(dip.log.some((l) => l.startsWith('draw')), 'it draws');
@@ -220,6 +224,6 @@ test('the challenge bot keeps to each challenge\'s rules', () => {
   assert.ok(still.log.every((l) => !l.startsWith('draw')));
   for (const c of CHALLENGES) {
     const r = play(c.id, 11);
-    assert.ok(r.score >= 0 && r.turnsUsed <= turnLimit(challengeState(c, 11)), c.id);
+    assert.ok(r.score >= 0 && r.turnsUsed <= turnLimit(challengeState(c, 11, 11)), c.id);
   }
 });

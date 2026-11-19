@@ -1,6 +1,6 @@
-// Challenges: fixed 5x5 boards, each with a twist, played for three trophies (bronze, silver, gold) against
-// fixed target scores. The board is always the same (dealt from the challenge's seed) but the draws are random,
-// so a challenge can be replayed; there is no undo. A twist is one of: a perk card's effect on for the whole
+// Challenges: 5x5 boards with a twist, played for three trophies (bronze, silver, gold) against fixed target
+// scores. The board is dealt afresh every time (from a seed the game draws, under the challenge's deal rule) and
+// the draws are random too, so only the twist is fixed; there is no undo. A twist is one of: a perk card's effect on for the whole
 // board (state.perk flags, squares, stickers), a deal rule (which letters the board and the bag hold, wild
 // tiles, locked tiles), or a rule the engine enforces from state.rules (turns, the moves allowed and what
 // they cost, which words count). Pure data and helpers, used by the game, the Challenges page and the
@@ -8,7 +8,7 @@
 
 import { LETTERS, LETTER_COUNTS, LETTER_VALUES, WILD, createWordState, scoreWord, cellKey } from './words.js';
 import { emptyPerk } from './perks.js';
-import { mulberry32, shuffle, hashString } from './rng.js';
+import { mulberry32, shuffle } from './rng.js';
 import { TARGETS } from './challenge-targets.js';
 
 export const VOWELS = ['A', 'E', 'I', 'O', 'U'];
@@ -20,8 +20,8 @@ export const TROPHY_NAMES = { bronze: 'Bronze', silver: 'Silver', gold: 'Gold' }
 
 /**
  * The catalogue. tag is the twist in a line (shown in the list and over the board), text says a little
- * more. rules go into state.rules, perk into state.perk, deal shapes the board and the bag. A seed is hashed
- * from the id unless given. targets come from challenge-targets.js.
+ * more. rules go into state.rules, perk into state.perk, deal shapes the board and the bag. targets come from
+ * challenge-targets.js.
  */
 const LIST = [
   // a perk card's effect on for the whole board
@@ -68,7 +68,7 @@ const LIST = [
   { id: 'build-around', name: 'Build Around', tag: 'WALTZ is locked across the middle, its points banked', text: 'The middle row starts as the locked word WALTZ, worth 32. Everything else is built through or around it.', deal: { lockedWord: { row: 2, word: 'WALTZ' } } },
 ];
 
-export const CHALLENGES = LIST.map((c) => ({ size: 5, ...c, seed: c.seed ?? hashString(`gridlock-challenge:${c.id}`), targets: TARGETS[c.id] || null }));
+export const CHALLENGES = LIST.map((c) => ({ size: 5, ...c, targets: TARGETS[c.id] || null }));
 export const CHALLENGE_BY_ID = Object.fromEntries(CHALLENGES.map((c) => [c.id, c]));
 
 /** One weighted draw from a bag (counts per letter), with the generator; null when the bag is empty. Not the engine's draw. */
@@ -88,14 +88,14 @@ function takeFromBag(bag, rng, skip = []) {
 }
 
 /**
- * The board and the bag a challenge starts from, dealt from its seed with its deal rule applied, plus any
- * tiles locked (and word banked) before play: { board, bag, locked, words, score }.
+ * The board and the bag a challenge starts from: dealt from a seed with the challenge's deal rule applied, plus
+ * any tiles locked (and word banked) before play: { board, bag, locked, words, score }.
  */
-export function dealChallenge(ch) {
+export function dealChallenge(ch, seed) {
   const d = ch.deal || {};
   const size = ch.size || 5;
   const cells = size * size;
-  const rng = mulberry32(ch.seed >>> 0);
+  const rng = mulberry32(seed >>> 0);
   const tiles = [];
   for (const [letter, n] of Object.entries(LETTER_COUNTS)) for (let k = 0; k < n; k++) tiles.push(letter);
   shuffle(tiles, rng);
@@ -153,9 +153,9 @@ export function dealChallenge(ch) {
   return { board, bag, locked, words, score };
 }
 
-/** The play state a challenge starts from: its board and bag, its rules, its perk effects and anything locked before play. drawSeed decides the draws. */
-export function challengeState(ch, drawSeed = 0) {
-  const { board, bag, locked, words, score } = dealChallenge(ch);
+/** The play state a challenge starts from: a board and bag dealt from seed under its deal rule, its rules, its perk effects and anything locked before play. drawSeed decides the draws. */
+export function challengeState(ch, seed, drawSeed = 0) {
+  const { board, bag, locked, words, score } = dealChallenge(ch, seed);
   const state = createWordState(board, bag, drawSeed);
   if (locked) state.locked = locked.slice();
   if (words) state.words = words.map((w) => ({ ...w, cells: w.cells.slice() }));

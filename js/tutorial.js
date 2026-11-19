@@ -201,7 +201,7 @@ export function initTutorial() {
       : opts.mode === 'daily'
         ? '<p>This is the <strong>Daily Grid</strong>: one board, the same for everyone today, and one try at it. Score as much as you can before the turns run out.</p>'
         : opts.mode === 'challenge'
-          ? '<p>This is a <strong>Challenge</strong>: a fixed board with a twist, written over the board, played for a bronze, silver or gold trophy. Score as much as you can before the turns run out.</p>'
+          ? '<p>This is a <strong>Challenge</strong>: a board with a twist, written over the board, played for a bronze, silver or gold trophy. Score as much as you can before the turns run out.</p>'
         : '<p>This is a <strong>Single Round</strong>: no goal, just score as much as you can before the turns run out.</p>';
     return [
       {

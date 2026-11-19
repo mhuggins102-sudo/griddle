@@ -310,16 +310,16 @@ export function initWordMode(ctx) {
       if (practiceOption() && !NO_PRACTICE.has(w.game.mode)) w.game.practice = true; // once played in practice mode, the board stays practice
     } else {
       const daily = opts.mode === 'daily' ? dailySpec(isDailyKey(opts.day) ? opts.day : dailyKey()) : null; // a day's grid (today's unless told otherwise): the day decides its size, letters and draws
-      const ch = opts.mode === 'challenge' ? CHALLENGE_BY_ID[opts.challenge] || null : null; // a challenge: its fixed board, its rules and its effects; the draws are random
+      const ch = opts.mode === 'challenge' ? CHALLENGE_BY_ID[opts.challenge] || null : null; // a challenge: a fresh board dealt under its rule, its effects; the draws are random
       if (opts.mode === 'challenge' && !ch) return;
       const size = daily ? daily.size : ch ? ch.size : SIZES.includes(opts.size) ? opts.size : 5;
       const level = opts.level || 1;
       // a level's board is chosen to fit its goal; the choice is usually made ahead of time
       const prepared = (opts.mode || 'free') === 'levels' && !opts.retry && opts.seed === undefined ? await takePrepared(level, size) : null;
-      const seed = daily ? daily.seed : ch ? ch.seed : prepared ? prepared.seed : (opts.seed ?? randomSeed());
+      const seed = daily ? daily.seed : prepared ? prepared.seed : (opts.seed ?? randomSeed());
       const drawSeed = daily ? daily.drawSeed : (opts.drawSeed ?? randomSeed());
       let state;
-      if (ch) state = challengeState(ch, drawSeed);
+      if (ch) state = challengeState(ch, seed, drawSeed);
       else {
         const { board, bag } = dealLetters(seed, size);
         state = createWordState(board, bag, drawSeed);
