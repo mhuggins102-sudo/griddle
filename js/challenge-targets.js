@@ -1,13 +1,14 @@
 // Trophy thresholds per challenge, as [bronze, silver, gold]. Written by tools/calibrate-challenges.js from the
 // challenge bot's score distribution (see that tool for the percentiles used); edit by hand after play-testing.
+// A line with a comment carries a hand addition on top of the bot's figures, for a twist the bot does not use.
 export const TARGETS = {
   'slant-bonus': [175, 210, 235],
-  'corner-cutter': [165, 195, 215],
+  'corner-cutter': [175, 210, 235], // the bot's figures plus 10 / 15 / 20: a twist it does not use, a player can
   'open-field': [175, 205, 235],
   'crossroads': [175, 205, 230],
   'small-change': [180, 205, 230],
   'long-haul': [170, 210, 235],
-  'clairvoyant': [165, 190, 225],
+  'clairvoyant': [173, 200, 237], // the bot's figures plus 8 / 10 / 12: a twist it does not use, a player can
   'pick-of-three': [175, 200, 225],
   'hot-spots': [200, 230, 260],
   'premium-squares': [190, 225, 245],
@@ -17,11 +18,11 @@ export const TARGETS = {
   'drought': [110, 135, 160],
   'dry-well': [160, 190, 210],
   'vowel-flood': [160, 190, 215],
-  'heavy-metal': [160, 190, 215],
+  'heavy-metal': [170, 205, 235], // the bot's figures plus 10 / 15 / 20: a twist it does not use, a player can
   'penny-tiles': [160, 190, 215],
   'what-you-see': [160, 190, 225],
   'quandary': [130, 160, 200],
-  'stamp': [160, 190, 215],
+  'stamp': [165, 198, 225], // the bot's figures plus 5 / 8 / 10: a twist it does not use, a player can
   'no-shorties': [145, 180, 205],
   'full-lines': [120, 155, 205],
   'mirror': [130, 165, 190],
