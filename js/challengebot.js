@@ -52,10 +52,21 @@ function legal(state, g, move) {
   return true;
 }
 
-/** The deterministic moves open now: the engine's slides, swaps and nudges the rules allow, and block turns under the rotor rule. */
+/** The deterministic moves open now: the engine's slides, swaps and nudges the rules allow, corner-to-corner swaps when Diagonal Swap is on, and block turns under the rotor rule. */
 function openMoves(state, g) {
   const out = [];
   for (const m of g.moves) if (legal(state, g, m)) out.push({ kind: 'action', move: m, apply: (s) => applyWordAction(s, m) });
+  if (state.perk && state.perk.diagonalSwap && !moveRefusal(state, 'swap')) {
+    for (let r = 0; r + 1 < g.size; r++) {
+      for (let c = 0; c < g.size; c++) {
+        for (const dc of [1, -1]) {
+          if (c + dc < 0 || c + dc >= g.size) continue;
+          const m = { type: 'swap', r, c, r2: r + 1, c2: c + dc };
+          if (legal(state, g, m)) out.push({ kind: 'action', move: m, apply: (s) => applyWordAction(s, m) });
+        }
+      }
+    }
+  }
   if (state.rules && state.rules.rotor) {
     for (const cell of rotateBlocks(state)) for (const turns of [1, 2, 3]) out.push({ kind: 'rotate', move: { type: 'rotate', cell, turns }, apply: (s) => applyPerkAction(s, { type: 'rotate', cell, turns }) });
   }
@@ -75,13 +86,15 @@ function sampleLetter(bag, rng) {
 
 /**
  * The draws open now, each valued by what it is likely to set up: with Choice Draw the three letters are known
- * and the best of them counts; otherwise the average over a few letters sampled from the bag.
+ * and the best of them counts; with Peek the one letter coming is known; otherwise the average over a few
+ * letters sampled from the bag.
  */
 function openDraws(state, g, dict, rng) {
   if (moveRefusal(state, 'draw') || bagTotal(state.bag) === 0 || state.turns + 1 > turnLimit(state)) return [];
   const out = [];
   const choice = !!(state.rules && state.rules.choiceDraws);
   const options = choice ? peekDraws(state, 3) : null;
+  const known = !choice && state.perk && state.perk.peek ? peekDraws(state, 1)[0] : null; // Peek: the next letter is no secret
   for (let cell = 0; cell < state.board.length; cell++) {
     if (isLocked(state, cell)) continue; // drawing over a locked tile is allowed, but rarely what a player wants
     if (choice) {
@@ -99,14 +112,15 @@ function openDraws(state, g, dict, rng) {
       out.push({ kind: 'draw3', value: bestValue, move: { type: 'draw3', cell, pick: bestPick }, apply: (s) => applyPerkAction(s, { type: 'draw3', cell, pick: bestPick }) });
     } else {
       let sum = 0;
-      for (let k = 0; k < DRAW_SAMPLES; k++) {
+      const samples = known ? 1 : DRAW_SAMPLES;
+      for (let k = 0; k < samples; k++) {
         const after = { ...state, board: state.board.slice(), turns: state.turns + 1 };
-        after.board[cell] = sampleLetter(state.bag, rng);
+        after.board[cell] = known || sampleLetter(state.bag, rng);
         sum += Math.max(0, bestLockable(after, dict).value);
       }
       const r = g.rowOf(cell);
       const c = g.colOf(cell);
-      out.push({ kind: 'draw', value: sum / DRAW_SAMPLES, move: { type: 'draw', r, c }, apply: (s) => applyWordAction(s, { type: 'draw', r, c }) });
+      out.push({ kind: 'draw', value: sum / samples, move: { type: 'draw', r, c }, apply: (s) => applyWordAction(s, { type: 'draw', r, c }) });
     }
   }
   return out;
