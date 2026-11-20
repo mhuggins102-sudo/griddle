@@ -10,7 +10,7 @@
 
 import { randomSeed } from './rng.js';
 import { dailyKey, dailySpec, shiftDay, isDailyKey } from './daily.js';
-import { CHALLENGE_BY_ID, challengeState, trophyFor, nextTarget, betterTrophy, TROPHY_NAMES } from './challenges.js';
+import { CHALLENGE_BY_ID, challengeState, trophyFor, betterTrophy, TROPHIES, TROPHY_NAMES } from './challenges.js';
 import { openSheet, closeSheet } from './sheet.js';
 import { buildBoardSkeleton, tileIn, tileStep, animateAction, animateMoves, beginMoves, removeGhosts, clearTileEffects, wait, ANIM_MS } from './board.js';
 import {
@@ -399,7 +399,10 @@ export function initWordMode(ctx) {
     else if (opts.retry) say(`Replaying the board that ended your run · goal ${opts.retry.goal} · not counted in stats`, '', 3500);
     else if (opts.replay) say('Replaying this board · not counted in your stats', '', 3000);
     else if (w.game.mode === 'daily') say(`${w.game.daily === dailyKey() ? "Today's" : w.game.daily === shiftDay(dailyKey(), -1) ? "Yesterday's" : w.game.daily} Daily Grid · the same board for everyone · one try`, '', 3500);
-    else if (challenge()) say(`${challenge().name} · ${challenge().tag} · no undo`, '', 5000);
+    else if (challenge()) {
+      const goal = runGoal(challenge(), heldTrophy(challenge()));
+      say(`${challenge().name} · ${challenge().tag}${goal ? ` · ${TROPHY_NAMES[goal.name]} at ${goal.value}` : ''} · no undo`, '', 5000);
+    }
     else if (practiceLive()) say(`Practice board · Undo on${wordsOption() ? ' · words shown' : ''} · not counted in stats`, '', 3500);
     else if (w.game.practice && w.game.mode !== 'daily') say('Practice board · not counted in stats', '', 3500); // marked practice earlier, the setting since switched off
     ensureBotData(w.game);
@@ -599,33 +602,48 @@ export function initWordMode(ctx) {
     $('#w-rule-text').textContent = ch.tag;
   }
 
-  /** The bar in a challenge: the score against the next trophy's target; a trophy reached lights it (play goes on). */
+  /** The trophy the device holds on a challenge (from its record), or null. */
+  const heldTrophy = (ch) => (ctx.store.word && ctx.store.word.challenges && ctx.store.word.challenges[ch.id] && ctx.store.word.challenges[ch.id].trophy) || null;
+
+  /**
+   * The trophy a run is going for: the first one above what is held (and above anything reached so far this run),
+   * gold once gold is held, as { name, value }; null while the challenge has no targets.
+   */
+  function runGoal(ch, held, reached = null) {
+    if (!ch.targets) return null;
+    const base = betterTrophy(held, reached);
+    const i = Math.min(TROPHIES.length - 1, TROPHIES.indexOf(base) + 1);
+    return { name: TROPHIES[i], value: ch.targets[i] };
+  }
+
+  /** The bar in a challenge: the score against the target of the first trophy not yet held; a new trophy reached lights it (play goes on). */
   function renderChallengeBar(bar) {
     const g = w.game;
     const ch = challenge();
     const score = finalScore(g.state);
+    const held = heldTrophy(ch);
     const earned = trophyFor(ch, score);
-    const next = nextTarget(ch, score);
-    const has = !!ch.targets;
-    $('#w-goalbar-level').textContent = earned ? `${TROPHY_NAMES[earned]} ✓` : 'Challenge';
+    const isNew = earned && TROPHIES.indexOf(earned) > TROPHIES.indexOf(held); // a trophy this run adds to the record
+    const goal = runGoal(ch, held, earned);
+    const goalMet = goal && score >= goal.value; // only gold, held already and reached again
+    $('#w-goalbar-level').textContent = isNew ? `${TROPHY_NAMES[earned]} ✓` : 'Challenge';
     const text = $('#w-goalbar-text');
-    text.textContent = !has ? String(score) : next ? `${score} / ${next.value} ` : `${score} `;
-    if (has) text.insertAdjacentHTML('beforeend', `<i class="medal ${next ? next.name : 'gold'} won" aria-hidden="true"></i>`); // the trophy in play, or gold once it is won
-    const floor = !has ? 0 : earned ? ch.targets[['bronze', 'silver', 'gold'].indexOf(earned)] : 0; // the bar fills from the last trophy to the next
-    const p = !has ? 0 : next ? (score - floor) / Math.max(1, next.value - floor) : 1;
+    text.textContent = goal ? `${score} / ${goal.value} ` : String(score);
+    if (goal) text.insertAdjacentHTML('beforeend', `<i class="medal ${goal.name} won" aria-hidden="true"></i>`); // the trophy in play
+    const p = goal ? score / Math.max(1, goal.value) : 0;
     $('#w-goalbar-fill').style.setProperty('--p', String(Math.max(0, Math.min(1, p))));
-    bar.classList.toggle('reached', has && !next);
+    bar.classList.toggle('reached', !!goalMet);
     $('#w-advance').hidden = true;
-    if (earned && earned !== g.trophySeen && !w.over) {
-      // a trophy's target is passed mid-board: a flourish, and the board plays on for the next
+    if (isNew && earned !== g.trophySeen && !w.over) {
+      // a trophy the device did not hold is reached mid-board: a flourish, and the board plays on for the next
       g.trophySeen = earned;
       persist();
       bar.classList.add('celebrate');
       setTimeout(() => bar.classList.remove('celebrate'), 800);
       play('win');
-      say(`${TROPHY_NAMES[earned]} trophy reached${next ? ` · ${TROPHY_NAMES[next.name]} at ${next.value}` : ''}`, 'good', 3000);
+      say(`${TROPHY_NAMES[earned]} trophy reached${earned !== 'gold' ? ` · ${TROPHY_NAMES[goal.name]} at ${goal.value}` : ''}`, 'good', 3000);
     }
-    bar.setAttribute('aria-label', `${ch.name}: score ${score}${earned ? `, ${earned} trophy reached` : ''}${next ? `, ${next.name} at ${next.value}` : ''}`);
+    bar.setAttribute('aria-label', `${ch.name}: score ${score}${isNew ? `, ${earned} trophy reached` : ''}${goal ? `, ${goal.name} at ${goal.value}` : ''}`);
   }
 
   function renderGoalBar() {
@@ -2577,6 +2595,7 @@ export function initWordMode(ctx) {
     const chEarned = ch ? trophyFor(ch, total) : null;
     let chRec = null;
     let chNewBest = false;
+    let chHeld = null; // the trophy held before this run
     if (!g.practice && !perkGame && !ch && (previousOnBoard === undefined || total > previousOnBoard)) store.word.boards[boardKey] = total;
     const passed = g.mode === 'levels' && total >= g.goal;
     let isBest = false;
@@ -2587,6 +2606,7 @@ export function initWordMode(ctx) {
       if (ch) {
         store.word.challenges ||= {};
         const rec = store.word.challenges[ch.id] || { best: null, trophy: null, plays: 0 };
+        chHeld = rec.trophy || null;
         rec.plays = (rec.plays || 0) + 1;
         rec.at = new Date().toISOString();
         chNewBest = rec.best == null || total > rec.best;
@@ -2678,15 +2698,17 @@ export function initWordMode(ctx) {
       if (g.mode === 'daily') title = 'Daily Grid';
     }
     if (g.practice) line = `${levelsRun ? (passed ? `Goal ${g.goal} reached` : `Reached level ${g.level}`) + ' · ' : ''}Practice board · not counted in stats`;
-    let badge = null; // a challenge's standing beside the title: the trophy earned, or how far short of the next
+    let badge = null; // a challenge's standing beside the title: a trophy the run added, or how far short of the first not yet held
+    let chWon = false;
     if (ch) {
-      const next = nextTarget(ch, total);
+      const goal = runGoal(ch, chHeld);
+      chWon = !!chEarned && (TROPHIES.indexOf(chEarned) > TROPHIES.indexOf(chHeld) || chEarned === 'gold');
       title = 'Challenge over';
       line = '';
-      if (chEarned) badge = { trophy: chEarned, won: true, text: `${TROPHY_NAMES[chEarned]} trophy` };
-      else if (next) badge = { trophy: next.name, won: false, text: `${next.value - total} from ${next.name}` };
+      if (chWon) badge = { trophy: chEarned, won: true, text: `${TROPHY_NAMES[chEarned]} trophy` };
+      else if (goal) badge = { trophy: goal.name, won: false, text: `${Math.max(1, goal.value - total)} from ${goal.name}` };
     }
-    play(ch ? (chEarned ? 'fanfare' : 'lock') : levelsRun ? (passed ? 'fanfare' : 'fail') : isBoardFull(st) ? 'fanfare' : 'lock');
+    play(ch ? (chWon ? 'fanfare' : 'lock') : levelsRun ? (passed ? 'fanfare' : 'fail') : isBoardFull(st) ? 'fanfare' : 'lock');
     w.shareText = (ch ? `${ch.name} challenge${chEarned ? ` · ${TROPHY_NAMES[chEarned]}` : ''} · ` : levelsRun ? `Level ${g.level} ${passed ? 'passed' : 'failed'} · ` : g.retry ? `Level ${g.retry.level} retry · ` : g.mode === 'daily' ? `Daily Grid ${g.daily} · ` : '') + wordShareLine(total, st.words, g.size === 6 ? 'GridLock 6×6' : 'GridLock');
     const showNext = levelsRun && passed && !g.replay;
     w.nextLevel = passed ? g.level + 1 : 1;
