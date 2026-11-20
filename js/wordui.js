@@ -589,11 +589,11 @@ export function initWordMode(ctx) {
     renderGoalBar();
   }
 
-  /** The twist written over the board for the whole of a challenge. */
+  /** The twist written over the board for the whole of a challenge; gone once the board is over (the result card says what matters then). */
   function renderRule() {
     const ch = challenge();
     const line = $('#w-rule');
-    line.hidden = !ch;
+    line.hidden = !ch || w.over;
     if (!ch) return;
     $('#w-rule-name').textContent = `${ch.name}:`;
     $('#w-rule-text').textContent = ch.tag;
@@ -2691,6 +2691,7 @@ export function initWordMode(ctx) {
     const showNext = levelsRun && passed && !g.replay;
     w.nextLevel = passed ? g.level + 1 : 1;
     renderHud();
+    renderRule();
     renderBoard();
     renderBag();
     renderLocked();
