@@ -3,9 +3,9 @@
 // and the score distribution sets the trophy targets. Prints a table; --write stores the targets in
 // js/challenge-targets.js and the distributions (every score) in data/challenge-calibration.json.
 //   node tools/calibrate-challenges.js [--games 200] [--vocab 8000] [--id lucky-dip,stamp] [--write] [--threads 4]
-//   node tools/calibrate-challenges.js --retarget [--bronze 0.5] [--silver 0.9] [--gold 0.99] [--write]
-// Targets: bronze at the bot's median, silver at its 90th percentile, gold at its 99th, rounded up to a
-// multiple of 5. --vocab caps the bot's vocabulary at the N most common words (a player may lock any listed
+//   node tools/calibrate-challenges.js --retarget [--bronze 0.3] [--silver 0.6] [--gold 0.9] [--write]
+// Targets: bronze at the bot's 30th percentile, silver at its 60th, gold at its 90th, rounded up to a
+// multiple of 5 (a greedy bot that never misses a word outscores most people). --vocab caps the bot's vocabulary at the N most common words (a player may lock any listed
 // word; the bot with the whole common tier knows some 20,000, far more than a person sees). --retarget
 // re-derives the targets from the stored distributions with other percentiles, without playing again.
 // The table also shows how far each twist moved the bot's play: its draws per game, the share of games that
@@ -58,9 +58,9 @@ if (!isMainThread) {
   const only = opt('id', null);
   const write = args.includes('--write');
   const retarget = args.includes('--retarget');
-  const P_BRONZE = Number(opt('bronze', 0.5));
-  const P_SILVER = Number(opt('silver', 0.9));
-  const P_GOLD = Number(opt('gold', 0.99));
+  const P_BRONZE = Number(opt('bronze', 0.3));
+  const P_SILVER = Number(opt('silver', 0.6));
+  const P_GOLD = Number(opt('gold', 0.9));
   const vocab = Number(opt('vocab', 0)) || 0;
   const threads = Math.max(1, Math.min(Number(opt('threads', cpus().length)), 16));
   const wanted = only ? only.split(',') : null; // --id a,b,c
@@ -80,7 +80,7 @@ if (!isMainThread) {
     for (const c of list) {
       const d = prev[c.id];
       if (!d) continue;
-      if (d.scores) results.set(c.id, { id: c.id, scores: d.scores.slice(), draws: d.draws, same: d.same, plainMean: d.plainMean, ms: 0 });
+      if (d.scores) results.set(c.id, { id: c.id, scores: d.scores.slice(), draws: d.draws, same: d.same, plainMean: d.vsPlain === null || d.vsPlain === undefined ? undefined : d.mean - d.vsPlain, ms: 0 }); // the twist's effect is kept as recorded
       else {
         const keys = ['p50', 'p75', 'p90', 'p95', 'p99', 'max'];
         results.set(c.id, { id: c.id, scores: null, summary: d, ms: 0 });
